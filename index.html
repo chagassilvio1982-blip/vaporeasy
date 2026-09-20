@@ -7656,8 +7656,8 @@ body.vp-role-collaborator #agendaFilterBar{display:none!important}
       <div class="vp-receipt-title">RECIBO DE PAGAMENTO</div>
       <div class="vp-receipt-number">Nº ${esc(receiptNumber(row))}</div>
       <div class="vp-r-client"><span>RECEBEMOS DE</span><strong>${esc(client)}</strong><p>O valor abaixo, referente ao serviço descrito neste recibo.</p></div>
-      <div class="vp-r-service"><span>SERVIÇO / REFERÊNCIA</span><strong>${esc(service)}</strong></div>
-      <div class="vp-r-details"><div><span>VEÍCULO / IDENTIFICAÇÃO</span><b>${esc(vehicle)}</b></div><div><span>DATA DO SERVIÇO / REFERÊNCIA</span><b>${esc(financeTransactionDate(row).split('-').reverse().join('/'))}</b></div></div>
+      <div class="vp-r-service"><span>SERVIÇO</span><strong>${esc(service)}</strong></div>
+      <div class="vp-r-details"><div><span>VEÍCULO / IDENTIFICAÇÃO</span><b>${esc(vehicle)}</b></div><div><span>DATA DO SERVIÇO</span><b>${esc(financeTransactionDate(row).split('-').reverse().join('/'))}</b></div></div>
       <div class="vp-r-payment"><span>PAGAMENTO REGISTRADO</span><b>${esc(method)} • ${esc(paidDate)}</b></div>
       <div class="vp-r-total"><span>TOTAL RECEBIDO</span><strong>${moneyBR(row.value||0)}</strong></div>
       <div class="vp-r-footer"><b>Obrigado por confiar seu veículo à Vaporeasy.</b><p>Cuidado com seu carro. Comodidade para você.</p></div>`;
@@ -7783,7 +7783,7 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
 @media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.vp-r-total{background:white;color:#193b59;border:2px solid #193b59}.vp-r-total>span{color:#193b59}.vp-r-payment{background:white;border:1px solid #dae4ea}.vp-r-total,.vp-r-payment,.vp-r-details{break-inside:avoid}}
 </style>
 
-<!-- VAPOREASY_BUILD: payment-finish-water-multireceipt-v9-2026-09-20 -->
+<!-- VAPOREASY_BUILD: payment-finish-water-multireceipt-v11-final-documents-2026-09-20 -->
 <style id="vp-v9-payment-water-receipts">
 /* Contador estimado de economia de água */
 .vp-water-card{margin:14px 0 18px;padding:18px;border:1px solid #2c5368;border-radius:16px;background:linear-gradient(145deg,#0d2c40,#12384d);box-shadow:0 8px 20px rgba(0,0,0,.16);color:#eefaff}
@@ -7855,7 +7855,8 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
   function vpOpenFinishNotice(a){
     if(!a)return;vpFinishAppointment=a;
     const value=vpAppointmentValue(a);const content=document.getElementById('vpFinishContent');
-    if(content)content.innerHTML=`<div class="vp-finish-summary"><div class="vp-finish-field"><span>Cliente</span><b>${vpEscape(a.client||'Não informado')}</b></div><div class="vp-finish-field"><span>Veículo</span><b>${vpEscape(a.vehicle||'Não informado')}</b></div><div class="vp-finish-field"><span>Serviço</span><b>${vpEscape(a.service||'Serviço realizado')}</b></div><div class="vp-finish-field"><span>Valor</span><b>${value>0?vpMoney(value):'A definir'}</b></div></div><div class="vp-payment-box"><span>Dados para pagamento</span><div class="vp-payment-pix"><small>PIX</small><strong>${VP_PAYMENT.pix}</strong></div><div class="vp-bank-lines"><b>Favorecido:</b> ${VP_PAYMENT.favored}<br><b>${VP_PAYMENT.bank}</b> • Agência ${VP_PAYMENT.agency} • C/C ${VP_PAYMENT.account}</div></div><div class="vp-finish-note">O lançamento financeiro permanece como <b>pendente</b> até a confirmação do pagamento. O recibo só é liberado depois de marcar como pago.</div>`;
+    const logo=document.querySelector('.official-logo')?.src||document.querySelector('.vp-receipt-brand img')?.src||'';
+    if(content)content.innerHTML=`<div class="vp-finish-document"><div class="vp-finish-brand">${logo?`<img alt="Vaporeasy" src="${logo}">`:''}</div><div class="vp-finish-title">SEU CARRO, BEM CUIDADO.</div><div class="vp-finish-subtitle">Confirmação de serviço realizado</div><div class="vp-finish-greeting">Olá, <strong>${vpEscape(a.client||'cliente')}!</strong></div><p class="vp-finish-copytext">Concluímos o cuidado com seu veículo. Obrigado por escolher a Vaporeasy e confiar em nosso trabalho.</p><div class="vp-finish-rule"></div><div class="vp-finish-service"><span>SERVIÇO REALIZADO</span><strong>${vpEscape(a.service||'Serviço realizado')}</strong></div><div class="vp-finish-pair"><div><span>VEÍCULO / IDENTIFICAÇÃO</span><b>${vpEscape(a.vehicle||'Não informado')}</b></div><div><span>DATA DO ATENDIMENTO</span><b>${vpEscape(vpDateBr(a.date||a.serviceDate||a.completedAt||''))}</b></div></div><div class="vp-finish-value"><span>VALOR A PAGAR</span><strong>${value>0?vpMoney(value):'A definir'}</strong></div><div class="vp-finish-pixbox"><span>PAGUE COM PIX</span><strong>${VP_PAYMENT.pix}</strong><div>Favorecido: ${VP_PAYMENT.favored}</div><small>Banco ${VP_PAYMENT.bank}</small></div><div class="vp-finish-bank"><span>TRANSFERÊNCIA BANCÁRIA</span><div>${VP_PAYMENT.bank} &nbsp;|&nbsp; Agência: ${VP_PAYMENT.agency} &nbsp;|&nbsp; Conta-corrente: ${VP_PAYMENT.account}</div></div><div class="vp-finish-rule"></div><p class="vp-finish-after">Após a confirmação do pagamento, emitiremos seu recibo.</p><b class="vp-finish-tagline">Cuidado com seu carro. Comodidade para você.</b></div>`;
     const wa=document.getElementById('vpFinishWhatsapp');
     let href='';try{if(typeof commercialPhone==='function'&&typeof commercialWaHref==='function')href=commercialWaHref(commercialPhone(a.client||''),vpFinishMessage(a))}catch(e){}
     if(wa){wa.href=href||'#';wa.classList.toggle('disabled',!href);wa.textContent=href?'Enviar no WhatsApp':'WhatsApp sem telefone'}
@@ -7890,11 +7891,11 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
     const client=vpReceiptClient(rows[0]);const total=vpReceiptTotal(rows);const id=vpReceiptId(rows);
     if(rows.length===1){
       const r=rows[0];
-      return `<div class="vp-receipt-title">RECIBO DE PAGAMENTO</div><div class="vp-receipt-number">Nº ${vpEscape(id)}</div><div class="vp-r-client"><span>RECEBEMOS DE</span><strong>${vpEscape(client)}</strong><p>O valor abaixo, referente ao serviço descrito neste recibo.</p></div><div class="vp-r-service"><span>SERVIÇO / REFERÊNCIA</span><strong>${vpEscape(vpReceiptService(r))}</strong></div><div class="vp-r-details"><div><span>VEÍCULO / IDENTIFICAÇÃO</span><b>${vpEscape(r.vehicle||'Não informado')}</b></div><div><span>DATA DO SERVIÇO / REFERÊNCIA</span><b>${vpEscape(vpDateBr(vpReceiptRowDate(r)))}</b></div></div><div class="vp-r-payment"><span>PAGAMENTO REGISTRADO</span><b>${vpEscape(r.paymentMethod||'Não informado')} • ${vpEscape(vpDateBr(vpReceiptPaidDate(r)))}</b></div><div class="vp-r-total"><span>TOTAL RECEBIDO</span><strong>${vpMoney(total)}</strong></div><div class="vp-r-footer"><b>Obrigado por confiar seu veículo à Vaporeasy.</b><p>Cuidado com seu carro. Comodidade para você.</p></div>`;
+      return `<div class="vp-receipt-title">RECIBO DE PAGAMENTO</div><div class="vp-receipt-number">Nº ${vpEscape(id)}</div><div class="vp-r-client"><span>RECEBEMOS DE</span><strong>${vpEscape(client)}</strong><p>O valor abaixo, referente ao serviço descrito neste recibo.</p></div><div class="vp-r-service"><span>SERVIÇO</span><strong>${vpEscape(vpReceiptService(r))}</strong></div><div class="vp-r-details"><div><span>VEÍCULO / IDENTIFICAÇÃO</span><b>${vpEscape(r.vehicle||'Não informado')}</b></div><div><span>DATA DO SERVIÇO</span><b>${vpEscape(vpDateBr(vpReceiptRowDate(r)))}</b></div></div><div class="vp-r-payment"><span>PAGAMENTO REGISTRADO</span><b>${vpEscape(r.paymentMethod||'Não informado')} • ${vpEscape(vpDateBr(vpReceiptPaidDate(r)))}</b></div><div class="vp-r-total"><span>TOTAL RECEBIDO</span><strong>${vpMoney(total)}</strong></div><div class="vp-r-footer"><b>Obrigado por confiar seu veículo à Vaporeasy.</b><p>Cuidado com seu carro. Comodidade para você.</p></div>`;
     }
     const items=rows.map(r=>`<div class="vp-r-item"><div class="vp-r-item-top"><b>${vpEscape(vpReceiptService(r))}</b><strong>${vpMoney(r.value||r.valor||0)}</strong></div><div class="vp-r-item-meta">${vpEscape(r.vehicle||'Veículo não informado')} • serviço em ${vpEscape(vpDateBr(vpReceiptRowDate(r)))}</div></div>`).join('');
     const payments=rows.map(r=>`<div>${vpEscape(r.paymentMethod||'Forma não informada')} • ${vpEscape(vpDateBr(vpReceiptPaidDate(r)))}</div>`).join('');
-    return `<div class="vp-receipt-title">RECIBO DE PAGAMENTO</div><div class="vp-receipt-number">Nº ${vpEscape(id)}</div><div class="vp-r-client"><span>RECEBEMOS DE</span><strong>${vpEscape(client)}</strong><p>Os valores abaixo, referentes aos serviços discriminados neste recibo.</p></div><div class="vp-r-service"><span>SERVIÇOS / REFERÊNCIAS</span><div class="vp-r-items">${items}</div></div><div class="vp-r-payment"><span>PAGAMENTOS REGISTRADOS</span><div class="vp-r-payment-list">${payments}</div></div><div class="vp-r-total"><span>TOTAL RECEBIDO</span><strong>${vpMoney(total)}</strong></div><div class="vp-r-footer"><b>Obrigado por confiar seus veículos à Vaporeasy.</b><p>Cuidado com seu carro. Comodidade para você.</p></div>`;
+    return `<div class="vp-receipt-title">RECIBO DE PAGAMENTO</div><div class="vp-receipt-number">Nº ${vpEscape(id)}</div><div class="vp-r-client"><span>RECEBEMOS DE</span><strong>${vpEscape(client)}</strong><p>Os valores abaixo, referentes aos serviços discriminados neste recibo.</p></div><div class="vp-r-service"><span>SERVIÇOS</span><div class="vp-r-items">${items}</div></div><div class="vp-r-payment"><span>PAGAMENTOS REGISTRADOS</span><div class="vp-r-payment-list">${payments}</div></div><div class="vp-r-total"><span>TOTAL RECEBIDO</span><strong>${vpMoney(total)}</strong></div><div class="vp-r-footer"><b>Obrigado por confiar seus veículos à Vaporeasy.</b><p>Cuidado com seu carro. Comodidade para você.</p></div>`;
   }
   function vpShowReceipt(rows){
     if(!rows?.length)return;vpReceiptRows=rows.slice();const p=document.getElementById('vpReceiptPaper');if(p)p.innerHTML=vpReceiptBody(vpReceiptRows);const m=document.getElementById('vpReceiptModal');if(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}
@@ -7918,9 +7919,39 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
   };
   window.printFinanceReceipt=function(){
     if(!vpReceiptRows.length)return;const paper=document.getElementById('vpReceiptPaper');if(!paper)return;
-    const logo=document.querySelector('.official-logo')?.src||document.querySelector('.vp-receipt-brand img')?.src||'';const w=window.open('','_blank','width=760,height=900');if(!w){showToast?.('O navegador bloqueou a janela de impressão.','success');return}
-    const receiptStyles=(document.getElementById('vp-receipt-premium-style')?.textContent||'')+(document.getElementById('vp-v9-payment-water-receipts')?.textContent||'');
-    w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${vpEscape(vpReceiptId(vpReceiptRows))}</title><style>body{font-family:Arial,sans-serif;color:#193b59;margin:0;padding:28px;max-width:650px;box-sizing:border-box}.logo{width:230px;max-width:80%;height:auto;margin-bottom:22px}.receipt-brand{border-bottom:1px solid #dae4ea;margin-bottom:24px}${receiptStyles}@page{size:A5;margin:12mm}@media print{body{padding:0;max-width:none}.vp-finish-modal,.vp-receipt-toolbar,.vp-finance-select{display:none!important}}</style></head><body><div class="receipt-brand">${logo?'<img class="logo" alt="Vaporeasy" src="'+logo+'">':''}</div><div class="vp-receipt-paper">${paper.innerHTML}</div><script>window.onload=()=>{window.print()}<\/script></body></html>`);w.document.close();
+    const logo=document.querySelector('.official-logo')?.src||document.querySelector('.vp-receipt-brand img')?.src||'';const w=window.open('','_blank','width=900,height=1100');if(!w){showToast?.('O navegador bloqueou a janela de impressão.','success');return}
+    const receiptStyles=(document.getElementById('vp-receipt-premium-style')?.textContent||'')+(document.getElementById('vp-v9-payment-water-receipts')?.textContent||'')+(document.getElementById('vp-final-document-design')?.textContent||'');
+    w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${vpEscape(vpReceiptId(vpReceiptRows))}</title><style>
+      *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      html,body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#193b59}
+      body{border-top:10px solid #20b7d7}
+      .receipt-page{width:100%;max-width:794px;min-height:1090px;margin:0 auto;padding:38px 58px 42px;background:#fff}
+      .receipt-brand{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding-bottom:28px;border-bottom:2px solid #dbe5ea;margin-bottom:20px}
+      .logo{width:290px;max-width:55%;height:auto;display:block}
+      .receipt-company{font-size:11px;line-height:1.5;color:#647887;text-align:right}
+      .vp-receipt-paper{padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+      .vp-receipt-title{font-size:32px!important;letter-spacing:.02em!important;margin:0 0 6px!important;color:#193b59!important}
+      .vp-receipt-number{font-size:16px!important;margin:0 0 42px!important;color:#647887!important}
+      .vp-r-client>span,.vp-r-service>span,.vp-r-details span,.vp-r-payment>span,.vp-r-total>span{font-size:13px!important;letter-spacing:.04em!important}
+      .vp-r-client>strong{font-size:30px!important;margin-top:9px!important}
+      .vp-r-client p{font-size:17px!important;line-height:1.6!important;margin:18px 0 28px!important}
+      .vp-r-service{padding-top:26px!important;border-top:2px solid #dbe5ea!important}
+      .vp-r-service>strong{font-size:23px!important;margin-top:8px!important}
+      .vp-r-details{gap:42px!important;margin:36px 0 30px!important}
+      .vp-r-details b{font-size:20px!important;margin-top:8px!important}
+      .vp-r-payment{padding:24px 28px!important;border-radius:16px!important;margin:0 0 26px!important;background:#edf5f8!important}
+      .vp-r-payment b{font-size:21px!important;margin-top:10px!important}
+      .vp-r-total{padding:30px 28px!important;border-radius:16px!important;background:#193f61!important;color:#fff!important}
+      .vp-r-total>span{color:#fff!important;font-size:14px!important}
+      .vp-r-total>strong{font-size:44px!important;color:#fff!important}
+      .vp-r-footer{margin:32px 0 0!important;font-size:18px!important;line-height:1.55!important}
+      .vp-r-footer p{font-size:16px!important;margin-top:4px!important}
+      .vp-r-items{gap:12px!important}.vp-r-item{padding:14px 0!important}.vp-r-item-top b,.vp-r-item-top strong{font-size:17px!important}.vp-r-item-meta,.vp-r-payment-list{font-size:14px!important}
+      ${receiptStyles}
+      @page{size:A4;margin:0}
+      @media print{body{border-top:3mm solid #20b7d7}.receipt-page{width:210mm;min-height:294mm;max-width:none;padding:12mm 15mm 14mm}.logo{width:72mm}.vp-finish-modal,.vp-receipt-toolbar,.vp-finance-select,.vp-receipt-actions{display:none!important}}
+      @media(max-width:700px){.receipt-page{min-height:auto;padding:26px 24px}.logo{width:240px}.vp-receipt-title{font-size:27px!important}.vp-r-client>strong{font-size:25px!important}.vp-r-total>strong{font-size:36px!important}.vp-r-details{grid-template-columns:1fr 1fr!important;gap:20px!important}}
+    </style></head><body><main class="receipt-page"><div class="receipt-brand">${logo?'<img class="logo" alt="Vaporeasy" src="'+logo+'">':''}<div class="receipt-company">Vaporeasy<br>Estética automotiva em domicílio</div></div><div class="vp-receipt-paper">${paper.innerHTML}</div></main><script>window.onload=()=>{setTimeout(()=>window.print(),180)}<\/script></body></html>`);w.document.close();
   };
   window.shareFinanceReceipt=async function(){if(!vpReceiptRows.length)return;const txt=vpReceiptText(vpReceiptRows);try{if(navigator.share){await navigator.share({title:'Recibo Vaporeasy',text:txt});return}if(navigator.clipboard){await navigator.clipboard.writeText(txt);showToast?.('Recibo copiado para compartilhar.','success')}}catch(e){if(e?.name!=='AbortError')showToast?.('Não foi possível compartilhar o recibo.','success')}};
 
@@ -7944,6 +7975,59 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',vpInit);else vpInit();
 })();
 </script>
+
+
+<style id="vp-final-document-design">
+/* Vaporeasy • documentos finais aprovados • 20/09/2026 */
+:root{--vp-doc-navy:#193f61;--vp-doc-cyan:#20b7d7;--vp-doc-muted:#667d90;--vp-doc-line:#d9e4ea;--vp-doc-soft:#eef5f8}
+
+/* Recibo: visual executivo aprovado */
+.vp-receipt-sheet{background:#fff!important;border-top:6px solid var(--vp-doc-cyan)!important;color:var(--vp-doc-navy)!important}
+.vp-receipt-head{padding:4px 2px 20px!important;border-bottom:1px solid var(--vp-doc-line)!important;margin-bottom:20px!important}
+.vp-receipt-brand img{width:260px!important;max-width:72vw!important}
+.vp-receipt-brand small{display:none!important}
+.vp-receipt-paper{background:#fff!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;color:var(--vp-doc-navy)!important}
+.vp-receipt-title{text-align:left!important;color:var(--vp-doc-navy)!important;font-size:28px!important;font-weight:900!important;letter-spacing:.02em!important;margin:0 0 4px!important}
+.vp-receipt-number{text-align:left!important;color:var(--vp-doc-muted)!important;font-size:14px!important;margin:0 0 34px!important}
+.vp-r-client>span,.vp-r-service>span,.vp-r-details span,.vp-r-payment>span,.vp-r-total>span{font-size:12px!important;letter-spacing:.035em!important;font-weight:800!important;color:var(--vp-doc-muted)!important}
+.vp-r-client>strong{font-size:27px!important;color:var(--vp-doc-navy)!important;margin-top:8px!important}
+.vp-r-client p{font-size:16px!important;line-height:1.55!important;color:var(--vp-doc-muted)!important;margin:16px 0 26px!important}
+.vp-r-service{border-top:1px solid var(--vp-doc-line)!important;padding-top:24px!important}
+.vp-r-service>strong{font-size:22px!important;color:var(--vp-doc-navy)!important;margin-top:8px!important}
+.vp-r-details{grid-template-columns:1fr 1fr!important;gap:34px!important;margin:32px 0 28px!important}
+.vp-r-details b{font-size:19px!important;color:var(--vp-doc-navy)!important;margin-top:8px!important}
+.vp-r-payment{background:var(--vp-doc-soft)!important;border:0!important;border-radius:16px!important;padding:22px 26px!important;margin:0 0 26px!important}
+.vp-r-payment b{font-size:20px!important;color:var(--vp-doc-navy)!important;margin-top:10px!important}
+.vp-r-total{display:flex!important;align-items:center!important;justify-content:space-between!important;background:var(--vp-doc-navy)!important;color:#fff!important;border:0!important;border-radius:16px!important;padding:28px 26px!important}
+.vp-r-total>span{color:#fff!important;font-size:14px!important}.vp-r-total>strong{color:#fff!important;font-size:42px!important}
+.vp-r-footer{margin:30px 0 0!important;font-size:17px!important;line-height:1.5!important;color:var(--vp-doc-navy)!important}.vp-r-footer p{font-size:15px!important;color:var(--vp-doc-muted)!important;margin:4px 0 0!important}
+.vp-receipt-actions{margin-top:18px!important}
+.receipt-company{display:none!important}.receipt-brand{justify-content:flex-start!important}.receipt-brand .logo{width:300px!important;max-width:58%!important}
+
+/* Aviso de conclusão/pagamento: mesma linguagem visual do documento aprovado */
+.vp-finish-sheet{width:min(600px,100%)!important;background:#fff!important;border-top:6px solid var(--vp-doc-cyan)!important;color:var(--vp-doc-navy)!important;padding:18px 24px 22px!important}
+.vp-finish-head{padding:0 0 12px!important;border:0!important;margin-bottom:0!important}.vp-finish-head>div{display:none!important}.vp-finish-close{margin-left:auto!important}
+.vp-finish-document{padding:0 2px 4px}.vp-finish-brand{padding:0 0 22px;border-bottom:1px solid var(--vp-doc-line);margin-bottom:16px}.vp-finish-brand img{display:block;width:270px;max-width:72vw;height:auto}
+.vp-finish-title{font-size:29px;line-height:1.15;font-weight:900;letter-spacing:.015em;color:var(--vp-doc-navy)}.vp-finish-subtitle{margin-top:8px;font-size:18px;color:var(--vp-doc-muted)}
+.vp-finish-greeting{margin-top:28px;font-size:21px;color:var(--vp-doc-navy)}.vp-finish-copytext{font-size:15px;line-height:1.6;margin:10px 0 22px;color:var(--vp-doc-navy)}.vp-finish-rule{height:1px;background:var(--vp-doc-line);margin:20px 0}
+.vp-finish-service span,.vp-finish-pair span,.vp-finish-value span,.vp-finish-pixbox>span,.vp-finish-bank>span{display:block;font-size:11px;font-weight:800;letter-spacing:.045em;color:var(--vp-doc-muted)}
+.vp-finish-service strong{display:block;margin-top:8px;font-size:21px;color:var(--vp-doc-navy)}.vp-finish-pair{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin:28px 0}.vp-finish-pair b{display:block;margin-top:7px;font-size:18px;color:var(--vp-doc-navy);overflow-wrap:anywhere}
+.vp-finish-value{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:25px 26px;border-radius:16px;background:var(--vp-doc-navy);color:#fff}.vp-finish-value span{color:#fff}.vp-finish-value strong{font-size:38px;white-space:nowrap}
+.vp-finish-pixbox{margin-top:24px;padding:22px 26px;border-radius:16px;background:var(--vp-doc-soft)}.vp-finish-pixbox>span{color:var(--vp-doc-navy)}.vp-finish-pixbox>strong{display:block;margin:12px 0 8px;font-size:26px;line-height:1.2;color:var(--vp-doc-navy);overflow-wrap:anywhere}.vp-finish-pixbox div{font-size:16px;line-height:1.5}.vp-finish-pixbox small{display:block;margin-top:3px;font-size:15px;color:var(--vp-doc-muted)}
+.vp-finish-bank{margin-top:26px}.vp-finish-bank div{margin-top:12px;font-size:14px;line-height:1.6;color:var(--vp-doc-navy)}.vp-finish-after{font-size:14px;line-height:1.5;margin:0 0 14px}.vp-finish-tagline{font-size:15px}
+.vp-finish-actions{margin-top:20px!important}.vp-finish-copy{background:var(--vp-doc-soft)!important;color:var(--vp-doc-navy)!important}.vp-finish-done{background:#169fd0!important}
+
+@media(max-width:430px){
+ .vp-receipt-title{font-size:24px!important}.vp-r-client>strong{font-size:23px!important}.vp-r-details{grid-template-columns:1fr!important;gap:16px!important}.vp-r-total>strong{font-size:32px!important}
+ .vp-finish-sheet{padding:14px 16px 18px!important}.vp-finish-title{font-size:24px}.vp-finish-subtitle{font-size:16px}.vp-finish-greeting{font-size:19px}.vp-finish-pair{grid-template-columns:1fr;gap:15px}.vp-finish-value{align-items:flex-start;flex-direction:column}.vp-finish-value strong{font-size:32px}.vp-finish-pixbox>strong{font-size:22px}
+}
+@media print{
+ .receipt-company{display:none!important}.receipt-brand{justify-content:flex-start!important;border-bottom:1px solid var(--vp-doc-line)!important}.receipt-brand .logo{width:78mm!important;max-width:58%!important}
+ .vp-receipt-title{font-size:8.2mm!important}.vp-receipt-number{font-size:4.1mm!important;margin-bottom:11mm!important}
+ .vp-r-client>strong{font-size:7.6mm!important}.vp-r-client p{font-size:4.5mm!important}.vp-r-service>strong{font-size:6.1mm!important}.vp-r-details b{font-size:5.2mm!important}.vp-r-payment b{font-size:5.4mm!important}.vp-r-total>strong{font-size:11.5mm!important}
+ .vp-r-total{background:var(--vp-doc-navy)!important;color:#fff!important}.vp-r-total>span{color:#fff!important}.vp-r-payment{background:var(--vp-doc-soft)!important;border:0!important}
+}
+</style>
 
 </body>
 </html>
