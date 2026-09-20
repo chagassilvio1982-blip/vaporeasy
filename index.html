@@ -5,7 +5,23 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#06111f" />
-<title>Vaporeasy • App interno</title>
+<title>Vaporeasy • Agendamento online</title>
+<meta name="description" content="Escolha o serviço, consulte os horários disponíveis e faça seu agendamento com a Vaporeasy." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Vaporeasy" />
+<meta property="og:title" content="Vaporeasy • Agendamento online" />
+<meta property="og:description" content="Escolha o serviço, consulte os horários disponíveis e faça seu agendamento com a Vaporeasy." />
+<meta property="og:url" content="https://vaporeasy.vercel.app/?booking=1&amp;share=1" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Vaporeasy • Agendamento online" />
+<meta name="twitter:description" content="Escolha o serviço, consulte os horários disponíveis e faça seu agendamento com a Vaporeasy." />
+<script>
+(function(){
+  try{
+    if(new URLSearchParams(location.search).get('booking')!=='1') document.title='Vaporeasy • App interno';
+  }catch(e){document.title='Vaporeasy • App interno';}
+})();
+</script>
 <style>
 :root{--bg:#020b13;--bg2:#061522;--panel:#0b1b28;--panel2:#0f2535;--brand:#11b8ff;--brand2:#0a8fe7;--text:#f7fbff;--muted:#91a9bc;--line:#19384d;--green:#12b969;--red:#df5a62}
 *{box-sizing:border-box;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif}
@@ -1759,8 +1775,8 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
     <input id="onlineBookingBaseUrl" type="url" inputmode="url" placeholder="https://seusite.com/vaporeasy.html" oninput="saveOnlineBookingBaseUrl()">
     <div class="online-help">Depois que este HTML estiver publicado na internet, cole acima o endereço público dele. O link enviado ao cliente usa apenas a Publishable key do Supabase.</div>
     <div class="online-admin-actions">
-      <button class="btn-primary" type="button" onclick="copyOnlineBookingLink()">Copiar link de agendamento</button>
-      <button class="btn-green" type="button" onclick="copyOnlineBookingWhatsApp()">Copiar mensagem do WhatsApp</button>
+      <button class="btn-primary" type="button" onclick="copyOnlineBookingLink()">Copiar somente o link</button>
+      <button class="btn-green" type="button" onclick="copyOnlineBookingWhatsApp()">Copiar mensagem pronta para WhatsApp</button>
       <button class="btn-ghost" type="button" onclick="previewOnlineBooking()">Pré-visualizar</button>
     </div>
     <div id="onlineBookingAdminNotice" class="notice hidden" style="margin-top:12px"></div>
@@ -1769,11 +1785,18 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
     <h3 style="margin-top:0">Como funciona</h3>
     <div class="online-steps">
       <div><b>1.</b><span>Cliente escolhe serviço e data.</span></div>
-      <div><b>2.</b><span>O sistema mostra somente horários livres.</span></div>
-      <div><b>3.</b><span>Ele informa nome, telefone e veículo.</span></div>
-      <div><b>4.</b><span>Ao reservar, o horário entra como <b>Agendado</b> na Vaporeasy.</span></div>
+      <div><b>2.</b><span>Serviços com reserva direta mostram somente horários realmente livres.</span></div>
+      <div><b>3.</b><span>Serviços longos podem virar uma solicitação para confirmação da Vaporeasy.</span></div>
+      <div><b>4.</b><span>Novos clientes e veículos são cadastrados automaticamente no banco.</span></div>
     </div>
-    <div class="online-security-note"><b>Importante:</b> a agenda pública usa funções seguras no Supabase para não expor sua lista de clientes. O arquivo SQL de configuração acompanha esta versão.</div>
+    <div class="online-security-note"><b>Importante:</b> a agenda pública usa funções seguras no Supabase para não expor sua lista de clientes.</div>
+  </div>
+  <div class="card online-admin-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div><h3 style="margin:0">Solicitações de serviços longos</h3><div class="online-help">Ex.: polimento técnico. A solicitação não bloqueia a agenda até vocês definirem o horário.</div></div>
+      <button class="btn-ghost" type="button" onclick="loadBookingRequestsAdmin()">Atualizar</button>
+    </div>
+    <div id="onlineBookingRequestsList" style="margin-top:12px"><div class="muted">Abra esta tela para carregar as solicitações.</div></div>
   </div>
 </section>
 
@@ -3885,11 +3908,32 @@ function appointmentInterval(a){
 function appointmentHasStoredConflict(target, dayList){
   const ti=appointmentInterval(target);
   if(!ti)return false;
+
+  const targetCloudId=String(target?.cloudId||'').trim();
+  const targetClient=normalizeText(target?.client||'');
+  const targetVehicle=cleanPlate(target?.vehicle||'');
+  const targetDate=String(target?.date||'');
+  const targetTime=String(target?.time||'').slice(0,5);
+
   return (dayList||[]).some(other=>{
     if(other===target)return false;
     if(target.id&&other.id&&String(target.id)===String(other.id))return false;
+
+    // Ignora duplicatas do mesmo compromisso criadas durante a sincronização
+    // entre o armazenamento local e a nuvem.
+    const otherCloudId=String(other?.cloudId||'').trim();
+    if(targetCloudId && otherCloudId && targetCloudId===otherCloudId)return false;
+
+    const sameFingerprint=
+      normalizeText(other?.client||'')===targetClient &&
+      cleanPlate(other?.vehicle||'')===targetVehicle &&
+      String(other?.date||'')===targetDate &&
+      String(other?.time||'').slice(0,5)===targetTime;
+    if(sameFingerprint)return false;
+
     if(normalizeText(other?.status||'').includes('cancel'))return false;
     if(normalizeText(other?.collaborator||'')!==normalizeText(target?.collaborator||''))return false;
+
     const oi=appointmentInterval(other);
     return !!oi && ti.start<oi.end && ti.end>oi.start;
   });
@@ -7000,10 +7044,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   <div class="vp-public-brand"><h1>VAPOREASY</h1><p>Agendamento online</p><button id="vpPubExitPreview" class="vp-public-back" type="button" style="display:none" onclick="location.reload()">Sair da pré-visualização</button></div>
   <div id="vpPublicBookingForm">
    <div class="vp-public-card">
-    <h2>Escolha seu horário</h2>
+    <h2 id="vpPubScheduleTitle">Escolha seu horário</h2>
     <label>Serviço</label><select id="vpPubService"><option value="">Carregando serviços…</option></select>
-    <label>Data</label><input id="vpPubDate" type="date">
-    <div id="vpPubSlotsStatus" class="vp-public-muted" style="margin-top:12px">Escolha o serviço e a data.</div>
+    <div class="vp-public-muted" style="margin:10px 0 4px">Informe o local para buscarmos a equipe com melhor logística.</div>
+    <label>Condomínio / local</label><input id="vpPubCondo" placeholder="Nome do condomínio ou bairro">
+    <label>Endereço</label><input id="vpPubAddress" autocomplete="street-address" placeholder="Rua, número e complemento">
+    <label id="vpPubDateLabel">Data</label><input id="vpPubDate" type="date">
+    <div id="vpPubAltDateWrap" style="display:none"><label>Segunda opção de data <span class="vp-public-muted">(opcional)</span></label><input id="vpPubAltDate" type="date"></div>
+    <div id="vpPubSlotsStatus" class="vp-public-muted" style="margin-top:12px">Escolha o serviço, informe o local e selecione a data.</div>
     <div id="vpPubSlots" class="vp-public-slots"></div>
    </div>
    <div class="vp-public-card">
@@ -7011,14 +7059,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     <label>Nome</label><input id="vpPubName" autocomplete="name" placeholder="Seu nome">
     <label>WhatsApp</label><input id="vpPubPhone" inputmode="tel" autocomplete="tel" placeholder="(11) 99999-9999">
     <div class="vp-public-grid"><div><label>Veículo</label><input id="vpPubVehicle" placeholder="Ex.: BMW X1"></div><div><label>Placa</label><input id="vpPubPlate" maxlength="8" autocapitalize="characters" placeholder="ABC1D23"></div></div>
-    <label>Condomínio / local</label><input id="vpPubCondo" placeholder="Nome do condomínio">
-    <label>Endereço</label><input id="vpPubAddress" autocomplete="street-address" placeholder="Rua, número e complemento">
     <label>Observação</label><textarea id="vpPubNotes" rows="3" placeholder="Alguma informação importante?"></textarea>
     <button id="vpPubSubmit" class="vp-public-submit" type="button" onclick="submitPublicBooking()">Reservar horário</button>
     <div id="vpPubStatus" class="vp-public-status" style="display:none"></div>
    </div>
   </div>
-  <div id="vpPublicBookingSuccess" class="vp-public-card" style="display:none"><div class="vp-public-confirm">✓ Agendamento realizado</div><div id="vpPubSuccessText"></div><button class="vp-public-back" type="button" onclick="resetPublicBooking()">Fazer outro agendamento</button></div>
+  <div id="vpPublicBookingSuccess" class="vp-public-card" style="display:none"><div id="vpPubSuccessTitle" class="vp-public-confirm">✓ Agendamento realizado</div><div id="vpPubSuccessText"></div><button class="vp-public-back" type="button" onclick="resetPublicBooking()">Fazer outro agendamento</button></div>
  </div>
 </div>
 <script id="v139-online-booking-script">
@@ -7027,7 +7073,7 @@ const ONLINE_BOOKING_DEFAULT_URL=(location.protocol==='http:'||location.protocol
 const ONLINE_BOOKING_SB_URL='https://jiimrpulcfoccxizqbac.supabase.co';
 const ONLINE_BOOKING_SB_KEY='sb_publishable_z4nKJxH03ssdq0LLzNoMqA_QAXr4GVD';
 let vpPubServices=[];let vpPubSelectedSlot=null;let vpPubPreview=false;
-function openOnlineBookingAdmin(){go('agendaonline',null);setTimeout(refreshOnlineBookingAdmin,30)}
+function openOnlineBookingAdmin(){go('agendaonline',null);setTimeout(()=>{refreshOnlineBookingAdmin();loadBookingRequestsAdmin()},120)}
 function refreshOnlineBookingAdmin(){
  const st=document.getElementById('onlineBookingCloudStatus'), input=document.getElementById('onlineBookingBaseUrl'); if(!st||!input)return;
  const saved=localStorage.getItem(ONLINE_BOOKING_BASE_KEY)||'';
@@ -7041,26 +7087,147 @@ function base64UrlDecodeText(text){let s=text.replace(/-/g,'+').replace(/_/g,'/'
 function buildOnlineBookingLink(){
  const base=(document.getElementById('onlineBookingBaseUrl')?.value||localStorage.getItem(ONLINE_BOOKING_BASE_KEY)||ONLINE_BOOKING_DEFAULT_URL).trim();
  if(!/^https?:\/\//i.test(base))throw new Error('A URL pública de agendamento não está configurada.');
- const u=new URL(base,location.href);u.searchParams.set('booking','1');u.hash='';return u.toString();
+ const u=new URL(base,location.href);u.searchParams.set('booking','1');u.searchParams.set('share','1');u.hash='';return u.toString();
 }
 async function copyTextSafe(text){try{await navigator.clipboard.writeText(text);return true}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok}}
 async function copyOnlineBookingLink(){try{const link=buildOnlineBookingLink();await copyTextSafe(link);onlineBookingNotice('Link de agendamento copiado. Já pode enviar ao cliente.',true)}catch(e){onlineBookingNotice(e.message||String(e),false)}}
-async function copyOnlineBookingWhatsApp(){try{const link=buildOnlineBookingLink();const msg='Olá! Para facilitar seu agendamento com a Vaporeasy, consulte os horários disponíveis e escolha o melhor para você: '+link;await copyTextSafe(msg);onlineBookingNotice('Mensagem com o link copiada para enviar no WhatsApp.',true)}catch(e){onlineBookingNotice(e.message||String(e),false)}}
+async function copyOnlineBookingWhatsApp(){try{const link=buildOnlineBookingLink();const msg='Olá! Para facilitar seu agendamento com a Vaporeasy, consulte os horários disponíveis e escolha o melhor para você:\n\n'+link;await copyTextSafe(msg);onlineBookingNotice('Mensagem pronta para WhatsApp copiada.',true)}catch(e){onlineBookingNotice(e.message||String(e),false)}}
 function previewOnlineBooking(){vpPubPreview=true;showPublicBooking(true)}
 function readPublicCfgFromHash(){try{const m=location.hash.match(/(?:^#|&)cfg=([^&]+)/);if(!m)return null;return JSON.parse(base64UrlDecodeText(m[1]))}catch(e){return null}}
 function isPublicBookingMode(){try{return new URLSearchParams(location.search).get('booking')==='1'}catch(e){return false}}
 function publicSbCfg(){const h=readPublicCfgFromHash();if(h?.url&&h?.key)return h;if(vpPubPreview&&typeof getSupabaseConfig==='function'){const c=getSupabaseConfig();if(c?.url&&c?.key)return c}return {url:ONLINE_BOOKING_SB_URL,key:ONLINE_BOOKING_SB_KEY}}
 async function publicRpc(name,body={}){const c=publicSbCfg();if(!c?.url||!c?.key)throw new Error('Agenda online ainda não foi conectada ao banco.');const r=await fetch(String(c.url).replace(/\/+$/,'')+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok){let t='';try{t=await r.text()}catch(e){};throw new Error(r.status===404?'A configuração da agenda online ainda não foi instalada no Supabase.':('Falha ao consultar agenda ('+r.status+'). '+t.slice(0,120)))}const txt=await r.text();if(!txt)return null;try{return JSON.parse(txt)}catch(e){return txt}}
-function publicLocalServices(){return (typeof getServiceCatalog==='function'?getServiceCatalog():[]).filter(s=>!s.disabled).map(s=>({id:s.cloudId||s.id||s.name,name:s.name,price:typeof parseServicePrice==='function'?parseServicePrice(s.price):0,duration_minutes:typeof serviceDurationMinutesByName==='function'?serviceDurationMinutesByName(s.name):90,_local:true}))}
+function publicLocalServices(){return (typeof getServiceCatalog==='function'?getServiceCatalog():[]).filter(s=>!s.disabled).map(s=>({id:s.cloudId||s.id||s.name,name:s.name,price:typeof parseServicePrice==='function'?parseServicePrice(s.price):0,duration_minutes:typeof serviceDurationMinutesByName==='function'?serviceDurationMinutesByName(s.name):90,booking_mode:normalizeText(s.name||'').includes('polimento tecnico')?'request':'auto',_local:true}))}
 async function loadPublicServices(){const sel=document.getElementById('vpPubService');if(!sel)return;let rows=[];try{rows=await publicRpc('public_booking_services',{})||[]}catch(e){if(vpPubPreview)rows=publicLocalServices();else{sel.innerHTML='<option value="">Agenda indisponível</option>';setPublicStatus(e.message,false);return}}vpPubServices=Array.isArray(rows)?rows:[];sel.innerHTML='<option value="">Selecione o serviço…</option>'+vpPubServices.map(s=>'<option value="'+escapeHtmlAttr(String(s.id))+'">'+escapeHtmlText(s.name)+(Number(s.price)>0?' • '+formatPublicMoney(s.price):'')+'</option>').join('')}
 function escapeHtmlText(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}function escapeHtmlAttr(v){return escapeHtmlText(v)}function formatPublicMoney(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0)}
 function localPreviewSlots(date,service){if(!date||!service)return[];const today=typeof agendaLocalToday==='function'?agendaLocalToday():new Date().toISOString().slice(0,10);const now=new Date();const slots=[];const collabs=(typeof getCollaborators==='function'?getCollaborators():[]).filter(c=>normalizeText(c.status||'ativo')!=='inativo');const candidates=collabs.length?collabs:[{name:''}];const duration=Number(service.duration_minutes)||90;for(let t=460;t+duration<=1200;t+=20){if(date===today){const cur=now.getHours()*60+now.getMinutes();if(t<=cur)continue}for(const c of candidates){const candidate={date,time:minutesToClock(t),service:service.name,collaborator:c.name||'',travelMinutes:0,travelMargin:10};if(typeof isAppointmentSlotAvailable==='function'&&isAppointmentSlotAvailable(candidate,t)){slots.push({slot_time:minutesToClock(t),collaborator_id:c.cloudId||c.id||'',collaborator_name:c.name||'Equipe'});break}}}return slots}
-async function loadPublicSlots(){vpPubSelectedSlot=null;const box=document.getElementById('vpPubSlots'),status=document.getElementById('vpPubSlotsStatus');if(box)box.innerHTML='';const sid=document.getElementById('vpPubService')?.value||'',date=document.getElementById('vpPubDate')?.value||'';if(!sid||!date){if(status)status.textContent='Escolha o serviço e a data.';return}if(status)status.textContent='Buscando horários…';let rows=[];const service=vpPubServices.find(x=>String(x.id)===String(sid));try{if(service?._local&&vpPubPreview)rows=localPreviewSlots(date,service);else rows=await publicRpc('public_booking_slots',{p_date:date,p_service_id:sid})||[]}catch(e){if(vpPubPreview&&service)rows=localPreviewSlots(date,service);else{if(status)status.textContent=e.message;return}}rows=Array.isArray(rows)?rows:[];if(status)status.textContent=rows.length?rows.length+' horário(s) disponível(is).':'Não há horários livres nesta data.';if(box)box.innerHTML=rows.map((r,i)=>'<button class="vp-public-slot" type="button" data-i="'+i+'">'+escapeHtmlText(String(r.slot_time||'').slice(0,5))+'</button>').join('');box?.querySelectorAll('button').forEach((b,i)=>b.addEventListener('click',()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');vpPubSelectedSlot=rows[i]}))}
+function publicBookingModeUI(service){
+ const request=service?.booking_mode==='request';
+ const title=document.getElementById('vpPubScheduleTitle'),label=document.getElementById('vpPubDateLabel'),alt=document.getElementById('vpPubAltDateWrap'),btn=document.getElementById('vpPubSubmit');
+ if(title)title.textContent=request?'Solicite uma data':'Escolha seu horário';
+ if(label)label.textContent=request?'Data preferida':'Data';
+ if(alt)alt.style.display=request?'block':'none';
+ if(btn)btn.textContent=request?'Solicitar agendamento':'Reservar horário';
+}
+async function loadPublicSlots(){
+ vpPubSelectedSlot=null;
+ const box=document.getElementById('vpPubSlots'),status=document.getElementById('vpPubSlotsStatus');
+ if(box)box.innerHTML='';
+ const sid=document.getElementById('vpPubService')?.value||'',
+       date=document.getElementById('vpPubDate')?.value||'',
+       condo=(document.getElementById('vpPubCondo')?.value||'').trim(),
+       address=(document.getElementById('vpPubAddress')?.value||'').trim();
+ const service=vpPubServices.find(x=>String(x.id)===String(sid));
+ publicBookingModeUI(service);
+
+ if(!sid||!date){
+   if(status)status.textContent='Escolha o serviço, informe o local e selecione a data.';
+   return;
+ }
+
+ if(service?.booking_mode==='request'){
+   if(status)status.innerHTML='<b>Este serviço ocupa boa parte do dia.</b><br>Informe a data preferida e, se quiser, uma segunda opção. A Vaporeasy vai confirmar o melhor horário com você pelo WhatsApp.';
+   return;
+ }
+
+ if(!condo&&!address){
+   if(status)status.textContent='Informe o condomínio, bairro ou endereço para calcular a melhor equipe.';
+   return;
+ }
+
+ if(status)status.textContent='Buscando horários e calculando a melhor equipe…';
+ let rows=[];
+ try{
+   if(service?._local&&vpPubPreview){
+     rows=localPreviewSlots(date,service);
+   }else{
+     rows=await publicRpc('public_booking_slots',{
+       p_date:date,
+       p_service_id:sid,
+       p_condominium:condo,
+       p_address:address
+     })||[];
+   }
+ }catch(e){
+   if(vpPubPreview&&service)rows=localPreviewSlots(date,service);
+   else{if(status)status.textContent=e.message;return}
+ }
+
+ rows=Array.isArray(rows)?rows:[];
+ if(status)status.textContent=rows.length
+   ? rows.length+' horário(s) disponível(is). A equipe é definida automaticamente pela logística.'
+   : 'Não há equipe com janela suficiente para este local e horário.';
+ if(box)box.innerHTML=rows.map((r,i)=>'<button class="vp-public-slot" type="button" data-i="'+i+'">'+escapeHtmlText(String(r.slot_time||'').slice(0,5))+'</button>').join('');
+ box?.querySelectorAll('button').forEach((b,i)=>b.addEventListener('click',()=>{
+   box.querySelectorAll('button').forEach(x=>x.classList.remove('selected'));
+   b.classList.add('selected');
+   vpPubSelectedSlot=rows[i]
+ }))
+}
 function setPublicStatus(msg,ok=null){const e=document.getElementById('vpPubStatus');if(!e)return;e.style.display='block';e.className='vp-public-status '+(ok===true?'ok':ok===false?'err':'');e.textContent=msg}
-function showPublicBooking(preview=false){vpPubPreview=!!preview;const exit=document.getElementById('vpPubExitPreview');if(exit)exit.style.display=vpPubPreview?'inline-block':'none';document.querySelectorAll('body > *:not(#vpPublicBooking):not(script):not(style)').forEach(el=>el.style.display='none');const root=document.getElementById('vpPublicBooking');root.classList.add('show');document.body.style.background='#061b26';const d=document.getElementById('vpPubDate');if(d){const today=new Date();const y=today.getFullYear(),m=String(today.getMonth()+1).padStart(2,'0'),day=String(today.getDate()).padStart(2,'0');d.min=`${y}-${m}-${day}`;if(!d.value)d.value=d.min}loadPublicServices().then(loadPublicSlots)}
-async function submitPublicBooking(){const sid=document.getElementById('vpPubService')?.value||'',date=document.getElementById('vpPubDate')?.value||'',name=(document.getElementById('vpPubName')?.value||'').trim(),phone=(document.getElementById('vpPubPhone')?.value||'').trim(),vehicle=(document.getElementById('vpPubVehicle')?.value||'').trim(),plate=(document.getElementById('vpPubPlate')?.value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,''),condo=(document.getElementById('vpPubCondo')?.value||'').trim(),address=(document.getElementById('vpPubAddress')?.value||'').trim(),notes=(document.getElementById('vpPubNotes')?.value||'').trim();if(!sid||!date||!vpPubSelectedSlot||!name||!phone||!vehicle||!plate){setPublicStatus('Preencha serviço, data, horário, nome, WhatsApp, veículo e placa.',false);return}const btn=document.getElementById('vpPubSubmit');btn.disabled=true;btn.textContent='Reservando…';try{if(vpPubPreview){setPublicStatus('Pré-visualização: nenhum agendamento foi enviado ao banco.',true);return}const result=await publicRpc('public_create_booking',{p_service_id:sid,p_collaborator_id:vpPubSelectedSlot.collaborator_id||null,p_date:date,p_time:String(vpPubSelectedSlot.slot_time).slice(0,5),p_client_name:name,p_phone:phone,p_vehicle_label:vehicle,p_plate:plate,p_condominium:condo,p_address:address,p_notes:notes});const service=vpPubServices.find(x=>String(x.id)===String(sid));document.getElementById('vpPublicBookingForm').style.display='none';document.getElementById('vpPublicBookingSuccess').style.display='block';document.getElementById('vpPubSuccessText').innerHTML='<b>'+escapeHtmlText(service?.name||'Serviço')+'</b><br>'+escapeHtmlText(date.split('-').reverse().join('/'))+' às '+escapeHtmlText(String(vpPubSelectedSlot.slot_time).slice(0,5))+'<br><span class="vp-public-muted">Seu horário foi reservado na agenda da Vaporeasy.</span>'}catch(e){setPublicStatus(e.message||String(e),false);await loadPublicSlots()}finally{btn.disabled=false;btn.textContent='Reservar horário'}}
-function resetPublicBooking(){document.getElementById('vpPublicBookingForm').style.display='block';document.getElementById('vpPublicBookingSuccess').style.display='none';vpPubSelectedSlot=null;loadPublicSlots()}
-document.addEventListener('DOMContentLoaded',()=>{const saved=localStorage.getItem(ONLINE_BOOKING_BASE_KEY)||'';if(!saved||/supabase\.co\/functions\/v1\/vaporeasy-booking/i.test(saved))localStorage.setItem(ONLINE_BOOKING_BASE_KEY,ONLINE_BOOKING_DEFAULT_URL);const svc=document.getElementById('vpPubService'),date=document.getElementById('vpPubDate');svc?.addEventListener('change',loadPublicSlots);date?.addEventListener('change',loadPublicSlots);if(isPublicBookingMode())showPublicBooking(false);setTimeout(refreshOnlineBookingAdmin,100)});
+function showPublicBooking(preview=false){vpPubPreview=!!preview;const exit=document.getElementById('vpPubExitPreview');if(exit)exit.style.display=vpPubPreview?'inline-block':'none';document.querySelectorAll('body > *:not(#vpPublicBooking):not(script):not(style)').forEach(el=>el.style.display='none');document.querySelectorAll('#cloudConfigBtn,#cloudConfigTextBtn').forEach(el=>el.style.display='none');const root=document.getElementById('vpPublicBooking');root.classList.add('show');document.body.style.background='#061b26';const d=document.getElementById('vpPubDate'),a=document.getElementById('vpPubAltDate');if(d){const today=new Date();const y=today.getFullYear(),m=String(today.getMonth()+1).padStart(2,'0'),day=String(today.getDate()).padStart(2,'0');d.min=`${y}-${m}-${day}`;if(a)a.min=d.min;if(!d.value)d.value=d.min}loadPublicServices().then(loadPublicSlots)}
+async function submitPublicBooking(){
+ const sid=document.getElementById('vpPubService')?.value||'',date=document.getElementById('vpPubDate')?.value||'',altDate=document.getElementById('vpPubAltDate')?.value||'',name=(document.getElementById('vpPubName')?.value||'').trim(),phone=(document.getElementById('vpPubPhone')?.value||'').trim(),vehicle=(document.getElementById('vpPubVehicle')?.value||'').trim(),plate=(document.getElementById('vpPubPlate')?.value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,''),condo=(document.getElementById('vpPubCondo')?.value||'').trim(),address=(document.getElementById('vpPubAddress')?.value||'').trim(),notes=(document.getElementById('vpPubNotes')?.value||'').trim();
+ const service=vpPubServices.find(x=>String(x.id)===String(sid)), request=service?.booking_mode==='request';
+ if(!sid||!date||!name||!phone||!vehicle||!plate||(!condo&&!address)||(!request&&!vpPubSelectedSlot)){setPublicStatus(request?'Preencha serviço, data preferida, local, nome, WhatsApp, veículo e placa.':'Preencha serviço, local, data, horário, nome, WhatsApp, veículo e placa.',false);return}
+ const btn=document.getElementById('vpPubSubmit');btn.disabled=true;btn.textContent=request?'Enviando solicitação…':'Reservando…';
+ try{
+   if(vpPubPreview){setPublicStatus(request?'Pré-visualização: a solicitação não foi enviada.':'Pré-visualização: nenhum agendamento foi enviado ao banco.',true);return}
+   if(request){
+     await publicRpc('public_create_booking_request',{p_service_id:sid,p_preferred_date:date,p_alternate_date:altDate||null,p_client_name:name,p_phone:phone,p_vehicle_label:vehicle,p_plate:plate,p_condominium:condo,p_address:address,p_notes:notes});
+     document.getElementById('vpPublicBookingForm').style.display='none';
+     document.getElementById('vpPublicBookingSuccess').style.display='block';
+     document.getElementById('vpPubSuccessTitle').textContent='✓ Solicitação enviada';
+     document.getElementById('vpPubSuccessText').innerHTML='<b>'+escapeHtmlText(service?.name||'Serviço')+'</b><br>Data preferida: '+escapeHtmlText(date.split('-').reverse().join('/'))+(altDate?'<br>Segunda opção: '+escapeHtmlText(altDate.split('-').reverse().join('/')):'')+'<br><span class="vp-public-muted">A Vaporeasy vai analisar a agenda e confirmar o atendimento com você pelo WhatsApp.</span>';
+   }else{
+     await publicRpc('public_create_booking',{p_service_id:sid,p_collaborator_id:vpPubSelectedSlot.collaborator_id||null,p_date:date,p_time:String(vpPubSelectedSlot.slot_time).slice(0,5),p_client_name:name,p_phone:phone,p_vehicle_label:vehicle,p_plate:plate,p_condominium:condo,p_address:address,p_notes:notes});
+     document.getElementById('vpPublicBookingForm').style.display='none';
+     document.getElementById('vpPublicBookingSuccess').style.display='block';
+     document.getElementById('vpPubSuccessTitle').textContent='✓ Agendamento realizado';
+     document.getElementById('vpPubSuccessText').innerHTML='<b>'+escapeHtmlText(service?.name||'Serviço')+'</b><br>'+escapeHtmlText(date.split('-').reverse().join('/'))+' às '+escapeHtmlText(String(vpPubSelectedSlot.slot_time).slice(0,5))+'<br><span class="vp-public-muted">Seu horário foi reservado na agenda da Vaporeasy.</span>';
+   }
+ }catch(e){setPublicStatus(e.message||String(e),false);await loadPublicSlots()}
+ finally{btn.disabled=false;btn.textContent=request?'Solicitar agendamento':'Reservar horário'}
+}
+function resetPublicBooking(){document.getElementById('vpPublicBookingForm').style.display='block';document.getElementById('vpPublicBookingSuccess').style.display='none';const alt=document.getElementById('vpPubAltDate');if(alt)alt.value='';vpPubSelectedSlot=null;loadPublicSlots()}
+
+let vpBookingRequests=[];
+function bookingRequestDate(v){if(!v)return '—';const p=String(v).split('-');return p.length===3?p.reverse().join('/'):String(v)}
+function bookingRequestWhatsApp(phone){const n=String(phone||'').replace(/\D/g,'');if(!n)return;window.open('https://wa.me/'+(n.startsWith('55')?n:'55'+n),'_blank')}
+function renderBookingRequestsAdmin(){
+ const box=document.getElementById('onlineBookingRequestsList');if(!box)return;
+ if(!vpBookingRequests.length){box.innerHTML='<div class="muted">Nenhuma solicitação de serviço longo encontrada.</div>';return}
+ box.innerHTML=vpBookingRequests.map(r=>{
+   const badge=r.status||'Pendente';
+   return '<div class="item" style="margin-top:10px">'+
+     '<div class="result-head"><div><div class="result-title">'+escapeHtmlText(r.service_name||'Serviço')+'</div><div class="result-meta">'+escapeHtmlText(r.client_name||'Cliente')+' • '+escapeHtmlText(r.vehicle_label||'Veículo')+' • '+escapeHtmlText(r.plate||'')+'</div></div><span class="tag">'+escapeHtmlText(badge)+'</span></div>'+
+     '<div class="opportunity"><b>Data preferida:</b> '+escapeHtmlText(bookingRequestDate(r.preferred_date))+(r.alternate_date?' • <b>2ª opção:</b> '+escapeHtmlText(bookingRequestDate(r.alternate_date)):'')+'<br><b>WhatsApp:</b> '+escapeHtmlText(r.phone||'')+(r.condominium?'<br><b>Local:</b> '+escapeHtmlText(r.condominium):'')+(r.notes?'<br><b>Obs.:</b> '+escapeHtmlText(r.notes):'')+'</div>'+
+     '<div class="actions">'+
+       '<button class="btn-primary" type="button" onclick="bookingRequestWhatsApp(\\''+escapeHtmlAttr(r.phone||'')+'\\')">WhatsApp</button>'+
+       (badge==='Pendente'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\\''+escapeHtmlAttr(r.id)+'\\',\\'Em análise\\')">Em análise</button>':'')+
+       (badge!=='Confirmado'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\\''+escapeHtmlAttr(r.id)+'\\',\\'Confirmado\\')">Marcar tratada</button>':'')+
+       (badge!=='Recusado'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\\''+escapeHtmlAttr(r.id)+'\\',\\'Recusado\\')">Recusar</button>':'')+
+     '</div></div>'
+ }).join('')
+}
+async function loadBookingRequestsAdmin(){
+ const box=document.getElementById('onlineBookingRequestsList');if(!box)return;
+ if(typeof window.vpBridge!=='function'){box.innerHTML='<div class="muted">Conectando à sessão segura…</div>';setTimeout(loadBookingRequestsAdmin,700);return}
+ box.innerHTML='<div class="muted">Carregando solicitações…</div>';
+ try{const d=await window.vpBridge('booking_requests');vpBookingRequests=d.requests||[];renderBookingRequestsAdmin()}
+ catch(e){box.innerHTML='<div class="notice err">Não foi possível carregar as solicitações: '+escapeHtmlText(e.message||String(e))+'</div>'}
+}
+async function setBookingRequestStatus(id,status){
+ try{await window.vpBridge('booking_request_status',{method:'POST',body:{id,status}});await loadBookingRequestsAdmin();showToast?.('Solicitação atualizada','success')}
+ catch(e){showToast?.(e.message||'Não foi possível atualizar','error')}
+}
+
+let vpLocationRefreshTimer=null;
+function schedulePublicLogisticsRefresh(){
+ clearTimeout(vpLocationRefreshTimer);
+ vpLocationRefreshTimer=setTimeout(loadPublicSlots,350);
+}
+document.addEventListener('DOMContentLoaded',()=>{const saved=localStorage.getItem(ONLINE_BOOKING_BASE_KEY)||'';if(!saved||/supabase\.co\/functions\/v1\/vaporeasy-booking/i.test(saved))localStorage.setItem(ONLINE_BOOKING_BASE_KEY,ONLINE_BOOKING_DEFAULT_URL);const svc=document.getElementById('vpPubService'),date=document.getElementById('vpPubDate'),condo=document.getElementById('vpPubCondo'),address=document.getElementById('vpPubAddress');svc?.addEventListener('change',loadPublicSlots);date?.addEventListener('change',loadPublicSlots);condo?.addEventListener('input',schedulePublicLogisticsRefresh);address?.addEventListener('input',schedulePublicLogisticsRefresh);if(isPublicBookingMode())showPublicBooking(false);setTimeout(refreshOnlineBookingAdmin,100)});
 
 
 /* V143 — painel seguro: sincronização só libera após leitura real da nuvem */
@@ -7244,6 +7411,7 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(refreshHostMigration
   async function validSession(){session=loadSession();if(!session?.access_token)return false;try{profile=await getMe(session.access_token);return true}catch(e){if(await refreshSession()){try{profile=await getMe(session.access_token);return true}catch(_){}}return false}}
   function authHeaders(){if(!session?.access_token)throw new Error('Faça login novamente.');return {'apikey':SB_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'}}
   async function bridge(action,opts={}){let r=await fetch(BRIDGE+'?action='+encodeURIComponent(action),{method:opts.method||'GET',headers:authHeaders(),body:opts.body?JSON.stringify(opts.body):undefined,cache:'no-store'});if(r.status===401&&await refreshSession())r=await fetch(BRIDGE+'?action='+encodeURIComponent(action),{method:opts.method||'GET',headers:authHeaders(),body:opts.body?JSON.stringify(opts.body):undefined,cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d.error||('Erro '+r.status));return d}
+  window.vpBridge=bridge;
   window.vpToggleSetup=()=>{document.getElementById('vpSetupPane')?.classList.toggle('show');msg('')};
   window.vpLogin=async()=>{const email=document.getElementById('vpAuthEmail')?.value.trim(),password=document.getElementById('vpAuthPassword')?.value||'';if(!email||!password){msg('Informe e-mail e senha.','err');return}msg('Entrando…');try{const d=await authRest('/auth/v1/token?grant_type=password',{email,password});saveSession(d);profile=await getMe(d.access_token);unlock();await startSecureApp()}catch(e){msg(e.message||String(e),'err')}};
   window.vpCreateOwner=async()=>{const code=document.getElementById('vpSetupCode')?.value.trim(),name=document.getElementById('vpSetupName')?.value.trim()||'Silvio',email=document.getElementById('vpSetupEmail')?.value.trim(),password=document.getElementById('vpSetupPassword')?.value||'';if(!code||!email||password.length<8){msg('Preencha o código, o e-mail e uma senha com pelo menos 8 caracteres.','err');return}msg('Criando acesso seguro…');try{const r=await fetch(AUTH_FN,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'setup',code,name,email,password})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error==='setup_already_completed'?'O proprietário já foi criado. Use Entrar.':(d.error||'Não foi possível criar o acesso.'));msg('Acesso criado. Entrando…','ok');document.getElementById('vpAuthEmail').value=email;document.getElementById('vpAuthPassword').value=password;await window.vpLogin()}catch(e){msg(e.message||String(e),'err')}};
