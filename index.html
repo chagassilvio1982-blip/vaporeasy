@@ -11,7 +11,7 @@
 <meta property="og:site_name" content="Vaporeasy" />
 <meta property="og:title" content="Vaporeasy • Agendamento online" />
 <meta property="og:description" content="Escolha o serviço, consulte os horários disponíveis e faça seu agendamento com a Vaporeasy." />
-<meta property="og:url" content="https://vaporeasy.vercel.app/?booking=1&amp;share=1" />
+<meta property="og:url" content="https://vaporeasy.vercel.app/?booking=1&amp;share=2" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="Vaporeasy • Agendamento online" />
 <meta name="twitter:description" content="Escolha o serviço, consulte os horários disponíveis e faça seu agendamento com a Vaporeasy." />
@@ -1698,10 +1698,10 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
   </div>
   <div class="online-home">
     <div class="summary-section-title">Agenda online</div>
-    <div class="card online-home-row" onclick="openOnlineBookingAdmin()">
+    <button id="vpOnlineHomeCard" type="button" class="card online-home-row vp-online-home-button" onclick="return vpOpenAgendaOnlineSafe(event)">
       <div><b>Link de agendamento do cliente</b><span style="display:block;margin-top:3px">Mostre somente horários realmente disponíveis.</span></div>
       <span class="online-home-arrow">›</span>
-    </div>
+    </button>
   </div>
   <div class="sync-home">
     <div class="summary-section-title">Sincronização online</div>
@@ -7029,7 +7029,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 <style id="v139-online-booking-style">
-.online-home-row{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer}.online-home-arrow{font-size:32px;color:var(--brand);font-weight:300}.online-admin-card{margin-bottom:14px}.online-admin-status{padding:12px 14px;border-radius:14px;background:rgba(14,54,72,.7);border:1px solid var(--line);margin-bottom:14px;font-weight:800}.online-admin-status.ok{border-color:rgba(54,211,153,.4);color:#baf7dc}.online-admin-status.warn{border-color:rgba(255,193,7,.35);color:#ffe4a6}.online-help,.online-security-note{font-size:12px;line-height:1.5;color:var(--muted);margin-top:8px}.online-security-note{padding:12px;border-radius:14px;background:rgba(20,181,238,.07);border:1px solid rgba(20,181,238,.18);margin-top:16px}.online-admin-actions{display:grid;grid-template-columns:1fr;gap:9px;margin-top:14px}.online-steps{display:grid;gap:10px}.online-steps>div{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}.online-steps>div:last-child{border-bottom:0}.online-steps b{color:#70d1ff}
+.online-home-row{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer}.vp-online-home-button{width:100%;text-align:left;color:inherit;font:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}.online-home-arrow{font-size:32px;color:var(--brand);font-weight:300}.online-admin-card{margin-bottom:14px}.online-admin-status{padding:12px 14px;border-radius:14px;background:rgba(14,54,72,.7);border:1px solid var(--line);margin-bottom:14px;font-weight:800}.online-admin-status.ok{border-color:rgba(54,211,153,.4);color:#baf7dc}.online-admin-status.warn{border-color:rgba(255,193,7,.35);color:#ffe4a6}.online-help,.online-security-note{font-size:12px;line-height:1.5;color:var(--muted);margin-top:8px}.online-security-note{padding:12px;border-radius:14px;background:rgba(20,181,238,.07);border:1px solid rgba(20,181,238,.18);margin-top:16px}.online-admin-actions{display:grid;grid-template-columns:1fr;gap:9px;margin-top:14px}.online-steps{display:grid;gap:10px}.online-steps>div{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}.online-steps>div:last-child{border-bottom:0}.online-steps b{color:#70d1ff}
 #vpPublicBooking{display:none;min-height:100vh;background:#061b26;color:#eef8fc;font-family:inherit;padding:0 0 40px}#vpPublicBooking.show{display:block}.vp-public-shell{max-width:620px;margin:0 auto;padding:18px}.vp-public-brand{text-align:center;padding:18px 0 8px}.vp-public-brand h1{margin:0;font-size:30px;letter-spacing:.5px}.vp-public-brand p{margin:6px 0 0;color:#8fb0c2}.vp-public-card{background:rgba(9,38,52,.92);border:1px solid rgba(128,181,205,.2);border-radius:22px;padding:18px;margin-top:14px;box-shadow:0 14px 40px rgba(0,0,0,.2)}.vp-public-card h2,.vp-public-card h3{margin-top:0}.vp-public-card label{display:block;margin:13px 0 7px;color:#cbe6f2;font-size:13px;font-weight:800}.vp-public-card input,.vp-public-card select,.vp-public-card textarea{width:100%;box-sizing:border-box;min-height:48px;border-radius:14px;border:1px solid rgba(128,181,205,.22);background:#092a3a;color:#fff;padding:11px 12px;font-size:16px}.vp-public-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.vp-public-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.vp-public-slot{min-height:46px;border-radius:13px;border:1px solid rgba(112,209,255,.35);background:rgba(20,181,238,.08);color:#dff6ff;font-weight:850}.vp-public-slot.selected{background:#14b5ee;color:#002334;border-color:#14b5ee}.vp-public-slot:disabled{opacity:.35}.vp-public-submit{width:100%;min-height:52px;border:0;border-radius:15px;background:#14b5ee;color:#002334;font-size:16px;font-weight:900;margin-top:16px}.vp-public-submit:disabled{opacity:.55}.vp-public-muted{color:#8fb0c2;font-size:12px;line-height:1.5}.vp-public-status{padding:12px 14px;border-radius:14px;margin-top:12px;background:rgba(20,181,238,.07);border:1px solid rgba(20,181,238,.18);color:#cdefff}.vp-public-status.ok{background:rgba(54,211,153,.08);border-color:rgba(54,211,153,.3);color:#c9f9e7}.vp-public-status.err{background:rgba(217,83,95,.08);border-color:rgba(217,83,95,.3);color:#ffd3d7}.vp-public-confirm{font-size:22px;font-weight:900;margin-bottom:7px}.vp-public-back{border:1px solid rgba(128,181,205,.25);background:transparent;color:#d9eff7;border-radius:13px;min-height:44px;padding:0 14px;font-weight:800;margin-top:12px}@media(max-width:480px){.vp-public-grid{grid-template-columns:1fr}.vp-public-slots{grid-template-columns:repeat(3,1fr)}}
 
 /* V143 — conexão Android/content:// sem preflight CORS */
@@ -7073,7 +7073,26 @@ const ONLINE_BOOKING_DEFAULT_URL=(location.protocol==='http:'||location.protocol
 const ONLINE_BOOKING_SB_URL='https://jiimrpulcfoccxizqbac.supabase.co';
 const ONLINE_BOOKING_SB_KEY='sb_publishable_z4nKJxH03ssdq0LLzNoMqA_QAXr4GVD';
 let vpPubServices=[];let vpPubSelectedSlot=null;let vpPubPreview=false;
-function openOnlineBookingAdmin(){go('agendaonline',null);setTimeout(()=>{refreshOnlineBookingAdmin();loadBookingRequestsAdmin()},120)}
+window.vpOpenAgendaOnlineSafe=function(event){
+  try{event?.preventDefault?.();event?.stopPropagation?.()}catch(e){}
+  try{
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    const target=document.getElementById('agendaonline');
+    if(!target)throw new Error('Tela Agenda online não encontrada.');
+    target.classList.add('active');
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    window.scrollTo({top:0,behavior:'smooth'});
+    setTimeout(()=>{
+      try{refreshOnlineBookingAdmin()}catch(e){}
+      try{if(typeof loadBookingRequestsAdmin==='function')loadBookingRequestsAdmin()}catch(e){}
+    },80);
+    return false;
+  }catch(e){
+    try{if(typeof showToast==='function')showToast('Não foi possível abrir a Agenda online: '+(e.message||e),'error')}catch(_){}
+    return false;
+  }
+};
+window.openOnlineBookingAdmin=function(){return window.vpOpenAgendaOnlineSafe()};
 function refreshOnlineBookingAdmin(){
  const st=document.getElementById('onlineBookingCloudStatus'), input=document.getElementById('onlineBookingBaseUrl'); if(!st||!input)return;
  const saved=localStorage.getItem(ONLINE_BOOKING_BASE_KEY)||'';
@@ -7087,7 +7106,7 @@ function base64UrlDecodeText(text){let s=text.replace(/-/g,'+').replace(/_/g,'/'
 function buildOnlineBookingLink(){
  const base=(document.getElementById('onlineBookingBaseUrl')?.value||localStorage.getItem(ONLINE_BOOKING_BASE_KEY)||ONLINE_BOOKING_DEFAULT_URL).trim();
  if(!/^https?:\/\//i.test(base))throw new Error('A URL pública de agendamento não está configurada.');
- const u=new URL(base,location.href);u.searchParams.set('booking','1');u.searchParams.set('share','1');u.hash='';return u.toString();
+ const u=new URL(base,location.href);u.searchParams.set('booking','1');u.searchParams.set('share','2');u.hash='';return u.toString();
 }
 async function copyTextSafe(text){try{await navigator.clipboard.writeText(text);return true}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok}}
 async function copyOnlineBookingLink(){try{const link=buildOnlineBookingLink();await copyTextSafe(link);onlineBookingNotice('Link de agendamento copiado. Já pode enviar ao cliente.',true)}catch(e){onlineBookingNotice(e.message||String(e),false)}}
@@ -7203,10 +7222,10 @@ function renderBookingRequestsAdmin(){
      '<div class="result-head"><div><div class="result-title">'+escapeHtmlText(r.service_name||'Serviço')+'</div><div class="result-meta">'+escapeHtmlText(r.client_name||'Cliente')+' • '+escapeHtmlText(r.vehicle_label||'Veículo')+' • '+escapeHtmlText(r.plate||'')+'</div></div><span class="tag">'+escapeHtmlText(badge)+'</span></div>'+
      '<div class="opportunity"><b>Data preferida:</b> '+escapeHtmlText(bookingRequestDate(r.preferred_date))+(r.alternate_date?' • <b>2ª opção:</b> '+escapeHtmlText(bookingRequestDate(r.alternate_date)):'')+'<br><b>WhatsApp:</b> '+escapeHtmlText(r.phone||'')+(r.condominium?'<br><b>Local:</b> '+escapeHtmlText(r.condominium):'')+(r.notes?'<br><b>Obs.:</b> '+escapeHtmlText(r.notes):'')+'</div>'+
      '<div class="actions">'+
-       '<button class="btn-primary" type="button" onclick="bookingRequestWhatsApp(\\''+escapeHtmlAttr(r.phone||'')+'\\')">WhatsApp</button>'+
-       (badge==='Pendente'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\\''+escapeHtmlAttr(r.id)+'\\',\\'Em análise\\')">Em análise</button>':'')+
-       (badge!=='Confirmado'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\\''+escapeHtmlAttr(r.id)+'\\',\\'Confirmado\\')">Marcar tratada</button>':'')+
-       (badge!=='Recusado'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\\''+escapeHtmlAttr(r.id)+'\\',\\'Recusado\\')">Recusar</button>':'')+
+       '<button class="btn-primary" type="button" onclick="bookingRequestWhatsApp(\''+escapeHtmlAttr(r.phone||'')+'\')">WhatsApp</button>'+
+       (badge==='Pendente'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\''+escapeHtmlAttr(r.id)+'\',\'Em análise\')">Em análise</button>':'')+
+       (badge!=='Confirmado'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\''+escapeHtmlAttr(r.id)+'\',\'Confirmado\')">Marcar tratada</button>':'')+
+       (badge!=='Recusado'?'<button class="btn-ghost" type="button" onclick="setBookingRequestStatus(\''+escapeHtmlAttr(r.id)+'\',\'Recusado\')">Recusar</button>':'')+
      '</div></div>'
  }).join('')
 }
