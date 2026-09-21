@@ -2973,10 +2973,11 @@ function getAvailableAppointmentTimes(){
 
   const candidate={date,service,collaborator,travelMinutes,travelMargin};
   const slots=[];
-  // Janela operacional padrão Vaporeasy: expediente a partir das 07:30.
+  // Janela operacional padrão Vaporeasy: início às 07:40 e último horário de início às 16:00.
   const dayStart=7*60+40;
+  const lastStart=16*60;
   const dayEnd=20*60;
-  for(let t=dayStart;t+duration<=dayEnd;t+=20){
+  for(let t=dayStart;t<=lastStart && t+duration<=dayEnd;t+=20){
     if(isAppointmentSlotAvailable(candidate,t))slots.push(minutesToClock(t));
   }
   return slots;
@@ -3019,8 +3020,8 @@ function getAppointmentTimeOptions(){
   const today=agendaLocalToday();
   const now=agendaNowMinutes();
   const result=[];
-  const dayStart=7*60+40, dayEnd=20*60;
-  for(let t=dayStart;t<=dayEnd;t+=20){
+  const dayStart=7*60+40, lastStart=16*60, dayEnd=20*60;
+  for(let t=dayStart;t<=lastStart;t+=20){
     if(date===today && t<now){
       result.push({time:minutesToClock(t),state:'past',available:false});
       continue;
@@ -3055,7 +3056,7 @@ function updateAvailableAppointmentTimes(preferredTime=''){
     el.value='';
     if(hint){
       hint.classList.remove('available-time-empty');
-      hint.textContent='Horários de início de 20 em 20 minutos, a partir das 07:40. Escolha data, serviço e colaborador.';
+      hint.textContent='Horários de início de 20 em 20 minutos, das 07:40 às 16:00. Escolha data, serviço e colaborador.';
     }
     syncAvailableTimeChips([]);
     return;
@@ -7131,7 +7132,7 @@ async function loadPublicSlots(){
  const items=getPublicVehicleItems(false),date=document.getElementById('vpPubDate')?.value||'';if(!items.length||items.some(i=>!i.service_id)||!date){if(status)status.textContent='Preencha os veículos, serviços e a data.';return}if(status)status.textContent='Buscando horários…';
  try{
   const rows=await publicRpc('public_booking_slots_multi',{p_date:date,p_items:items.map(i=>({service_id:i.service_id})),p_condominium:(document.getElementById('vpPubCondo')?.value||'').trim(),p_address:(document.getElementById('vpPubAddress')?.value||'').trim()})||[];
-  const list=Array.isArray(rows)?rows:[];if(status)status.textContent=list.length?list.length+' horário(s) disponível(is) para todo o atendimento.':'Não há horários livres nesta data para todos os serviços.';if(box)box.innerHTML=list.map((r,i)=>'<button class="vp-public-slot" type="button" data-i="'+i+'">'+escapeHtmlText(String(r.slot_time||'').slice(0,5))+'</button>').join('');box?.querySelectorAll('button').forEach((b,i)=>b.addEventListener('click',()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');vpPubSelectedSlot=list[i]}));
+  const list=(Array.isArray(rows)?rows:[]).filter(r=>{const t=String(r.slot_time||'').slice(0,5);const m=t.match(/^(\d{1,2}):(\d{2})$/);return !!m && (Number(m[1])*60+Number(m[2]))<=16*60;});if(status)status.textContent=list.length?list.length+' horário(s) disponível(is) para todo o atendimento (último início às 16:00).':'Não há horários livres nesta data para todos os serviços até 16:00.';if(box)box.innerHTML=list.map((r,i)=>'<button class="vp-public-slot" type="button" data-i="'+i+'">'+escapeHtmlText(String(r.slot_time||'').slice(0,5))+'</button>').join('');box?.querySelectorAll('button').forEach((b,i)=>b.addEventListener('click',()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');vpPubSelectedSlot=list[i]}));
  }catch(e){if(status)status.textContent=e.message||String(e)}
 }
 function setPublicStatus(msg,ok=null){const e=document.getElementById('vpPubStatus');if(!e)return;e.style.display='block';e.className='vp-public-status '+(ok===true?'ok':ok===false?'err':'');e.textContent=msg}
