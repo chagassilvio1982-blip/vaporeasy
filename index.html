@@ -2504,7 +2504,7 @@ function populateModels(brandId, modelId, selected=''){
 const STORAGE_CLIENTS='vaporeasy_clients_v1';
 const STORAGE_VEHICLES='vaporeasy_vehicles_v1';
 const STORAGE_APPOINTMENTS='vaporeasy_appointments_v1';
-function getAppointments(){return readStore(STORAGE_APPOINTMENTS,[])}
+function getAppointments(){return readStore(STORAGE_APPOINTMENTS,[]).filter(a=>!isAppointmentDeleted(a))}
 function setAppointments(v){writeStore(STORAGE_APPOINTMENTS,v)}
 function toggleRecurrence(){
   const freq=document.getElementById('agendaFrequencia')?.value||'single';
@@ -2867,7 +2867,7 @@ function findNextAvailableAppointmentTime(candidate){
     const sameDay=(typeof getAppointments==='function'?getAppointments():[])
       .filter(a=>String(a.date||'')===date &&
         appointmentBlocksCollaborator(a,collaborator) &&
-        !['cancelado','concluido','excluido'].includes(normalizeText(a.status||'Agendado')))
+        isAgendaAppointmentActive(a))
       .map(a=>{
         const start=clockToMinutes(a.time);
         const dur=serviceDurationMinutesByName(a.service);
@@ -2933,7 +2933,7 @@ function isAppointmentSlotAvailable(candidate,startMinutes){
     const sameDay=(typeof getAppointments==='function'?getAppointments():[])
       .filter(a=>String(a.date||'')===date &&
         normalizeText(a.collaborator||'')===normalizeText(collaborator) &&
-        !['cancelado','concluido','excluido'].includes(normalizeText(a.status||'Agendado')))
+        isAgendaAppointmentActive(a))
       .map(a=>{
         const st=clockToMinutes(a.time);
         const dur=serviceDurationMinutesByName(a.service);
@@ -2986,7 +2986,7 @@ function getAvailableAppointmentTimes(){
 /* V127 — duração visual exata: vermelho só durante o serviço; segurança é validada sem alongar o bloco vermelho. */
 function isAgendaAppointmentActive(a){
   const st=normalizeText(a?.status||'Agendado');
-  return !['cancelado','concluido','excluido'].includes(st);
+  return !isAppointmentDeleted(a) && !['cancelado','cancelled','canceled','concluido','completed','excluido','deleted'].includes(st);
 }
 function agendaLocalToday(){
   const d=new Date();
@@ -3146,7 +3146,7 @@ function candidateConflictInfo(candidate){
       .filter(a=>
         String(a.date||'')===date &&
         normalizeText(a.collaborator||'')===normalizeText(collaborator) &&
-        String(a.status||'Agendado')!=='Cancelado'
+        isAgendaAppointmentActive(a)
       );
 
     for(const a of sameDay){
@@ -3498,6 +3498,7 @@ function saveAppointment(){
 
   setTimeout(()=>{
     if(typeof toggleAppointmentForm==='function')toggleAppointmentForm(false);
+    showNextVehicleChoice(created[0]);
     if(typeof renderAgendaTimeline==='function')renderAgendaTimeline();
 
     const agenda=document.getElementById('agenda');
@@ -3526,6 +3527,31 @@ function saveAppointment(){
   }
 }
 
+function showNextVehicleChoice(appt){
+  document.getElementById('vpNextVehicleChoice')?.remove();
+  const panel=document.createElement('div');panel.id='vpNextVehicleChoice';panel.className='card';
+  const title=document.createElement('strong');title.textContent='Agendamento salvo. Deseja agendar o próximo carro?';
+  const button=document.createElement('button');button.type='button';button.textContent='Adicionar próximo carro';
+  button.onclick=()=>{panel.remove();prepareNextVehicleAppointment(appt)};
+  const done=document.createElement('button');done.type='button';done.className='secondary';done.textContent='Finalizar';done.onclick=()=>panel.remove();
+  panel.append(title,document.createElement('br'),button,done);
+  document.getElementById('appointmentFormCard')?.insertAdjacentElement('beforebegin',panel);
+}
+function prepareNextVehicleAppointment(appt){
+  openNewAppointmentMode();unlockAgendaVehicleSelection();
+  window.__agendaPreselectedFromVehicle=false;
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=value};
+  set('agendaCliente',appt.client);updateAgendaVehicles();set('agendaVeiculo','');
+  set('agendaData',appt.date);set('agendaServico',appt.service);set('agendaColaborador',appt.collaborator);
+  set('agendaFrequencia','single');document.getElementById('agendaFrequencia')?.dispatchEvent(new Event('change'));
+  set('agendaObservacoes','');
+  const end=clockToMinutes(appt.time)+serviceDurationMinutesByName(appt.service);
+  const next=getAvailableAppointmentTimes().find(t=>clockToMinutes(t)>=end)||'';
+  updateAvailableAppointmentTimes(next);
+  const status=document.getElementById('agendaSaveStatus');
+  if(status){status.classList.remove('hidden');status.textContent=next?'Selecione o próximo veículo. Horário disponível sugerido: '+next+'.':'Selecione o próximo veículo e outra data: não há horário livre depois deste atendimento.';}
+  document.getElementById('agendaVeiculo')?.focus();
+}
 function appointmentEndDate(appt){
   const date=String(appt?.date||'');
   const start=clockToMinutes(appt?.time);
@@ -3590,6 +3616,7 @@ function updateAppointmentStatus(id,newStatus){
   try{reconcileVehicleNeedsAfterCompletion(list[i])}catch(e){}
   try{reconcileCompletedAppointmentRecords(list[i],previousStatus,newStatus)}catch(e){console.warn('Histórico/financeiro:',e)}
   renderAppointments();
+  refreshAppointmentAvailability();
   try{renderFinanceiro()}catch(e){}
   try{renderManagementDashboard()}catch(e){}
   try{renderRealizedServices()}catch(e){}
@@ -3600,6 +3627,21 @@ const APPT_TOMBSTONES_KEY='vaporeasy_deleted_appointments_v1';
 // V114: a sincronização agora reconcilia a lista local com a nuvem para que
 // registros já apagados não sobrevivam em caches de versões anteriores.
 const APPT_CLOUD_DELETE_MARKER='__VAPOREASY_DELETED__';
+function isAppointmentDeleted(a){
+  if(!a)return true;
+  if(a.deletedAt || a.deleted_at || String(a.notes||'').includes('__VAPOREASY_DELETED__'))return true;
+  if(['excluido','deleted'].includes(normalizeText(a.status||'')))return true;
+  return getAppointmentTombstones().some(t=>{
+    if(t.cloudId)return String(t.cloudId)===String(a.cloudId||String(a.id||'').replace(/^cloudag_/,''));
+    if(t.localId)return String(t.localId)===String(a.id||'');
+    return t.fingerprint===appointmentFingerprint(a) &&
+      (!a.createdAt || Date.parse(a.createdAt)<=Date.parse(t.deletedAt));
+  });
+}
+function refreshAppointmentAvailability(){
+  if(typeof updateAvailableAppointmentTimes==='function')updateAvailableAppointmentTimes();
+  if(typeof updateAgendaConflictPreview==='function')updateAgendaConflictPreview();
+}
 function appointmentFingerprint(a){
   return [normalizeText(a?.client||''),cleanPlate(a?.vehicle||''),String(a?.date||''),String(a?.time||'').slice(0,5)].join('|');
 }
@@ -3614,8 +3656,8 @@ function saveAppointmentTombstones(list){
 function addAppointmentTombstone(appt,cloudId=''){
   const list=getAppointmentTombstones();
   const fp=appointmentFingerprint(appt);
-  if(!list.some(x=>(cloudId&&x.cloudId===cloudId)||(!cloudId&&x.fingerprint===fp))){
-    list.push({cloudId:cloudId||'',fingerprint:fp,deletedAt:new Date().toISOString()});
+  if(!list.some(x=>(cloudId&&x.cloudId===cloudId)||(!cloudId&&x.localId===appt.id))){
+    list.push({cloudId:cloudId||'',fingerprint:fp,localId:appt.id||'',deletedAt:new Date().toISOString()});
     saveAppointmentTombstones(list);
   }
 }
@@ -3646,6 +3688,12 @@ async function deleteAppointment(id){
   renderAppointments();
   if(typeof renderAgendaTimeline==='function')renderAgendaTimeline();
 
+  refreshAppointmentAvailability();
+  if(typeof window.vpSecureDeleteAppointment==='function'){
+    try{await window.vpSecureDeleteAppointment(appt);showToast('Agendamento excluído e horário liberado.','success');}
+    catch(e){showToast('Horário liberado neste aparelho. Exclusão pendente de sincronização.','success');console.warn('Exclusão pendente:',e);}
+    return;
+  }
   let cloudIds=appt.cloudId?[appt.cloudId]:[];
   try{
     if(typeof cloudReady==='function' && cloudReady() && typeof sbRequest==='function'){
@@ -7174,7 +7222,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     typeof STORAGE_SERVICE_CATALOG!=='undefined'?STORAGE_SERVICE_CATALOG:'vaporeasy_service_catalog_v1',
     typeof STORAGE_COLLABORATORS!=='undefined'?STORAGE_COLLABORATORS:'vaporeasy_collaborators_v1'
   ]);
-  let session=null,profile=null,autoTimer=null,autoBusy=false,autoApplying=false,started=false;
+  let session=null,profile=null,autoTimer=null,autoBusy=false,autoApplying=false,started=false,autoPending=false;
   // V154: expõe o perfil atual com segurança para scripts de navegação fora deste escopo.
   window.vpGetCurrentProfile=()=>profile;
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -7310,12 +7358,14 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
   function tstamp(x){const v=Date.parse(x||'');return Number.isFinite(v)?v:0}
   function newer(local,remote){if(!local)return remote;if(!remote)return local;const lt=tstamp(local.updatedAt||local.createdAt),rt=tstamp(remote.updatedAt||remote.createdAt||remote._cloudUpdatedAt);return lt>rt?{...remote,...local}:{...local,...remote}}
   function mergeList(local,remote,keyFn,{dropMissingCloudLinked=false}={}){const out=[...(local||[])],rkeys=new Set();for(const r of remote||[]){const k=keyFn(r);if(!k)continue;rkeys.add(k);let i=out.findIndex(x=>keyFn(x)===k);if(i>=0)out[i]=newer(out[i],r);else out.push(r)}if(dropMissingCloudLinked)return out.filter(x=>!x?.cloudId||rkeys.has(keyFn(x)));return out}
-  async function applySnapshot(snap){if(!snap||snap.ok!==true)return false;autoApplying=true;try{const lc=getClients?.()||[],lv=getVehicles?.()||readStore(STORAGE_VEHICLES,[]),ls=getServiceCatalog?.()||[],lx=getCollaborators?.()||[],la=getAppointments?.()||[];const appointmentKey=a=>[normalizeText(a.client||''),String(a.date||''),String(a.time||'').slice(0,5)].join('|');const dedupe=list=>{const m=new Map();for(const a of list||[]){const k=appointmentKey(a);if(!k||k==='||')continue;const p=m.get(k);if(!p)m.set(k,a);else if(a.cloudId&&!p.cloudId)m.set(k,a);else if(!(p.cloudId&&!a.cloudId))m.set(k,newer(p,a))}return [...m.values()]};writeStore(STORAGE_CLIENTS,mergeList(lc,snap.clients||[],c=>normalizeText(c.name||'')));writeStore(STORAGE_VEHICLES,mergeList(lv,snap.vehicles||[],v=>cleanPlate(v.plate||'')));setServiceCatalog(mergeList(ls,snap.services||[],s=>normalizeText(s.name||'')));setCollaborators(mergeList(lx,snap.collaborators||[],c=>normalizeText(c.name||'')));setAppointments(mergeList(dedupe(la),dedupe(snap.appointments||[]),appointmentKey));try{updateClientSuggestions();updatePlateSuggestions();updateAgendaVehicles();updateServiceSelects();updateCollaboratorSelects();renderAppointments();renderManagementDashboard();}catch(e){}return true}finally{autoApplying=false}}
-  async function pushAuto({feedback=false}={}){if(!session||autoApplying||autoBusy)return false;autoBusy=true;try{await bridge('sync',{method:'POST',body:buildBundle()});await sleep(350);const snap=await cloudSnapshot();await applySnapshot(snap);if(feedback&&typeof showToast==='function')showToast('Dados salvos na nuvem','success');return true}catch(e){console.warn('Secure sync push',e);return false}finally{autoBusy=false;try{refreshDashboardSyncPanel(false)}catch(e){}}}
+  async function applySnapshot(snap){if(!snap||snap.ok!==true)return false;autoApplying=true;try{const lc=getClients?.()||[],lv=getVehicles?.()||readStore(STORAGE_VEHICLES,[]),ls=getServiceCatalog?.()||[],lx=getCollaborators?.()||[],la=getAppointments?.()||[];const appointmentKey=a=>[normalizeText(a.client||''),String(a.date||''),String(a.time||'').slice(0,5)].join('|');const dedupe=list=>{const m=new Map();for(const a of list||[]){const k=appointmentKey(a);if(!k||k==='||')continue;const p=m.get(k);if(!p)m.set(k,a);else if(a.cloudId&&!p.cloudId)m.set(k,a);else if(!(p.cloudId&&!a.cloudId))m.set(k,newer(p,a))}return [...m.values()]};writeStore(STORAGE_CLIENTS,mergeList(lc,snap.clients||[],c=>normalizeText(c.name||'')));writeStore(STORAGE_VEHICLES,mergeList(lv,snap.vehicles||[],v=>cleanPlate(v.plate||'')));setServiceCatalog(mergeList(ls,snap.services||[],s=>normalizeText(s.name||'')));setCollaborators(mergeList(lx,snap.collaborators||[],c=>normalizeText(c.name||'')));setAppointments(mergeList(dedupe(la),dedupe((snap.appointments||[]).filter(a=>!isAppointmentDeleted(a))),appointmentKey).filter(a=>!isAppointmentDeleted(a) && !(snap.inactiveAppointmentIds||[]).includes(a.cloudId)));try{updateClientSuggestions();updatePlateSuggestions();updateAgendaVehicles();updateServiceSelects();updateCollaboratorSelects();renderAppointments();refreshAppointmentAvailability();renderManagementDashboard();}catch(e){}return true}finally{autoApplying=false}}
+  async function pushAuto({feedback=false}={}){if(!session||autoApplying)return false;if(autoBusy){autoPending=true;return false}autoBusy=true;try{await bridge('sync',{method:'POST',body:buildBundle()});await sleep(350);const snap=await cloudSnapshot();await applySnapshot(snap);if(feedback&&typeof showToast==='function')showToast('Dados salvos na nuvem','success');return true}catch(e){console.warn('Secure sync push',e);return false}finally{autoBusy=false;if(autoPending){autoPending=false;scheduleAuto()}try{refreshDashboardSyncPanel(false)}catch(e){}}}
   async function pullAuto({feedback=false}={}){if(!session||autoBusy||autoApplying)return false;try{const ok=await applySnapshot(await cloudSnapshot());if(ok&&feedback&&typeof showToast==='function')showToast('Dados atualizados','success');return ok}catch(e){console.warn('Secure sync pull',e);return false}}
   function scheduleAuto(){if(!session||autoApplying)return;clearTimeout(autoTimer);autoTimer=setTimeout(()=>pushAuto(),1000)} window.vpSecureSchedule=scheduleAuto;
   const ow=window.writeStore;if(typeof ow==='function')window.writeStore=function(k,v){const r=ow(k,v);if(AUTO_SYNC_KEYS.has(k))scheduleAuto();return r};
   const oc=window.setCollaborators;if(typeof oc==='function')window.setCollaborators=function(v){const r=oc(v);scheduleAuto();return r};
+  window.cloudSyncAppointment=async()=>{scheduleAuto();return null};
+  window.vpSecureDeleteAppointment=async a=>{await bridge('appointment_delete',{method:'POST',body:{cloudId:a.cloudId||'',localId:a.id||'',client:a.client,plate:cleanPlate(a.vehicle||''),date:a.date,time:a.time,deletedAt:new Date().toISOString()}});scheduleAuto()};
   window.cloudSyncClient=async()=>{scheduleAuto();return null}; window.cloudSyncVehicle=async()=>{scheduleAuto();return null};
   window.syncEverything=async()=>{await pushAuto({feedback:true})};
   window.refreshDashboardSyncPanel=async function(showFeedback=false){if(!document.getElementById('dashSyncStatus'))return;const local=dashboardLocalSyncCounts();if(!session){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncState('offline','Login necessário','Entre para acessar a nuvem.','warn');return}try{const cloud=await bridgeCloudCounts();setDashboardSyncCounts(local,cloud);setDashboardSyncEnabled(true);const same=local.clients===cloud.clients&&local.vehicles===cloud.vehicles&&local.appointments===cloud.appointments;setDashboardSyncState(same?'synced':'different',same?'Sincronizado':'Diferença encontrada',same?'Os totais locais e da nuvem estão iguais.':'Existem diferenças entre este aparelho e a nuvem.',same?'ok':'warn');if(showFeedback&&typeof showToast==='function')showToast('Conexão segura validada','success')}catch(e){setDashboardSyncState('offline','Desconectado','Falha na sessão segura: '+(e.message||e),'err')}};
