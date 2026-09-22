@@ -5,7 +5,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#06111f" />
-<title>Vaporeasy • App interno</title>
+<title>Vaporeasy • Agendamento online</title>
+<meta name="description" content="Agende seu atendimento Vaporeasy de forma rápida e segura.">
+<meta property="og:title" content="Vaporeasy • Agendamento online">
+<meta property="og:description" content="Escolha seu veículo, serviço, data e horário para agendar com a Vaporeasy.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://vaporeasy.vercel.app/?booking=1&share=2">
 <style>
 :root{--bg:#020b13;--bg2:#061522;--panel:#0b1b28;--panel2:#0f2535;--brand:#11b8ff;--brand2:#0a8fe7;--text:#f7fbff;--muted:#91a9bc;--line:#19384d;--green:#12b969;--red:#df5a62}
 *{box-sizing:border-box;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif}
@@ -1431,7 +1436,7 @@ main{
 
 
 </style>
-<meta name="vaporeasy-version" content="156-delete-racefix">
+<meta name="vaporeasy-version" content="158-public-booking-auth-bypass">
 
 <style id="v149-auth-style">
 #vpAuthGate{position:fixed;inset:0;z-index:99999;background:linear-gradient(180deg,#f4f7f9 0%,#e8f1f6 100%);display:flex;align-items:center;justify-content:center;padding:22px;font-family:inherit}
@@ -7390,7 +7395,21 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
   window.refreshDashboardSyncPanel=async function(showFeedback=false){if(!document.getElementById('dashSyncStatus'))return;const local=dashboardLocalSyncCounts();if(!session){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncState('offline','Login necessário','Entre para acessar a nuvem.','warn');return}try{const cloud=await bridgeCloudCounts();setDashboardSyncCounts(local,cloud);setDashboardSyncEnabled(true);const same=local.clients===cloud.clients&&local.vehicles===cloud.vehicles&&local.appointments===cloud.appointments;setDashboardSyncState(same?'synced':'different',same?'Sincronizado':'Diferença encontrada',same?'Os totais locais e da nuvem estão iguais.':'Existem diferenças entre este aparelho e a nuvem.',same?'ok':'warn');if(showFeedback&&typeof showToast==='function')showToast('Conexão segura validada','success')}catch(e){setDashboardSyncState('offline','Desconectado','Falha na sessão segura: '+(e.message||e),'err')}};
   window.dashboardSyncNow=async function(){await pushAuto({feedback:true});await pullAuto();await refreshDashboardSyncPanel(false)};
   async function startSecureApp(){if(started)return;started=true;const note=document.getElementById('dashSyncNote');if(note){note.textContent='Sincronização protegida por login e sessão individual.';note.className='sync-dashboard-note ok'}await pullAuto();await pushAuto();await pullAuto();await refreshDashboardSyncPanel(false);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullAuto().then(()=>refreshDashboardSyncPanel(false))});window.addEventListener('online',()=>pullAuto().then(()=>pushAuto()));setInterval(()=>{if(document.visibilityState==='visible'&&!autoBusy&&!autoApplying)pullAuto().then(()=>refreshDashboardSyncPanel(false))},10000)}
-  document.addEventListener('DOMContentLoaded',async()=>{if(await validSession()){unlock();await startSecureApp()}else{document.body.classList.add('vp-auth-locked');document.getElementById('vpAuthGate')?.classList.remove('hidden')}});
+  document.addEventListener('DOMContentLoaded',async()=>{
+    // Agenda pública nunca deve exigir login interno.
+    if(typeof isPublicBookingMode==='function' && isPublicBookingMode()){
+      document.body.classList.remove('vp-auth-locked');
+      document.getElementById('vpAuthGate')?.classList.add('hidden');
+      return;
+    }
+    if(await validSession()){
+      unlock();
+      await startSecureApp();
+    }else{
+      document.body.classList.add('vp-auth-locked');
+      document.getElementById('vpAuthGate')?.classList.remove('hidden');
+    }
+  });
 })();
 </script>
 
@@ -8082,6 +8101,7 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
   function vpPublicAppLink(token=''){
     const u=new URL(VP_PUBLIC_APP_URL);
     u.searchParams.set('booking','1');
+    u.searchParams.set('share','2');
     if(token)u.searchParams.set('client',token);
     return u.toString();
   }
