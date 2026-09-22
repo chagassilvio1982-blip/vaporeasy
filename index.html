@@ -1774,46 +1774,71 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
 
 <section id="agendaonline" class="screen">
   <div class="agenda-topbar">
-    <div><h2 style="margin:0">Agenda online</h2><p class="muted" style="margin:5px 0 0">Link público para o cliente consultar horários e reservar.</p></div>
+    <div><h2 style="margin:0">Agenda online</h2><p class="muted" style="margin:5px 0 0">Escolha um cliente cadastrado ou envie o link público para um cliente novo/avulso.</p></div>
     <button class="btn-ghost" type="button" onclick="voltarParaResumo()">Voltar</button>
-  </div>
-  <div class="card online-admin-card">
-    <div class="online-admin-status" id="onlineBookingCloudStatus">Verificando conexão…</div>
-    <label>URL pública deste arquivo</label>
-    <input id="onlineBookingBaseUrl" type="url" inputmode="url" placeholder="https://seusite.com/vaporeasy.html" oninput="saveOnlineBookingBaseUrl()">
-    <div class="online-help">Depois que este HTML estiver publicado na internet, cole acima o endereço público dele. O link enviado ao cliente usa apenas a Publishable key do Supabase.</div>
-    <div class="online-admin-actions">
-      <button class="btn-primary" type="button" onclick="copyOnlineBookingLink()">Copiar link de agendamento</button>
-      <button class="btn-green" type="button" onclick="copyOnlineBookingWhatsApp()">Copiar mensagem do WhatsApp</button>
-      <button class="btn-ghost" type="button" onclick="previewOnlineBooking()">Pré-visualizar</button>
-    </div>
-    <div id="onlineBookingAdminNotice" class="notice hidden" style="margin-top:12px"></div>
   </div>
 
   <div class="card online-admin-card" id="personalizedBookingAdmin">
-    <h3 style="margin-top:0">Link personalizado para cliente cadastrado</h3>
-    <p class="online-help">Selecione um cliente já cadastrado. O link identifica o cliente com um token seguro e mostra somente os veículos vinculados a ele.</p>
-    <label>Cliente</label>
-    <select id="onlineBookingClientSelect">
-      <option value="">Selecione o cliente…</option>
-    </select>
-    <div class="online-admin-actions" style="margin-top:12px">
-      <button class="btn-primary" type="button" onclick="vpCopyPersonalizedBookingLink()">Copiar link personalizado</button>
-      <button class="btn-green" type="button" onclick="vpCopyPersonalizedBookingWhatsApp()">Copiar mensagem do WhatsApp</button>
+    <h3 style="margin-top:0">Cliente cadastrado</h3>
+    <p class="online-help">Busque por <b>nome, telefone ou placa</b>. A lista completa não fica mais aberta na tela.</p>
+    <label for="onlineBookingClientSearch">Buscar cliente</label>
+    <div class="vp-booking-client-search-row">
+      <input id="onlineBookingClientSearch" type="search" autocomplete="off" placeholder="Ex.: Enrico, 1199999..., BMW..." oninput="vpFilterBookingClients(this.value)">
+      <button class="btn-ghost" type="button" onclick="vpClearBookingClientSelection()">Limpar</button>
+    </div>
+    <div id="onlineBookingClientHint" class="online-help vp-booking-search-hint">Digite pelo menos 2 caracteres para pesquisar.</div>
+    <div id="onlineBookingClientResults" class="vp-booking-client-results" aria-live="polite"></div>
+
+    <div id="onlineBookingSelectedClientCard" class="vp-booking-selected hidden">
+      <div class="vp-booking-selected-head">
+        <div>
+          <small>Cliente selecionado</small>
+          <strong id="onlineBookingSelectedClientName">—</strong>
+          <span id="onlineBookingSelectedClientMeta">—</span>
+        </div>
+        <button class="btn-ghost" type="button" onclick="vpClearBookingClientSelection()">Trocar</button>
+      </div>
+      <div class="online-admin-actions" style="margin-top:12px">
+        <button class="btn-primary" type="button" onclick="vpCopyPersonalizedBookingLink()">Copiar link personalizado</button>
+        <button class="btn-green" type="button" onclick="vpCopyPersonalizedBookingWhatsApp()">Copiar mensagem do WhatsApp</button>
+      </div>
+      <button id="vpDeleteBookingClientBtn" class="vp-booking-delete-client" type="button" onclick="vpDeleteSelectedBookingClient()" style="display:none">Excluir cadastro deste cliente</button>
     </div>
     <div id="personalizedBookingNotice" class="notice hidden" style="margin-top:12px"></div>
   </div>
 
-  <div class="card online-admin-card">
-    <h3 style="margin-top:0">Como funciona</h3>
-    <div class="online-steps">
-      <div><b>1.</b><span>Cliente cadastrado recebe um link exclusivo; cliente novo usa o link público geral.</span></div>
-      <div><b>2.</b><span>No link exclusivo, o cliente escolhe o veículo já cadastrado e o serviço.</span></div>
-      <div><b>3.</b><span>No link geral, o novo cliente informa seus dados uma única vez.</span></div>
-      <div><b>4.</b><span>O sistema mostra apenas horários livres e grava o atendimento como <b>Agendado</b>.</span></div>
+  <div class="card online-admin-card vp-booking-new-client-card">
+    <h3 style="margin-top:0">Cliente novo / avulso</h3>
+    <p class="online-help">Use este fluxo para quem ainda não tem cadastro. A pessoa informa os dados uma única vez e escolhe o atendimento.</p>
+    <div class="online-admin-actions">
+      <button class="btn-primary" type="button" onclick="copyOnlineBookingLink()">Copiar link público</button>
+      <button class="btn-green" type="button" onclick="copyOnlineBookingWhatsApp()">Copiar mensagem do WhatsApp</button>
     </div>
-    <div class="online-security-note"><b>Importante:</b> a agenda pública usa funções seguras no Supabase para não expor sua lista de clientes. O arquivo SQL de configuração acompanha esta versão.</div>
+    <div id="onlineBookingAdminNotice" class="notice hidden" style="margin-top:12px"></div>
   </div>
+
+  <details class="card online-admin-card vp-booking-details">
+    <summary>Configuração e teste da agenda</summary>
+    <div class="vp-booking-details-body">
+      <div class="online-admin-status" id="onlineBookingCloudStatus">Verificando conexão…</div>
+      <label>URL pública</label>
+      <input id="onlineBookingBaseUrl" type="url" inputmode="url" placeholder="https://vaporeasy.vercel.app/" oninput="saveOnlineBookingBaseUrl()">
+      <div class="online-help">Configuração técnica. Normalmente não é necessário alterar este endereço.</div>
+      <div class="online-admin-actions">
+        <button class="btn-ghost" type="button" onclick="previewOnlineBooking()">Pré-visualizar agenda pública</button>
+      </div>
+    </div>
+  </details>
+
+  <details class="card online-admin-card vp-booking-details">
+    <summary>Como funciona</summary>
+    <div class="vp-booking-details-body online-steps">
+      <div><b>1.</b><span>Cliente cadastrado: pesquise e envie o link exclusivo.</span></div>
+      <div><b>2.</b><span>No link exclusivo, ele escolhe um dos veículos já cadastrados, o serviço, a data e o horário.</span></div>
+      <div><b>3.</b><span>Cliente novo/avulso recebe o link público e faz um cadastro rápido.</span></div>
+      <div><b>4.</b><span>O sistema mostra somente horários disponíveis.</span></div>
+    </div>
+  </details>
 </section>
 
 <section id="agenda" class="screen">
@@ -7233,6 +7258,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
   async function validSession(){session=loadSession();if(!session?.access_token)return false;try{profile=await getMe(session.access_token);return true}catch(e){if(await refreshSession()){try{profile=await getMe(session.access_token);return true}catch(_){}}return false}}
   function authHeaders(){if(!session?.access_token)throw new Error('Faça login novamente.');return {'apikey':SB_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'}}
   async function bridge(action,opts={}){let r=await fetch(BRIDGE+'?action='+encodeURIComponent(action),{method:opts.method||'GET',headers:authHeaders(),body:opts.body?JSON.stringify(opts.body):undefined,cache:'no-store'});if(r.status===401&&await refreshSession())r=await fetch(BRIDGE+'?action='+encodeURIComponent(action),{method:opts.method||'GET',headers:authHeaders(),body:opts.body?JSON.stringify(opts.body):undefined,cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d.error||('Erro '+r.status));return d}
+  window.vpSecureBridge=bridge;
   window.vpToggleSetup=()=>{document.getElementById('vpSetupPane')?.classList.toggle('show');msg('')};
   window.vpLogin=async()=>{const email=document.getElementById('vpAuthEmail')?.value.trim(),password=document.getElementById('vpAuthPassword')?.value||'';if(!email||!password){msg('Informe e-mail e senha.','err');return}msg('Entrando…');try{const d=await authRest('/auth/v1/token?grant_type=password',{email,password});saveSession(d);profile=await getMe(d.access_token);unlock();await startSecureApp()}catch(e){msg(e.message||String(e),'err')}};
   window.vpCreateOwner=async()=>{const code=document.getElementById('vpSetupCode')?.value.trim(),name=document.getElementById('vpSetupName')?.value.trim()||'Silvio',email=document.getElementById('vpSetupEmail')?.value.trim(),password=document.getElementById('vpSetupPassword')?.value||'';if(!code||!email||password.length<8){msg('Preencha o código, o e-mail e uma senha com pelo menos 8 caracteres.','err');return}msg('Criando acesso seguro…');try{const r=await fetch(AUTH_FN,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'setup',code,name,email,password})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error==='setup_already_completed'?'O proprietário já foi criado. Use Entrar.':(d.error||'Não foi possível criar o acesso.'));msg('Acesso criado. Entrando…','ok');document.getElementById('vpAuthEmail').value=email;document.getElementById('vpAuthPassword').value=password;await window.vpLogin()}catch(e){msg(e.message||String(e),'err')}};
@@ -8027,6 +8053,23 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
 </body>
 </html>
 
+<style id="vaporeasy-v105-booking-search-css">
+#agendaonline .online-admin-card{margin-bottom:14px}
+.vp-booking-client-search-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.vp-booking-client-search-row input{min-height:48px;width:100%;border-radius:14px;border:1px solid rgba(128,181,205,.22);background:#092a3a;color:#fff;padding:10px 12px;font-size:15px}
+.vp-booking-search-hint{margin-top:8px}
+.vp-booking-client-results{display:grid;gap:8px;margin-top:10px}
+.vp-booking-client-result{width:100%;text-align:left;border:1px solid rgba(31,184,255,.22);background:linear-gradient(180deg,#0a2939,#071f2d);border-radius:14px;padding:12px 13px;color:#fff;display:grid;gap:4px}
+.vp-booking-client-result strong{font-size:15px}.vp-booking-client-result span{font-size:12px;color:#99b8c9;line-height:1.35}
+.vp-booking-no-result{padding:13px;border:1px dashed rgba(128,181,205,.22);border-radius:14px;color:#91a9bc;font-size:13px;line-height:1.45}
+.vp-booking-selected{margin-top:13px;padding:14px;border:1px solid rgba(18,185,105,.28);border-radius:16px;background:rgba(18,185,105,.06)}
+.vp-booking-selected.hidden{display:none!important}.vp-booking-selected-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.vp-booking-selected-head small{display:block;color:#7fa2b4;margin-bottom:4px}.vp-booking-selected-head strong{display:block;font-size:18px}.vp-booking-selected-head span{display:block;color:#9eb9c8;font-size:12px;margin-top:5px;line-height:1.4}
+.vp-booking-delete-client{width:100%;margin-top:10px;border:1px solid rgba(223,90,98,.38);background:rgba(223,90,98,.08);color:#ffb7bd;min-height:44px;border-radius:13px;font-weight:800}
+.vp-booking-new-client-card{border-color:rgba(17,184,255,.26)}
+.vp-booking-details{padding:0;overflow:hidden}.vp-booking-details summary{cursor:pointer;padding:15px 16px;font-weight:850;list-style:none}.vp-booking-details summary::-webkit-details-marker{display:none}.vp-booking-details summary:after{content:'＋';float:right;color:#11b8ff}.vp-booking-details[open] summary:after{content:'−'}.vp-booking-details-body{padding:0 16px 16px;border-top:1px solid rgba(255,255,255,.06);padding-top:14px}
+@media(max-width:420px){.vp-booking-client-search-row{grid-template-columns:1fr}.vp-booking-client-search-row .btn-ghost{width:100%}.vp-booking-selected-head{flex-direction:column}.vp-booking-selected-head .btn-ghost{width:100%}}
+</style>
 <script id="vaporeasy-v104-compact-personalized">
 (function(){
   'use strict';
@@ -8056,27 +8099,130 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
     e.classList.remove('hidden');
   }
 
-  function vpPopulateBookingClients(){
-    const sel=document.getElementById('onlineBookingClientSelect');
-    if(!sel || typeof getClients!=='function')return;
-    const current=sel.value;
-    const clients=[...getClients()].filter(c=>String(c?.name||'').trim()).sort((a,b)=>String(a.name).localeCompare(String(b.name),'pt-BR'));
-    sel.innerHTML='<option value="">Selecione o cliente…</option>'+clients.map((c,i)=>{
-      const phone=String(c.phone||c.telefone||'').trim();
-      return '<option value="'+i+'">'+(typeof esc==='function'?esc(c.name):String(c.name))+(phone?' • '+(typeof esc==='function'?esc(phone):phone):'')+'</option>';
-    }).join('');
-    sel.dataset.vpClients=JSON.stringify(clients);
-    if(current && [...sel.options].some(o=>o.value===current))sel.value=current;
+  let vpBookingClients=[];
+  let vpBookingSelectedClient=null;
+
+  function vpNorm(v){
+    try{return typeof normalizeText==='function'?normalizeText(v||''):String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
+    catch(_){return String(v||'').toLowerCase().trim()}
   }
 
-  function vpSelectedBookingClient(){
-    const sel=document.getElementById('onlineBookingClientSelect');
-    if(!sel || !sel.value)return null;
-    try{
-      const arr=JSON.parse(sel.dataset.vpClients||'[]');
-      return arr[Number(sel.value)]||null;
-    }catch(_){return null}
+  function vpVehiclesForBookingClient(client){
+    if(typeof getVehicles!=='function'||!client)return [];
+    const cname=vpNorm(client.name||'');
+    const cid=String(client.cloudId||'');
+    return getVehicles().filter(v=>{
+      if(cid && String(v.cloudClientId||'')===cid)return true;
+      return vpNorm(v.client||'')===cname;
+    });
   }
+
+  function vpBookingClientSearchText(client){
+    const vehicles=vpVehiclesForBookingClient(client);
+    return vpNorm([
+      client.name||'',client.phone||client.telefone||'',client.condo||client.condominium||'',client.address||'',
+      ...vehicles.flatMap(v=>[v.plate||'',v.brand||'',v.model||''])
+    ].join(' '));
+  }
+
+  function vpPopulateBookingClients(){
+    if(typeof getClients!=='function')return;
+    vpBookingClients=[...getClients()].filter(c=>String(c?.name||'').trim()).sort((a,b)=>String(a.name).localeCompare(String(b.name),'pt-BR'));
+    const input=document.getElementById('onlineBookingClientSearch');
+    const results=document.getElementById('onlineBookingClientResults');
+    const hint=document.getElementById('onlineBookingClientHint');
+    if(results)results.innerHTML='';
+    if(hint)hint.textContent='Digite pelo menos 2 caracteres para pesquisar.';
+    if(input && !vpBookingSelectedClient && input.value.trim().length>=2)vpFilterBookingClients(input.value);
+  }
+
+  window.vpFilterBookingClients=function(query){
+    const q=vpNorm(query||'');
+    const results=document.getElementById('onlineBookingClientResults');
+    const hint=document.getElementById('onlineBookingClientHint');
+    if(!results)return;
+    if(q.length<2){results.innerHTML='';if(hint)hint.textContent='Digite pelo menos 2 caracteres para pesquisar.';return}
+    const matches=vpBookingClients.map((c,i)=>({c,i})).filter(x=>vpBookingClientSearchText(x.c).includes(q)).slice(0,8);
+    if(!matches.length){results.innerHTML='<div class="vp-booking-no-result">Nenhum cliente encontrado. Para cliente novo, use o link público abaixo.</div>';if(hint)hint.textContent='';return}
+    results.innerHTML=matches.map(({c,i})=>{
+      const vehicles=vpVehiclesForBookingClient(c);
+      const plates=vehicles.map(v=>v.plate).filter(Boolean).slice(0,3).join(' • ');
+      const phone=String(c.phone||c.telefone||'').trim();
+      return '<button type="button" class="vp-booking-client-result" onclick="vpSelectBookingClient('+i+')">'+
+        '<strong>'+(typeof esc==='function'?esc(c.name):String(c.name))+'</strong>'+
+        '<span>'+[phone,plates].filter(Boolean).map(x=>typeof esc==='function'?esc(x):x).join(' • ')+'</span>'+
+      '</button>';
+    }).join('');
+    if(hint)hint.textContent=matches.length+(matches.length===1?' resultado':' resultados')+' encontrado'+(matches.length===1?'':'s')+'.';
+  };
+
+  window.vpSelectBookingClient=function(index){
+    const client=vpBookingClients[Number(index)]||null;
+    if(!client)return;
+    vpBookingSelectedClient=client;
+    const input=document.getElementById('onlineBookingClientSearch');
+    const results=document.getElementById('onlineBookingClientResults');
+    const card=document.getElementById('onlineBookingSelectedClientCard');
+    const name=document.getElementById('onlineBookingSelectedClientName');
+    const meta=document.getElementById('onlineBookingSelectedClientMeta');
+    const hint=document.getElementById('onlineBookingClientHint');
+    const vehicles=vpVehiclesForBookingClient(client);
+    if(input)input.value=client.name||'';
+    if(results)results.innerHTML='';
+    if(name)name.textContent=client.name||'Cliente';
+    if(meta){
+      const phone=String(client.phone||client.telefone||'').trim();
+      const plates=vehicles.map(v=>v.plate).filter(Boolean).join(' • ');
+      meta.textContent=[phone,plates||(vehicles.length?vehicles.length+' veículo(s)':'Nenhum veículo cadastrado')].filter(Boolean).join(' • ');
+    }
+    card?.classList.remove('hidden');
+    if(hint)hint.textContent='Cliente selecionado. Agora copie o link ou a mensagem.';
+    const del=document.getElementById('vpDeleteBookingClientBtn');
+    const role=window.vpGetCurrentProfile?.()?.role||'';
+    if(del)del.style.display=['owner','admin'].includes(role)?'block':'none';
+  };
+
+  window.vpClearBookingClientSelection=function(){
+    vpBookingSelectedClient=null;
+    const input=document.getElementById('onlineBookingClientSearch');
+    const results=document.getElementById('onlineBookingClientResults');
+    const card=document.getElementById('onlineBookingSelectedClientCard');
+    const hint=document.getElementById('onlineBookingClientHint');
+    if(input){input.value='';input.focus()}
+    if(results)results.innerHTML='';
+    card?.classList.add('hidden');
+    if(hint)hint.textContent='Digite pelo menos 2 caracteres para pesquisar.';
+    vpPersonalNotice('',true);
+    document.getElementById('personalizedBookingNotice')?.classList.add('hidden');
+  };
+
+  function vpSelectedBookingClient(){return vpBookingSelectedClient}
+
+  window.vpDeleteSelectedBookingClient=async function(){
+    const client=vpSelectedBookingClient();
+    if(!client){vpPersonalNotice('Selecione um cliente.',false);return}
+    const role=window.vpGetCurrentProfile?.()?.role||'';
+    if(!['owner','admin'].includes(role)){vpPersonalNotice('Somente proprietário ou administrador pode excluir clientes.',false);return}
+    const name=String(client.name||'Cliente').trim();
+    if(!confirm('Excluir o cadastro de '+name+'?\n\nSerão removidos o cliente, os veículos vinculados, agendamentos ativos, solicitações e links de agendamento. O histórico financeiro já concluído será preservado.'))return;
+    if(!confirm('Confirma a exclusão definitiva de '+name+'?'))return;
+    vpPersonalNotice('Excluindo cadastro…',true);
+    try{
+      if(typeof window.vpSecureBridge!=='function')throw new Error('Atualização segura ainda não está disponível. Atualize o aplicativo e tente novamente.');
+      const result=await window.vpSecureBridge('client_delete',{method:'POST',body:{client_id:client.cloudId||'',name}});
+      if(result?.ok===false)throw new Error(result.error||'Não foi possível excluir o cliente.');
+
+      const clientName=vpNorm(name), clientId=String(client.cloudId||result?.client_id||'');
+      if(typeof writeStore==='function'&&typeof STORAGE_CLIENTS!=='undefined')writeStore(STORAGE_CLIENTS,getClients().filter(c=>!(clientId&&String(c.cloudId||'')===clientId)&&vpNorm(c.name||'')!==clientName));
+      if(typeof writeStore==='function'&&typeof STORAGE_VEHICLES!=='undefined')writeStore(STORAGE_VEHICLES,readStore(STORAGE_VEHICLES,[]).filter(v=>!(clientId&&String(v.cloudClientId||'')===clientId)&&vpNorm(v.client||'')!==clientName));
+      if(typeof getAppointments==='function'&&typeof setAppointments==='function')setAppointments(getAppointments().filter(a=>vpNorm(a.client||'')!==clientName));
+      try{updateClientSuggestions?.();updatePlateSuggestions?.();updateAgendaVehicles?.();renderAppointments?.()}catch(_){}
+      vpClearBookingClientSelection();
+      vpPopulateBookingClients();
+      vpPersonalNotice('Cadastro de '+name+' excluído com sucesso.',true);
+      try{window.vpSecureSchedule?.()}catch(_){}
+    }catch(e){vpPersonalNotice(e.message||String(e),false)}
+  };
 
   async function vpEnsureCloudClientId(client){
     if(!client)throw new Error('Selecione um cliente.');
