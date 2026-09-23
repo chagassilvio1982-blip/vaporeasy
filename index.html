@@ -1567,6 +1567,18 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
 }
 </style>
 
+
+<style id="vp-condo-fold-style">
+.vp-condo-fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:700;padding:12px 0;overflow-wrap:anywhere}
+.vp-condo-fold>summary::-webkit-details-marker{display:none}
+.vp-condo-fold>summary::after{content:'＋';color:var(--accent,#18b9df);font-size:22px;flex-shrink:0}
+.vp-condo-fold[open]>summary::after{content:'−'}
+.vp-condo-fold>summary:focus-visible{outline:2px solid #18b9df;outline-offset:3px;border-radius:6px}
+.vp-condo-content{padding:8px 0 12px;overflow-wrap:anywhere}
+.vp-condo-client{border-top:1px solid var(--line,#254352);margin-top:8px}
+.vp-condo-content p,.vp-condo-content li{color:var(--muted,#9bb5c4);font-size:14px;line-height:1.6}
+.vp-condo-content ul{padding-left:20px}
+</style>
 </head>
 <!-- VAPOREASY_BUILD: access-header-v2-2026-09-19 -->
 <body class="vp-auth-locked">
@@ -2090,10 +2102,12 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
       <button type="button" class="btn-ghost" onclick="toggleCondoManager(false)">✕</button>
     </div>
     <div style="margin-top:12px">
+      <details id="condoFormDetails" class="vp-condo-fold"><summary id="condoFormHeading">Cadastrar condomínio</summary><div class="vp-condo-content">
       <label>Nome do condomínio</label><input id="condoNome" placeholder="Ex.: Condomínio Paradiso" autocomplete="off">
       <label>Endereço</label><input id="condoEndereco" placeholder="Rua, número e bairro" autocomplete="off">
       <div class="row"><div><label>Contato / portaria (opcional)</label><input id="condoContato" placeholder="Nome ou telefone"></div><div><label>Observação (opcional)</label><input id="condoObs" placeholder="Ex.: acesso pela portaria 2"></div></div>
       <div class="condo-toolbar" style="margin-top:10px"><button id="condoSaveBtn" type="button" class="btn-primary" onclick="saveCondominium()">Salvar condomínio</button><button id="condoCancelBtn" type="button" class="btn-secondary hidden" onclick="cancelCondoEdit()">Cancelar edição</button></div>
+      </div></details>
       <div id="condoStatus" class="notice hidden" style="margin-top:10px"></div>
       <div id="condoList" class="condo-list"></div>
     </div>
@@ -7120,7 +7134,7 @@ function toggleCondoManager(force){
  const card=document.getElementById('condoManagerCard'); if(!card)return;
  const show=typeof force==='boolean'?force:card.style.display==='none'||card.classList.contains('hidden');
  card.style.display=show?'block':'none'; card.classList.toggle('hidden',!show);
- if(show){renderCondoList();setTimeout(()=>document.getElementById('condoNome')?.focus(),80)}
+ if(show){cancelCondoEdit();renderCondoList()}
 }
 function setCondoStatus(msg,ok=true){const el=document.getElementById('condoStatus');if(!el)return;el.className='notice '+(ok?'ok':'err');el.textContent=msg;el.classList.remove('hidden')}
 function saveCondominium(){
@@ -7134,15 +7148,50 @@ function saveCondominium(){
  if(dup){setCondoStatus('Este condomínio já está cadastrado.',false);return}
  const item={id:editingCondoId||('condo_'+Date.now()),name,address,contact,notes,updatedAt:new Date().toISOString()};
  const i=list.findIndex(x=>x.id===editingCondoId); if(i>=0)list[i]=item; else list.push(item);
- setCondominiums(list); editingCondoId=null;
+ setCondominiums(list); editingCondoId=null;document.getElementById('condoFormDetails').open=false;document.getElementById('condoFormHeading').textContent='Cadastrar condomínio';
  ['condoNome','condoEndereco','condoContato','condoObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
  document.getElementById('condoSaveBtn').textContent='Salvar condomínio'; document.getElementById('condoCancelBtn')?.classList.add('hidden');
  setCondoStatus('Condomínio salvo. Agora ele aparece como opção nos cadastros.',true);
 }
-function editCondominium(id){const c=getCondominiums().find(x=>x.id===id);if(!c)return;editingCondoId=id;toggleCondoManager(true);document.getElementById('condoNome').value=c.name||'';document.getElementById('condoEndereco').value=c.address||'';document.getElementById('condoContato').value=c.contact||'';document.getElementById('condoObs').value=c.notes||'';document.getElementById('condoSaveBtn').textContent='Salvar alterações';document.getElementById('condoCancelBtn')?.classList.remove('hidden')}
-function cancelCondoEdit(){editingCondoId=null;['condoNome','condoEndereco','condoContato','condoObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('condoSaveBtn').textContent='Salvar condomínio';document.getElementById('condoCancelBtn')?.classList.add('hidden')}
+function editCondominium(id){const c=getCondominiums().find(x=>x.id===id);if(!c)return;toggleCondoManager(true);editingCondoId=id;document.getElementById('condoFormDetails').open=true;document.getElementById('condoFormHeading').textContent='Editar condomínio';document.getElementById('condoNome').value=c.name||'';document.getElementById('condoEndereco').value=c.address||'';document.getElementById('condoContato').value=c.contact||'';document.getElementById('condoObs').value=c.notes||'';document.getElementById('condoSaveBtn').textContent='Salvar alterações';document.getElementById('condoCancelBtn')?.classList.remove('hidden')}
+function cancelCondoEdit(){editingCondoId=null;document.getElementById('condoFormDetails').open=false;document.getElementById('condoFormHeading').textContent='Cadastrar condomínio';['condoNome','condoEndereco','condoContato','condoObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('condoSaveBtn').textContent='Salvar condomínio';document.getElementById('condoCancelBtn')?.classList.add('hidden')}
 function deleteCondominium(id){const list=getCondominiums();const c=list.find(x=>x.id===id);if(!c)return;if(!confirm('Excluir o condomínio '+c.name+'?'))return;setCondominiums(list.filter(x=>x.id!==id));setCondoStatus('Condomínio excluído.',true)}
-function renderCondoList(){const el=document.getElementById('condoList');if(!el)return;const list=getCondominiums().slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));if(!list.length){el.innerHTML='<div class="client-empty-state"><strong>Nenhum condomínio cadastrado</strong><span>Cadastre os locais onde a Vaporeasy atende com frequência.</span></div>';return}el.innerHTML=list.map(c=>`<div class="condo-item"><div class="condo-item-head"><div><div class="condo-item-title">${condoEsc(c.name)}</div><div class="condo-item-meta">${condoEsc(c.address||'Endereço não informado')}${c.contact?'<br>📞 '+condoEsc(c.contact):''}${c.notes?'<br>'+condoEsc(c.notes):''}</div></div></div><div class="condo-actions"><button type="button" class="btn-ghost" onclick="editCondominium('${condoEsc(c.id)}')">✏️ Editar</button><button type="button" class="btn-danger" onclick="deleteCondominium('${condoEsc(c.id)}')">Excluir</button></div></div>`).join('')}
+
+function condoMatchName(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLocaleLowerCase('pt-BR')}
+function condoLinkedClients(condo){
+ const key=condoMatchName(condo.name);
+ return key?getClients().filter(c=>condoMatchName(c.condo||c.condominium||'')===key).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR')):[];
+}
+function renderCondoList(){
+ const el=document.getElementById('condoList');if(!el)return;
+ const list=getCondominiums().slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
+ if(!list.length){el.innerHTML='<div class="client-empty-state"><strong>Nenhum condomínio cadastrado</strong><span>Toque em Cadastrar condomínio para adicionar um local.</span></div>';return}
+ const vehicles=getVehicles();
+ el.innerHTML=list.map(c=>{
+   const clients=condoLinkedClients(c);
+   const clientHtml=clients.map(client=>{
+     const cars=vehicles.filter(v=>condoMatchName(v.client)===condoMatchName(client.name));
+     return '<details class="vp-condo-client vp-condo-fold"><summary>'+condoEsc(client.name)+'</summary><div class="vp-condo-content">'+
+       (client.phone?'<p>'+condoEsc(client.phone)+'</p>':'')+
+       '<strong>Veículos ('+cars.length+')</strong>'+
+       (cars.length?'<ul>'+cars.map(v=>'<li>'+condoEsc([v.brand,v.model].filter(Boolean).join(' ')||'Modelo não informado')+' • '+condoEsc(v.plate||'Placa não informada')+(v.color?' • '+condoEsc(v.color):'')+'</li>').join('')+'</ul>':'<p>Nenhum veículo cadastrado.</p>')+
+       '</div></details>';
+   }).join('');
+   return '<details class="condo-item vp-condo-fold" data-condo-id="'+condoEsc(c.id)+'"><summary class="condo-item-title">'+condoEsc(c.name)+'</summary>'+
+     '<div class="vp-condo-content"><div class="condo-item-meta">'+condoEsc(c.address||'Endereço não informado')+
+     (c.contact?'<br>Contato / portaria: '+condoEsc(c.contact):'')+(c.notes?'<br>'+condoEsc(c.notes):'')+'</div>'+
+     '<h4>Clientes vinculados ('+clients.length+')</h4>'+
+     (clientHtml||'<p>Nenhum cliente vinculado. Selecione este condomínio no cadastro dos clientes.</p>')+
+     '<div class="condo-actions"><button type="button" class="btn-ghost" data-condo-edit="'+condoEsc(c.id)+'">Editar condomínio</button>'+
+     '<button type="button" class="btn-danger" data-condo-delete="'+condoEsc(c.id)+'">Excluir</button></div></div></details>';
+ }).join('');
+ el.querySelectorAll('[data-condo-id]').forEach(item=>item.addEventListener('toggle',()=>{
+   if(!item.open){item.querySelectorAll('details').forEach(child=>child.open=false);return}
+   el.querySelectorAll('[data-condo-id]').forEach(other=>{if(other!==item)other.open=false});
+ }));
+ el.querySelectorAll('[data-condo-edit]').forEach(button=>button.addEventListener('click',()=>editCondominium(button.dataset.condoEdit)));
+ el.querySelectorAll('[data-condo-delete]').forEach(button=>button.addEventListener('click',()=>deleteCondominium(button.dataset.condoDelete)));
+}
 function updateCondoSuggestions(){const dl=document.getElementById('condominiosSugestoes');if(dl)dl.innerHTML=getCondominiums().map(c=>`<option value="${condoEsc(c.name)}">${condoEsc(c.address||'')}</option>`).join('')}
 function applyCondoAddressFromName(){const name=(document.getElementById('clienteCondominio')?.value||'').trim().toLocaleLowerCase('pt-BR');const c=getCondominiums().find(x=>String(x.name||'').trim().toLocaleLowerCase('pt-BR')===name);if(c&&c.address){const e=document.getElementById('clienteEndereco');if(e&&!e.value.trim())e.value=c.address}}
 document.addEventListener('DOMContentLoaded',()=>{updateCondoSuggestions();renderCondoList();const cc=document.getElementById('clienteCondominio');if(cc){cc.addEventListener('change',applyCondoAddressFromName);cc.addEventListener('blur',applyCondoAddressFromName)}});
