@@ -7419,6 +7419,29 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
   }
   window.buildBridgeSyncBundle=buildBundle;
   async function bridgeCloudCounts(){const d=await bridge('counts');return {clients:Number(d.clients||0),vehicles:Number(d.vehicles||0),appointments:Number(d.appointments||0)}}
+  function dashboardLocalSyncCounts(){
+    return {
+      clients:(typeof getClients==='function'?getClients():readStore(STORAGE_CLIENTS,[])).length,
+      vehicles:(typeof getVehicles==='function'?getVehicles():readStore(STORAGE_VEHICLES,[])).length,
+      appointments:(typeof getAppointments==='function'?getAppointments():readStore(STORAGE_APPOINTMENTS,[])).length
+    };
+  }
+  function setDashboardSyncCounts(local,cloud){
+    [['dashSyncClients','clients'],['dashSyncVehicles','vehicles'],['dashSyncAppointments','appointments']].forEach(([id,key])=>{
+      const e=document.getElementById(id);
+      if(e)e.textContent=String(local[key]??0)+' / '+String(cloud[key]??'—');
+    });
+  }
+  function setDashboardSyncState(state,title,note,kind){
+    const status=document.getElementById('dashSyncStatus');
+    if(status){status.textContent=title;status.className='sync-status-pill '+(kind||'warn')}
+    const message=document.getElementById('dashSyncNote');
+    if(message){message.textContent=note;message.className='sync-dashboard-note '+(kind||'warn')}
+  }
+  function setDashboardSyncEnabled(enabled){
+    const button=document.getElementById('dashSyncNowBtn');
+    if(button)button.disabled=!enabled;
+  }
   async function cloudSnapshot(){return await bridge('snapshot')}
   function tstamp(x){const v=Date.parse(x||'');return Number.isFinite(v)?v:0}
   function newer(local,remote){if(!local)return remote;if(!remote)return local;const lt=tstamp(local.updatedAt||local.createdAt),rt=tstamp(remote.updatedAt||remote.createdAt||remote._cloudUpdatedAt);return lt>rt?{...remote,...local}:{...local,...remote}}
@@ -7554,7 +7577,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
   const oc=window.setCollaborators;if(typeof oc==='function')window.setCollaborators=function(v){const r=oc(v);scheduleAuto();return r};
   window.cloudSyncClient=async()=>{scheduleAuto();return null}; window.cloudSyncVehicle=async()=>{scheduleAuto();return null};
   window.syncEverything=async()=>{await pushAuto({feedback:true})};
-  window.refreshDashboardSyncPanel=async function(showFeedback=false){if(!document.getElementById('dashSyncStatus'))return;const local=dashboardLocalSyncCounts();if(!session){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncState('offline','Login necessário','Entre para acessar a nuvem.','warn');return}try{const cloud=await bridgeCloudCounts();setDashboardSyncCounts(local,cloud);setDashboardSyncEnabled(true);const same=local.clients===cloud.clients&&local.vehicles===cloud.vehicles&&local.appointments===cloud.appointments;setDashboardSyncState(same?'synced':'different',same?'Sincronizado':'Diferença encontrada',same?'Os totais locais e da nuvem estão iguais.':'Existem diferenças entre este aparelho e a nuvem.',same?'ok':'warn');if(showFeedback&&typeof showToast==='function')showToast('Conexão segura validada','success')}catch(e){setDashboardSyncState('offline','Desconectado','Falha na sessão segura: '+(e.message||e),'err')}};
+  window.refreshDashboardSyncPanel=async function(showFeedback=false){if(!document.getElementById('dashSyncStatus'))return;let local;try{local=dashboardLocalSyncCounts()}catch(e){setDashboardSyncEnabled(false);setDashboardSyncState('offline','Erro local','Não foi possível contar os dados deste aparelho: '+(e.message||e),'err');return}if(!session){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncEnabled(false);setDashboardSyncState('offline','Login necessário','Entre para acessar a nuvem.','warn');return}try{const cloud=await bridgeCloudCounts();setDashboardSyncCounts(local,cloud);setDashboardSyncEnabled(true);const same=local.clients===cloud.clients&&local.vehicles===cloud.vehicles&&local.appointments===cloud.appointments;setDashboardSyncState(same?'synced':'different',same?'Sincronizado':'Diferença encontrada',same?'Os totais locais e da nuvem estão iguais.':'Existem diferenças entre este aparelho e a nuvem.',same?'ok':'warn');if(showFeedback&&typeof showToast==='function')showToast('Conexão segura validada','success')}catch(e){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncEnabled(false);setDashboardSyncState('offline','Desconectado','Falha na sessão segura: '+(e.message||e),'err')}};
   window.dashboardSyncNow=async function(){await pushAuto({feedback:true});await pullAuto();await refreshDashboardSyncPanel(false)};
   async function startSecureApp(){if(started)return;started=true;const note=document.getElementById('dashSyncNote');if(note){note.textContent='Sincronização protegida por login e sessão individual.';note.className='sync-dashboard-note ok'}await pullAuto();await pushAuto();await pullAuto();await refreshDashboardSyncPanel(false);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullAuto().then(()=>refreshDashboardSyncPanel(false))});window.addEventListener('online',()=>pullAuto().then(()=>pushAuto()));setInterval(()=>{if(document.visibilityState==='visible'&&!autoBusy&&!autoApplying)pullAuto().then(()=>refreshDashboardSyncPanel(false))},10000)}
   document.addEventListener('DOMContentLoaded',async()=>{
