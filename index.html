@@ -6020,7 +6020,7 @@ function renderManagementDashboard(){
     .filter(a=>String(a.status||'')!=='Cancelado' && String(a.status||'')!=='Concluído')
     .filter(a=>String(a.date||'')>=iso)
     .sort((a,b)=>(String(a.date||'')+String(a.time||'')).localeCompare(String(b.date||'')+String(b.time||'')))
-    .slice(0,4);
+    .slice(0,8);
   const list=document.getElementById('dashNextAppointments');
   if(list){
     const vehicles=(typeof getVehicles==='function'?getVehicles():[]);
@@ -8920,7 +8920,7 @@ main,.screen{
 .vp-agenda-item-time{font-size:16px;font-weight:950;color:#eaf9ff;letter-spacing:-.02em}
 .vp-agenda-item-main{min-width:0}
 .vp-agenda-item-main strong{display:block;color:#f7fbff;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vp-agenda-item-main span{display:block;color:#8eacbc;font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vp-agenda-item-main span{display:block;color:#8eacbc;font-size:10px;margin-top:3px;white-space:normal;overflow-wrap:anywhere}
 .vp-agenda-item-status{font-size:9px;font-weight:900;padding:5px 7px;border-radius:999px;border:1px solid rgba(117,168,192,.22);color:#cce8f6;white-space:nowrap}
 .vp-agenda-item-chevron{font-size:20px;color:#5ecdf8;line-height:1;transition:transform .15s ease}
 .vp-agenda-item[open] .vp-agenda-item-chevron{transform:rotate(45deg)}
@@ -9007,6 +9007,20 @@ main,.screen{
   function vpLocation(a){try{return clientLocationLabel(a.client)||'Local não informado'}catch(_){return 'Local não informado'}}
   function vpConflict(a,all){try{return appointmentHasStoredConflict(a,all)}catch(_){return false}}
   function vpSafe(v){try{return esc(v)}catch(_){return String(v??'')}}
+  function vpAgendaVehicleLabel(a){
+    const raw=String(a.vehicle||'').trim();
+    const normalizePlate=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    const platePattern=/\b[A-Z]{3}[- ]?\d[A-Z0-9]\d{2}\b/i;
+    const plate=normalizePlate(a.plate||(raw.match(platePattern)||[])[0]||raw);
+    const vehicle=plate?(getVehicles()||[]).find(v=>normalizePlate(v.plate)===plate):null;
+    if(vehicle){
+      const name=[vehicle.brand,vehicle.model].filter(Boolean).join(' ').trim();
+      return [name||'Modelo não informado',vehicle.plate||a.plate||raw].filter(Boolean).join(' • ');
+    }
+    if(raw&&normalizePlate(raw)!==plate)return raw+(a.plate&&!raw.match(platePattern)?' • '+a.plate:'');
+    return plate?'Modelo não informado • '+String(a.plate||raw):'Veículo não informado';
+  }
+
 
   // Substitui somente a apresentação da linha do tempo. Os filtros e as regras existentes continuam valendo.
   window.renderAgendaTimeline = renderAgendaTimeline = function(){
@@ -9016,7 +9030,7 @@ main,.screen{
     const agendaSearch=normalizeText((document.getElementById('agendaSearchInput')||{}).value||'').trim();
     const dayAll=getAppointments().filter(a=>a.date===agendaFocusDate);
     const all=dayAll
-      .filter(a=>!agendaSearch||normalizeText([a.client,a.vehicle,a.plate,a.service,a.collaborator,a.status].join(' ')).includes(agendaSearch))
+      .filter(a=>!agendaSearch||normalizeText([a.client,vpAgendaVehicleLabel(a),a.vehicle,a.plate,a.service,a.collaborator,a.status].join(' ')).includes(agendaSearch))
       .filter(a=>{const group=agendaStatusGroup(a.status);if(group==='completed'||group==='cancelled')return false;if(agendaCurrentFilter==='confirmed')return group==='confirmed';if(agendaCurrentFilter==='scheduled')return group==='scheduled';return true})
       .filter(a=>agendaCollabSelected==='all'||String(a.collaborator||'')===agendaCollabSelected)
       .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||''))||String(a.client||'').localeCompare(String(b.client||''),'pt-BR'));
@@ -9027,7 +9041,7 @@ main,.screen{
 
     const html=all.map(a=>{
       const id=String(a.id||'');const time=String(a.time||'').slice(0,5);const status=a.status||'Agendado';const collab=a.collaborator||'Sem colaborador';const loc=vpLocation(a);const conflict=vpConflict(a,dayAll);
-      const vehicle=String(a.vehicle||a.plate||'Veículo não informado');const service=String(a.service||'Serviço não informado');
+      const vehicle=vpAgendaVehicleLabel(a);const service=String(a.service||'Serviço não informado');
       const notes=String(a.notes||'').trim();const route=[a.routeOrigin,a.routeDestination].filter(Boolean).join(' → ');
       return '<details class="vp-agenda-item">'+
         '<summary><div class="vp-agenda-item-time">'+vpSafe(time)+'</div><div class="vp-agenda-item-main"><strong>'+vpSafe(a.client||'Cliente')+'</strong><span>'+vpSafe(vehicle)+' • '+vpSafe(service)+'</span></div><span class="vp-agenda-item-status '+vpStatusClass(status)+'">'+vpSafe(status)+'</span><span class="vp-agenda-item-chevron">＋</span></summary>'+
