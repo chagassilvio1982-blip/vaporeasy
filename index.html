@@ -1928,6 +1928,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
       <button type="button" id="agendaNewModeBtn" class="agenda-view-btn" onclick="openNewAppointmentMode()">＋ Novo agendamento</button>
       <button type="button" id="agendaRealizedModeBtn" class="agenda-view-btn" onclick="openRealizedServicesMode()">✓ Serviços realizados</button>
     </div>
+    <details id="vpRecurrenceManager" class="vp-condo-fold card" ontoggle="if(this.open)vpLoadRecurrences()"><summary>Recorrências ativas</summary><div id="vpRecurrenceList"></div></details>
     <div id="realizedServicesPanel" class="realized-services-panel hidden">
       <div class="realized-services-toolbar"><input id="realizedServicesSearch" type="search" placeholder="Buscar cliente, placa ou serviço..." oninput="renderRealizedServices()"><button type="button" class="btn-ghost" onclick="openAgendaViewMode()">Voltar</button></div>
       <div id="realizedServicesSummary" class="notice"></div>
@@ -2016,6 +2017,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
     <label>Colaborador responsável</label>
     <select id="agendaColaborador" onchange="syncTravelLocations();updateAvailableAppointmentTimes();updateAgendaConflictPreview()"><option value="">Selecione o colaborador</option></select>
 
+    <div id="vpRecurringTimeWrap" class="hidden"><label>Horário padrão da recorrência</label><input id="agendaRecurringTime" type="time" value="08:00"><small>A equipe será definida depois, em cada atendimento.</small></div>
     <div class="agenda-time-picker-block">
       <label>Horários disponíveis</label>
       <select id="agendaHora" onchange="syncTravelLocations();updateTravelPreview();updateAgendaConflictPreview();syncAvailableTimeChips()"><option value="">Escolha primeiro data, serviço e colaborador...</option></select>
@@ -2093,9 +2095,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
         <label>Intervalo personalizado (dias)</label>
         <input id="agendaIntervaloDias" type="number" min="2" max="365" placeholder="Ex.: 10">
       </div>
-      <label>Número total de atendimentos</label>
-      <input id="agendaRepeticoes" type="number" min="2" max="52" placeholder="Ex.: 4">
-      <small style="color:var(--muted)">Informe quantos atendimentos deseja criar, contando o primeiro. Nenhuma quantidade é definida automaticamente.</small>
+      <small>A recorrência continua até você alterar ou encerrar. A equipe será escolhida em cada atendimento.</small>
     </div>
 
     <label style="margin-top:10px">Observações</label>
@@ -2487,7 +2487,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
 <div class="services-clean-note">
   <span>Os colaboradores ficam em <strong>Cadastro</strong> e os atendimentos em <strong>Agendamentos</strong>.</span>
 </div>
-<div class="section-title service-list-title">Serviços cadastrados</div>
+<div class="section-title service-list-title">Serviços cadastrados</div><input id="vpServiceSearch" type="search" placeholder="Buscar serviço..." aria-label="Buscar serviço" oninput="renderServiceCatalog()">
   <div id="serviceCatalogList" class="list"></div>
 </section>
 
@@ -2655,6 +2655,11 @@ function toggleRecurrence(){
   const recurring=freq!=='single';
   document.getElementById('recurrenceOptions')?.classList.toggle('hidden',!recurring);
   document.getElementById('customFrequencyDays')?.classList.toggle('hidden',freq!=='custom');
+  document.getElementById('vpRecurringTimeWrap')?.classList.toggle('hidden',!recurring);
+  document.querySelector('#appointmentFormCard .agenda-time-picker-block')?.classList.toggle('hidden',recurring);
+  const team=document.getElementById('agendaColaborador');if(team){team.disabled=recurring;if(recurring)team.value='';}
+  const status=document.getElementById('agendaStatus');if(status){status.disabled=recurring;if(recurring)status.value='Agendado';}
+
 }
 function addRecurrenceDate(base, freq, idx, customDays=0){
   const d=new Date(base+'T12:00:00');
@@ -2835,7 +2840,7 @@ function nextAppointmentSameCollaborator(date,time,collaborator){
 function syncTravelLocations(){
   const client=document.getElementById('agendaCliente')?.value||'';
   const date=document.getElementById('agendaData')?.value||'';
-  const time=document.getElementById('agendaHora')?.value||'';
+  const time=document.getElementById('agendaFrequencia')?.value!=='single'?(document.getElementById('agendaRecurringTime')?.value||''):(document.getElementById('agendaHora')?.value||'');
   const collaborator=document.getElementById('agendaColaborador')?.value||'';
   const origin=document.getElementById('agendaOrigemRota');
   const destination=document.getElementById('agendaDestinoRota');
@@ -3433,7 +3438,7 @@ function cleanupAppointmentDuplicates(){
   return clean;
 }
 
-function saveAppointment(){
+async function saveAppointment(){
   const saveButton=document.querySelector('#appointmentFormCard button[onclick="saveAppointment()"]');
   if(saveButton){
     saveButton.disabled=true;
@@ -3483,16 +3488,6 @@ function saveAppointment(){
   let count=1;
   let customDays=0;
   if(recurring){
-    const rawCount=parseInt(document.getElementById('agendaRepeticoes')?.value||'',10);
-    if(!rawCount || rawCount<2){
-      if(status){status.textContent='Informe o número total de atendimentos da recorrência.';status.classList.remove('hidden')}
-      if(saveButton){
-      saveButton.disabled=false;
-      saveButton.textContent=saveButton.dataset.originalText||'Salvar agendamento';
-    }
-    return;
-    }
-    count=Math.min(52,rawCount);
     if(freq==='custom'){
       customDays=parseInt(document.getElementById('agendaIntervaloDias')?.value||'',10);
       if(!customDays || customDays<2){
@@ -3504,6 +3499,10 @@ function saveAppointment(){
     return;
       }
     }
+  }
+  if(recurring){
+    await vpSaveContinuousRecurrence({client,vehicle,date,time,service,notes,frequency:freq,customDays:customDays||7,value:calc.base,discount:calc.discount,finalValue:calc.total},saveButton);
+    return;
   }
   const selectedStart=clockToMinutes(time);
   const strictCandidate={client,vehicle,date,time,service,collaborator,travelMinutes,travelMargin};
@@ -3750,7 +3749,7 @@ async function updateAppointmentStatus(id,newStatus){
   try{renderManagementDashboard()}catch(e){}
   try{renderRealizedServices()}catch(e){}
   if(newStatus!=='Cancelado' && typeof cloudSyncAppointment==='function')cloudSyncAppointment(list[i]).catch(e=>console.warn('Cloud appointment status:',e));
-  showToast(newStatus==='Concluído'?'Serviço concluído: removido da agenda e registrado no histórico/financeiro':'Status atualizado para '+newStatus,'success');
+  showToast(newStatus==='Concluído'?'Serviço concluído: disponível para consulta na agenda e no histórico/financeiro':'Status atualizado para '+newStatus,'success');
 }
 const APPT_TOMBSTONES_KEY='vaporeasy_deleted_appointments_v1';
 // V114: a sincronização agora reconcilia a lista local com a nuvem para que
@@ -3908,6 +3907,7 @@ function openAgendaViewMode(){
   window.scrollTo({top:document.getElementById('agenda').offsetTop||0,behavior:'smooth'});
 }
 function openNewAppointmentMode(){
+ window.vpEditingRecurrenceId=null;
   const rp=document.getElementById('realizedServicesPanel');if(rp)rp.classList.add('hidden');document.getElementById('agendaRealizedModeBtn')?.classList.remove('active');
   window.__agendaTargetVehiclePlate=''; window.__agendaTargetClient='';
   const v=document.getElementById('agendaViewBtn'), n=document.getElementById('agendaNewModeBtn'), q=document.getElementById('agendaQuickSearch');
@@ -3917,6 +3917,7 @@ function openNewAppointmentMode(){
 function toggleAppointmentForm(show){
   const el=document.getElementById('appointmentFormCard'); if(!el)return;
   el.classList.toggle('hidden',!show);
+  if(!show)window.vpEditingRecurrenceId=null;
   if(show){setTimeout(()=>{el.scrollIntoView({behavior:'smooth',block:'start'}); const c=document.getElementById('agendaCliente'); if(c)c.focus();},80);}
 }
 function setAgendaFilter(filter,btn){
@@ -4685,25 +4686,28 @@ function deleteServiceCatalog(id){
 function renderServiceCatalog(){
   const box=document.getElementById('serviceCatalogList');
   if(!box)return;
-  const list=getServiceCatalog().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  const query=normalizeText(document.getElementById('vpServiceSearch')?.value||'');
+  const list=getServiceCatalog().filter(s=>!query||normalizeText([s.name,s.category,s.notes].join(' ')).includes(query)).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
   if(!list.length){
     box.innerHTML='<div class="service-empty">Nenhum serviço cadastrado.</div>';
     return;
   }
   const saved=readStore(STORAGE_SERVICE_CATALOG,[]);
-  box.innerHTML=list.map(s=>{
+  const cards=list.map(s=>{
     const isSaved=saved.some(x=>x.id===s.id);
     const price=s.price?Number(s.price).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Valor a definir';
     const actions = isSaved
       ? '<div class="actions"><button class="btn-ghost" type="button" onclick="editServiceCatalog(\''+esc(s.id)+'\')">Editar</button></div>'
       : '<div class="actions"><button class="btn-ghost" type="button" onclick="cloneDefaultServiceToEdit(\''+esc(s.id)+'\')">Editar</button></div>';
-    return '<div class="item service-catalog-item">'+
-      '<div class="item-top"><div class="service-name">'+esc(s.name)+'</div><span class="tag">'+esc(s.category||'Serviço')+'</span></div>'+
+    return {category:s.category||'Outros',html:'<details class="item service-catalog-item vp-condo-fold"><summary>'+esc(s.name)+'</summary>'+ 
+
       '<div class="service-meta"><span class="service-pill">⏱ '+esc(s.duration||'Duração não informada')+'</span><span class="service-pill service-price">'+esc(price)+'</span></div>'+
       (s.notes?'<small>'+esc(s.notes)+'</small>':'')+
       actions+
-      '</div>';
-  }).join('');
+      '</details>'};
+  });
+  const groups=[...new Set(cards.map(c=>c.category))];
+  box.innerHTML=groups.map(category=>'<details class="vp-condo-fold card vp-service-category"'+(query?' open':'')+'><summary>'+esc(category)+' <span class="tag">'+cards.filter(c=>c.category===category).length+'</span></summary>'+cards.filter(c=>c.category===category).map(c=>c.html).join('')+'</details>').join('');
 }
 function cloneDefaultServiceToEdit(id){
   const service=getServiceCatalog().find(s=>s.id===id);
@@ -10538,5 +10542,74 @@ main{
   else init();
 })();
 </script>
+
+<script>
+window.vpEditingRecurrenceId=null;
+window.vpRecurrencePlans=[];
+async function vpSaveContinuousRecurrence(body,button){
+ const status=document.getElementById('agendaSaveStatus');
+ try{
+  if(typeof window.vpSecureBridge!=='function')throw new Error('Entre no aplicativo para salvar a recorrência.');
+  await window.vpSecureBridge('recurrence_save',{method:'POST',body:{...body,id:window.vpEditingRecurrenceId||null,mode:'save'}});
+  window.vpEditingRecurrenceId=null;
+  agendaFocusDate=body.date;agendaCalendarMonth=monthKeyFromIso(body.date);agendaCollabSelected='all';
+  const refreshed=await window.vpSecurePullNow?.(false);
+  if(status){status.textContent=refreshed?'Recorrência salva. Os próximos atendimentos estão na agenda.':'Recorrência salva. Atualize a agenda para carregar os atendimentos.';status.classList.remove('hidden')}
+  if(refreshed){toggleAppointmentForm(false);openAgendaViewMode();renderAppointments()}
+  showToast('Recorrência salva, sem data final.','success');
+  if(document.getElementById('vpRecurrenceManager')?.open)vpLoadRecurrences();
+ }catch(e){
+  const raw=String(e.message||e);
+  const message=raw.includes('vp_recurring_vehicle_active')?'Este veículo já tem recorrência ativa. Use Alterar em Recorrências ativas.':raw.includes('vehicle_not_found')||raw.includes('service_not_found')?'Sincronize o cadastro do veículo e do serviço antes de salvar.':raw.includes('invalid_start_date')?'Escolha hoje ou uma data futura para iniciar.':raw.includes('client_vehicle_mismatch')?'Confira o cliente vinculado a este veículo.':raw;
+  if(status){status.textContent='Não foi possível salvar: '+message;status.classList.remove('hidden')}
+  showToast(message,'error');
+ }finally{if(button){button.disabled=false;button.textContent=button.dataset.originalText||'Salvar agendamento'}}
+}
+async function vpLoadRecurrences(){
+ const box=document.getElementById('vpRecurrenceList');if(!box)return;
+ box.textContent='Carregando recorrências…';
+ try{
+  const result=await window.vpSecureBridge('recurrence_list');
+  window.vpRecurrencePlans=result.plans||[];
+  const labels={weekly:'Semanal',biweekly:'Quinzenal',monthly:'Mensal',custom:'Personalizada'};
+  box.innerHTML=window.vpRecurrencePlans.map(r=>'<div class="item"><strong>'+esc(r.clients?.name||'Cliente')+'</strong><p>'+esc([r.vehicles?.brand,r.vehicles?.model,r.vehicles?.plate].filter(Boolean).join(' • '))+'</p><small>'+esc(labels[r.frequency]||r.frequency)+' • '+esc(String(r.time).slice(0,5))+' • sem data final</small><div class="actions"><button type="button" class="btn-ghost" data-rec-edit="'+esc(r.id)+'">Alterar</button><button type="button" class="btn-ghost" data-rec-stop="'+esc(r.id)+'">Encerrar recorrência</button></div></div>').join('')||'<p>Nenhuma recorrência contínua cadastrada.</p>';
+  box.querySelectorAll('[data-rec-edit]').forEach(b=>b.addEventListener('click',()=>vpEditRecurrence(b.dataset.recEdit)));
+  box.querySelectorAll('[data-rec-stop]').forEach(b=>b.addEventListener('click',()=>vpStopRecurrence(b.dataset.recStop,b)));
+ }catch(e){box.textContent='Não foi possível carregar: '+(e.message||e)}
+}
+function vpEditRecurrence(id){
+ const r=window.vpRecurrencePlans.find(r=>r.id===id);if(!r)return;
+ openNewAppointmentMode();window.vpEditingRecurrenceId=id;
+ document.getElementById('agendaCliente').value=r.clients?.name||'';
+ updateAgendaVehicles();
+ const vehicle=document.getElementById('agendaVeiculo');
+ const plate=r.vehicles?.plate||'';
+ if(vehicle&&!Array.from(vehicle.options).some(o=>o.value===plate)){const option=document.createElement('option');option.value=plate;option.textContent=plate;vehicle.appendChild(option)}
+ const today=typeof agendaLocalToday==='function'?agendaLocalToday():new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+ const fields={agendaVeiculo:plate,agendaData:today,agendaServico:r.services?.name||'',agendaFrequencia:r.frequency,agendaIntervaloDias:r.interval_days,agendaValorServico:r.base_value,agendaDesconto:r.discount_percent,agendaObservacoes:r.notes||'',agendaColaborador:''};
+ Object.entries(fields).forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.value=String(value)});
+ updateAvailableAppointmentTimes();
+ const clock=document.getElementById('agendaHora'),time=String(r.time).slice(0,5);
+ if(clock){if(clock.tagName==='SELECT'&&!Array.from(clock.options).some(o=>o.value===time)){const o=document.createElement('option');o.value=time;o.textContent=time;clock.appendChild(o)}clock.value=time}
+ document.getElementById('agendaRecurringTime').value=time;
+ toggleRecurrence();
+ const st=document.getElementById('agendaSaveStatus');st.textContent='Alterando a recorrência. Escolha a data a partir da qual vale o novo dia e horário. Os serviços concluídos serão preservados.';st.classList.remove('hidden');
+ document.getElementById('vpRecurrenceManager').open=false;
+}
+async function vpStopRecurrence(id,button){
+ if(!confirm('Encerrar esta recorrência e cancelar os próximos atendimentos ainda não iniciados? O histórico será preservado.'))return;
+ button.disabled=true;
+ try{await window.vpSecureBridge('recurrence_save',{method:'POST',body:{mode:'stop',id}});await window.vpSecurePullNow?.(false);await vpLoadRecurrences();renderAppointments();showToast('Recorrência encerrada.','success')}
+ catch(e){showToast('Não foi possível encerrar: '+(e.message||e),'error');button.disabled=false}
+}
+</script>
+<style>
+#servicos #serviceCatalogList{display:block}
+#servicos .vp-service-category{padding:12px 16px;margin:10px 0}
+#servicos .service-catalog-item{padding:8px 12px;margin:8px 0}
+#servicos .service-catalog-item>summary{font-size:15px}
+#vpRecurrenceManager{margin:12px 0;padding:10px 14px}
+body.vp-role-collaborator #vpRecurrenceManager{display:none}
+</style>
 </body>
 </html>
