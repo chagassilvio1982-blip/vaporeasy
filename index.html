@@ -9118,5 +9118,43 @@ main{padding-bottom:220px!important;overflow-y:visible!important;touch-action:pa
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+
+
+<!-- VAPOREASY_BUILD: v166-native-mobile-scroll-2026-09-22 -->
+<style id="vp-v166-native-mobile-scroll">
+/* V166 — restaura a rolagem nativa do navegador no Android.
+   Mantém o bloqueio horizontal, mas não transforma body/main/telas em scroll containers artificiais. */
+html{
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:auto!important;
+}
+body{
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+  overscroll-behavior-y:auto!important;
+  touch-action:auto!important;
+}
+.app,
+main,
+.screen,
+.screen.active,
+#agenda,
+#financeiro,
+#servicos,
+#clientes,
+#home{
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+  touch-action:auto!important;
+}
+#financeiro *,
+#agenda *{
+  touch-action:auto!important;
+}
+main{
+  padding-bottom:220px!important;
+}
+</style>
 </body>
 </html>
