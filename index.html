@@ -1961,7 +1961,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
 </div>
 
 <div class="agenda-day-summary" id="agendaDaySummary">
-  <div><strong id="agendaSummaryCount">0</strong><span>atendimentos</span></div>
+  <div><strong id="agendaSummaryCount">0</strong><span>pendentes</span></div>
   <div><strong id="agendaSummaryConfirmed">0</strong><span>confirmados</span></div>
   <div><strong id="agendaSummaryCompleted">0</strong><span>concluídos</span></div>
   <div><strong id="agendaSummaryValue">R$ 0</strong><span>previstos</span></div>
@@ -4021,7 +4021,7 @@ function renderAgendaCollaboratorFilter(){
   const box=document.getElementById('agendaCollabFilter');
   if(!box)return;
   const names=[...new Set(getAppointments()
-    .filter(a=>{const g=agendaStatusGroup(a.status);return g!=='cancelled'&&g!=='completed';})
+    .filter(a=>agendaStatusGroup(a.status)!=='cancelled')
     .map(a=>String(a.collaborator||'').trim()).filter(Boolean))]
     .sort((a,b)=>a.localeCompare(b,'pt-BR'));
   const items=['all',...names];
@@ -4113,23 +4113,27 @@ document.addEventListener('pointerdown',function(ev){
   if(wrap && !wrap.contains(ev.target)) closeAgendaSearchSuggestions();
 });
 
-function agendaCompletedConsultation(date,search,collaborator){
-  const cars=typeof getVehicles==='function'?getVehicles():[];
+function agendaCompletedConsultation(date,search,collaborator,vehicleLabel){
   const completed=getAppointments()
     .filter(a=>String(a.date||'')===date&&agendaStatusGroup(a.status)==='completed')
     .filter(a=>collaborator==='all'||String(a.collaborator||'')===collaborator)
-    .map(a=>{
-      const car=cars.find(v=>cleanPlate(v.plate||'')===cleanPlate(a.vehicle||''));
-      const label=[car?.brand,car?.model].filter(v=>v&&v!=='Outro').join(' ');
-      return {a,label};
-    })
-    .filter(({a,label})=>!search||normalizeText([a.client,a.vehicle,label,a.service,a.collaborator].join(' ')).includes(search))
+    .map(a=>({a,label:vehicleLabel?vehicleLabel(a):appointmentVehicleLabel(a.plate||a.vehicle||'')}))
+    .filter(({a,label})=>!search||normalizeText([a.client,a.vehicle,a.plate,label,a.service,a.collaborator,a.status].join(' ')).includes(search))
     .sort((x,y)=>String(x.a.time||'').localeCompare(String(y.a.time||'')));
   const count=document.getElementById('agendaSummaryCompleted');
   if(count)count.textContent=String(completed.length);
   if(!completed.length)return '';
   return '<section class="agenda-completed-consult" aria-label="Carros concluídos"><h3>Concluídos neste dia • '+completed.length+'</h3>'+
-    completed.map(({a,label})=>'<div class="agenda-completed-row"><strong>'+esc(String(a.time||'').slice(0,5)+' • '+(a.client||'Cliente'))+'</strong><span>'+esc([label,a.vehicle,a.service].filter(Boolean).join(' • '))+'</span></div>').join('')+
+    completed.map(({a,label})=>'<details class="vp-agenda-item agenda-completed-record"><summary>'+
+      '<div class="vp-agenda-item-time">'+esc(String(a.time||'').slice(0,5))+'</div>'+
+      '<div class="vp-agenda-item-main"><strong>'+esc(a.client||'Cliente')+'</strong><span>'+esc(label||'Veículo não informado')+'</span></div>'+
+      '<span class="vp-agenda-item-status done">Concluído</span><span class="vp-agenda-item-chevron">＋</span></summary>'+
+      '<div class="vp-agenda-item-body"><div class="vp-agenda-item-grid">'+
+      '<div class="vp-agenda-info"><span>Veículo</span><b>'+esc(label||'Veículo não informado')+'</b></div>'+
+      '<div class="vp-agenda-info"><span>Serviço realizado</span><b>'+esc(a.service||'Não informado')+'</b></div>'+
+      '<div class="vp-agenda-info"><span>Equipe / colaborador</span><b>'+esc(a.collaborator||'Não informado')+'</b></div>'+
+      '<div class="vp-agenda-info"><span>Data do serviço</span><b>'+esc(String(a.date||'').split('-').reverse().join('/'))+'</b></div>'+
+      '</div>'+(a.notes?'<div class="vp-agenda-notes">'+esc(a.notes)+'</div>':'')+'</div></details>').join('')+
     '</section>';
 }
 
@@ -9106,6 +9110,7 @@ main,.screen{
     const label=document.getElementById('agendaDayLabel');if(label)label.textContent=formatAgendaDayLabel(agendaFocusDate);
     try{renderAgendaCollaboratorFilter()}catch(_){}
     const agendaSearch=normalizeText((document.getElementById('agendaSearchInput')||{}).value||'').trim();
+    const completedHtml=agendaCompletedConsultation(agendaFocusDate,agendaSearch,agendaCollabSelected,vpAgendaVehicleLabel);
     const dayAll=getAppointments().filter(a=>a.date===agendaFocusDate);
     const all=dayAll
       .filter(a=>!agendaSearch||normalizeText([a.client,vpAgendaVehicleLabel(a),a.vehicle,a.plate,a.service,a.collaborator,a.status].join(' ')).includes(agendaSearch))
@@ -9115,7 +9120,7 @@ main,.screen{
 
     const count=document.getElementById('agendaSummaryCount'),confirmed=document.getElementById('agendaSummaryConfirmed'),value=document.getElementById('agendaSummaryValue');
     if(count)count.textContent=String(all.length);if(confirmed)confirmed.textContent=String(all.filter(a=>normalizeText(a.status||'').includes('confirm')).length);if(value)value.textContent=formatMoneyBR(all.reduce((s,a)=>s+Number(a.finalValue||a.value||0),0));
-    if(!all.length){const filterLabel={confirmed:'confirmado',scheduled:'agendado'}[agendaCurrentFilter];box.innerHTML='<div class="agenda-empty-day">'+(filterLabel?'Nenhum atendimento <b>'+vpSafe(filterLabel)+'</b> em '+vpSafe(formatAgendaDayLabel(agendaFocusDate))+'.':'Nenhum atendimento em '+vpSafe(formatAgendaDayLabel(agendaFocusDate))+'.')+'</div>';return}
+    if(!all.length){const filterLabel={confirmed:'confirmado',scheduled:'agendado'}[agendaCurrentFilter];box.innerHTML=completedHtml||'<div class="agenda-empty-day">'+(filterLabel?'Nenhum atendimento <b>'+vpSafe(filterLabel)+'</b> em '+vpSafe(formatAgendaDayLabel(agendaFocusDate))+'.':'Nenhum atendimento em '+vpSafe(formatAgendaDayLabel(agendaFocusDate))+'.')+'</div>';return}
 
     const html=all.map(a=>{
       const id=String(a.id||'');const time=String(a.time||'').slice(0,5);const status=a.status||'Agendado';const collab=a.collaborator||'Sem colaborador';const loc=vpLocation(a);const conflict=vpConflict(a,dayAll);
@@ -9141,7 +9146,7 @@ main,.screen{
             '<button type="button" class="btn-ghost timeline-delete-action" data-id="'+vpSafe(id)+'">Excluir</button>'+
           '</div></div></details>';
     }).join('');
-    box.innerHTML='<div class="vp-agenda-compact-note">Toque em um atendimento para abrir os detalhes e as ações.</div><div class="vp-agenda-compact-list">'+html+'</div>';
+    box.innerHTML='<div class="vp-agenda-compact-note">Toque em um atendimento para abrir os detalhes e as ações.</div><div class="vp-agenda-compact-list">'+html+'</div>'+completedHtml;
     try{enforceAgendaCompletionButtons()}catch(_){}
   };
 
