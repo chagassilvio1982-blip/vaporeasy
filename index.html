@@ -1579,6 +1579,28 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
 .vp-condo-content p,.vp-condo-content li{color:var(--muted,#9bb5c4);font-size:14px;line-height:1.6}
 .vp-condo-content ul{padding-left:20px}
 </style>
+
+<style id="vp-client-layout">
+#clientes.vp-show-condos #clientDetailsCard,
+#clientes.vp-show-condos #clientVehiclesCard,
+#clientes.vp-show-condos #clientHistoryCard,
+#clientes.vp-show-condos #clientEmptyState,
+#clientes.vp-show-condos #novoClienteCard,
+#clientes.vp-show-condos #cadastrarVeiculoCard,
+#clientes.vp-show-condos #clienteManageStatus{display:none!important}
+#clientes .section-head{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+#clientes .section-head>div:last-child{display:grid!important;grid-template-columns:1fr 1fr;gap:10px!important}
+#clientes .section-head button{width:100%;margin:0;min-height:44px}
+#condoManagerCard .row{display:grid;grid-template-columns:1fr;gap:4px}
+#condoManagerCard input{width:100%;box-sizing:border-box;min-width:0}
+#condoFormDetails{border:1px solid var(--line,#254352);border-radius:12px;padding:0 14px;margin-top:14px}
+#condoManagerCard .condo-list{margin-top:0}
+#clientes #clientVehiclesCard{background:var(--card,#102b39)!important;border:1px solid var(--line,#254352)!important;border-radius:16px;padding:16px!important;margin-top:12px!important}
+#clientes .vp-client-fold>summary{font-size:15px;min-height:24px}
+#clientes #clientHistoryCard{margin-top:12px}
+#clientes .condo-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+#clientes .condo-actions button{min-height:44px}
+</style>
 </head>
 <!-- VAPOREASY_BUILD: access-header-v2-2026-09-19 -->
 <body class="vp-auth-locked">
@@ -2102,6 +2124,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
       <button type="button" class="btn-ghost" onclick="toggleCondoManager(false)">✕</button>
     </div>
     <div style="margin-top:12px">
+      <div id="condoList" class="condo-list"></div>
       <details id="condoFormDetails" class="vp-condo-fold"><summary id="condoFormHeading">Cadastrar condomínio</summary><div class="vp-condo-content">
       <label>Nome do condomínio</label><input id="condoNome" placeholder="Ex.: Condomínio Paradiso" autocomplete="off">
       <label>Endereço</label><input id="condoEndereco" placeholder="Rua, número e bairro" autocomplete="off">
@@ -2109,7 +2132,6 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
       <div class="condo-toolbar" style="margin-top:10px"><button id="condoSaveBtn" type="button" class="btn-primary" onclick="saveCondominium()">Salvar condomínio</button><button id="condoCancelBtn" type="button" class="btn-secondary hidden" onclick="cancelCondoEdit()">Cancelar edição</button></div>
       </div></details>
       <div id="condoStatus" class="notice hidden" style="margin-top:10px"></div>
-      <div id="condoList" class="condo-list"></div>
     </div>
   </div>
 
@@ -2147,21 +2169,22 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn-ghost" onclick="openSelectedClientEdit()">✏️ Editar</button><button id="vpDeleteClientCadastroBtn" type="button" class="btn-ghost" style="display:none" onclick="vpDeleteClientFromCadastro()">Excluir cliente</button></div>
   </div>
-  <div id="clientDetailsBody" style="margin-top:12px"></div>
+  <details class="vp-client-fold vp-condo-fold"><summary>Dados de contato e endereço</summary><div id="clientDetailsBody" style="margin-top:12px"></div></details>
 </div>
 
 <div id="clientVehiclesCard" class="card big hidden" style="margin-top:12px">
+    <details class="vp-client-fold vp-condo-fold"><summary><span id="clientVehiclesTitle">Veículos cadastrados</span></summary>
     <div class="vehicles-section-head">
-      <h3 id="clientVehiclesTitle">Veículos cadastrados</h3>
+
       <button type="button" class="btn-add-vehicle-compact" onclick="openVehicleRegistration()">＋ Veículo</button>
     </div>
-    <div id="clientVehiclesList" class="list"></div>
+    <div id="clientVehiclesList" class="list"></div></details>
   </div>
 
 
 <div id="clientHistoryCard" class="card big hidden history-card" style="display:none">
-  <div class="vehicles-section-head"><h3 style="margin:0">Histórico de serviços</h3><span id="clientHistoryCount" class="tag">0</span></div>
-  <div id="clientHistoryList" class="history-list"></div>
+  <details class="vp-client-fold vp-condo-fold"><summary><span>Histórico de serviços <span id="clientHistoryCount" class="tag">0</span></span></summary>
+  <div id="clientHistoryList" class="history-list"></div></details>
 </div>
 
   <div id="cadastrarVeiculoCard" class="card big hidden" style="display:none;margin-top:12px">
@@ -4987,6 +5010,7 @@ function refreshClientManager(selectedName=''){
 }
 
 function openNewClientForm(){
+ toggleCondoManager(false);
   if(typeof newClientForm === 'function') newClientForm(false);
   const card=document.getElementById('novoClienteCard');
   if(card){
@@ -4997,6 +5021,7 @@ function openNewClientForm(){
   setTimeout(()=>document.getElementById('clienteNome')?.focus(),250);
 }
 function loadClientForEdit(){
+ toggleCondoManager(false);
   const novoCard=document.getElementById('novoClienteCard'); if(novoCard){novoCard.classList.remove('hidden');novoCard.style.display='block';}
   const editPanel=document.getElementById('clientEditPanel'); if(editPanel) editPanel.classList.remove('hidden');
   const sel=document.getElementById('clienteSelecionado'); const name=sel?.value||'';
@@ -5234,6 +5259,7 @@ function renderClientDetails(clientName=''){
     body.innerHTML='';
     return;
   }
+  if(card.dataset.clientName!==c.name){document.querySelectorAll('#clientes .vp-client-fold').forEach(d=>d.open=false);card.dataset.clientName=c.name;}
   title.textContent=c.name||'Cliente';
   const phone=c.phone||c.telefone||'Não informado';
   const condo=c.condo||c.condominio||'Não informado';
@@ -5261,6 +5287,7 @@ function openSelectedClientEdit(){
 }
 
 function selectExistingClientForEdit(encodedName){
+ toggleCondoManager(false);
   const name=decodeURIComponent(encodedName||'');
   const input=document.getElementById('clienteSelecionado');
   if(input){
@@ -7134,6 +7161,7 @@ function toggleCondoManager(force){
  const card=document.getElementById('condoManagerCard'); if(!card)return;
  const show=typeof force==='boolean'?force:card.style.display==='none'||card.classList.contains('hidden');
  card.style.display=show?'block':'none'; card.classList.toggle('hidden',!show);
+ document.getElementById('clientes')?.classList.toggle('vp-show-condos',show);
  if(show){cancelCondoEdit();renderCondoList()}
 }
 function setCondoStatus(msg,ok=true){const el=document.getElementById('condoStatus');if(!el)return;el.className='notice '+(ok?'ok':'err');el.textContent=msg;el.classList.remove('hidden')}
@@ -7171,7 +7199,7 @@ function renderCondoList(){
    const clients=condoLinkedClients(c);
    const clientHtml=clients.map(client=>{
      const cars=vehicles.filter(v=>condoMatchName(v.client)===condoMatchName(client.name));
-     return '<details class="vp-condo-client vp-condo-fold"><summary>'+condoEsc(client.name)+'</summary><div class="vp-condo-content">'+
+     return '<details class="vp-condo-client vp-condo-fold"><summary>'+condoEsc(client.name)+'</summary><div class="vp-condo-content"><button type="button" class="btn-ghost" data-condo-client="'+condoEsc(client.name)+'">Abrir cadastro do cliente</button>'+
        (client.phone?'<p>'+condoEsc(client.phone)+'</p>':'')+
        '<strong>Veículos ('+cars.length+')</strong>'+
        (cars.length?'<ul>'+cars.map(v=>'<li>'+condoEsc([v.brand,v.model].filter(Boolean).join(' ')||'Modelo não informado')+' • '+condoEsc(v.plate||'Placa não informada')+(v.color?' • '+condoEsc(v.color):'')+'</li>').join('')+'</ul>':'<p>Nenhum veículo cadastrado.</p>')+
@@ -7189,6 +7217,7 @@ function renderCondoList(){
    if(!item.open){item.querySelectorAll('details').forEach(child=>child.open=false);return}
    el.querySelectorAll('[data-condo-id]').forEach(other=>{if(other!==item)other.open=false});
  }));
+ el.querySelectorAll('[data-condo-client]').forEach(button=>button.addEventListener('click',()=>{selectExistingClientForEdit(encodeURIComponent(button.dataset.condoClient));renderClientServiceHistory(button.dataset.condoClient)}));
  el.querySelectorAll('[data-condo-edit]').forEach(button=>button.addEventListener('click',()=>editCondominium(button.dataset.condoEdit)));
  el.querySelectorAll('[data-condo-delete]').forEach(button=>button.addEventListener('click',()=>deleteCondominium(button.dataset.condoDelete)));
 }
