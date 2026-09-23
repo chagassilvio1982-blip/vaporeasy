@@ -9156,5 +9156,89 @@ main{
   padding-bottom:220px!important;
 }
 </style>
+
+<!-- VAPOREASY_BUILD: v167-keep-agenda-open-2026-09-22 -->
+<script id="vp-v167-keep-agenda-open">
+(function(){
+  'use strict';
+
+  let openAppointmentId='';
+
+  function appointmentIdFromDetails(el){
+    return el?.querySelector?.('.vp-agenda-edit-action')?.getAttribute('data-id') ||
+           el?.querySelector?.('.timeline-status-action')?.getAttribute('data-id') ||
+           el?.querySelector?.('.timeline-delete-action')?.getAttribute('data-id') || '';
+  }
+
+  function captureOpen(){
+    const current=document.querySelector('#agendaTimeline .vp-agenda-item[open]');
+    if(current){
+      const id=appointmentIdFromDetails(current);
+      if(id)openAppointmentId=String(id);
+    }
+  }
+
+  function restoreOpen(){
+    if(!openAppointmentId)return;
+    const items=document.querySelectorAll('#agendaTimeline .vp-agenda-item');
+    let found=false;
+    items.forEach(item=>{
+      const id=appointmentIdFromDetails(item);
+      const shouldOpen=String(id)===String(openAppointmentId);
+      item.open=shouldOpen;
+      if(shouldOpen)found=true;
+    });
+    if(!found)openAppointmentId='';
+  }
+
+  // Guarda a escolha do usuário. Ao abrir um cartão, fecha apenas os outros.
+  document.addEventListener('toggle',function(ev){
+    const item=ev.target;
+    if(!item?.classList?.contains('vp-agenda-item'))return;
+    const id=appointmentIdFromDetails(item);
+    if(item.open){
+      if(id)openAppointmentId=String(id);
+      document.querySelectorAll('#agendaTimeline .vp-agenda-item[open]').forEach(other=>{
+        if(other!==item)other.open=false;
+      });
+    }else if(id && String(openAppointmentId)===String(id)){
+      // Só limpa quando o próprio usuário fechou o cartão. Durante re-renderização
+      // o elemento antigo pode desaparecer sem que isso deva apagar o estado.
+      if(document.documentElement.contains(item))openAppointmentId='';
+    }
+  },true);
+
+  function wrap(name){
+    const original=window[name];
+    if(typeof original!=='function' || original.__vpV167Wrapped)return;
+    function wrapped(){
+      captureOpen();
+      const result=original.apply(this,arguments);
+      restoreOpen();
+      setTimeout(restoreOpen,0);
+      return result;
+    }
+    wrapped.__vpV167Wrapped=true;
+    window[name]=wrapped;
+    try{
+      if(name==='renderAgendaTimeline')renderAgendaTimeline=wrapped;
+      if(name==='renderAppointments')renderAppointments=wrapped;
+    }catch(_){ }
+  }
+
+  function install(){
+    wrap('renderAgendaTimeline');
+    wrap('renderAppointments');
+    restoreOpen();
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,0),{once:true});
+  else setTimeout(install,0);
+
+  // Algumas versões anteriores substituem as funções durante a inicialização.
+  // Reconfere por poucos segundos sem manter um timer permanente.
+  [250,800,1800,3200].forEach(ms=>setTimeout(install,ms));
+})();
+</script>
 </body>
 </html>
