@@ -5934,10 +5934,10 @@ function renderManagementDashboard(){
   const scheduled=todayApps.filter(a=>['Agendado','Confirmado','Em atendimento'].includes(String(a.status||''))).length;
   const confirmed=todayApps.filter(a=>String(a.status||'')==='Confirmado').length;
 
-  // V130: estatísticas de conclusão usam o momento em que o serviço foi concluído,
-  // e não somente a data originalmente marcada no agendamento.
+  // O relatório operacional usa a data do serviço, evitando contar migrações
+  // do histórico como atendimentos realizados hoje.
   const history=(typeof getServiceHistory==='function'?getServiceHistory():[]);
-  const completedTodayHistory=history.filter(h=>localIsoDateFromTimestamp(h.completedAt||h.createdAt||h.date)===iso);
+  const completedTodayHistory=history.filter(h=>String(h.date||'')===iso);
   const completedFallback=appointments.filter(a=>isCompletedStatus(a.status) && !history.some(h=>String(h.appointmentId||'')===String(a.id||'')) && String(a.date||'')===iso);
   const completed=completedTodayHistory.length+completedFallback.length;
 
@@ -5975,7 +5975,7 @@ function renderManagementDashboard(){
     }).join(''):'<div class="summary-empty">Nenhum próximo atendimento.</div>';
   }
 
-  const monthHistory=history.filter(h=>localIsoDateFromTimestamp(h.completedAt||h.createdAt||h.date).slice(0,7)===ym);
+  const monthHistory=history.filter(h=>String(h.date||'').slice(0,7)===ym);
   const monthFallback=appointments.filter(a=>isCompletedStatus(a.status) && !history.some(h=>String(h.appointmentId||'')===String(a.id||'')) && String(a.date||'').slice(0,7)===ym);
   const monthServices=monthHistory.length+monthFallback.length;
   const historyRevenue=monthHistory.reduce((s,h)=>s+Number(h.value||0),0)+monthFallback.reduce((s,a)=>s+dashboardValue(a),0);
@@ -6220,9 +6220,9 @@ function setFinanceTransactions(x){localStorage.setItem(FINANCE_TRANSACTIONS_KEY
 function serviceHistoryValue(a){return Number(a?.finalValue ?? a?.final_value ?? a?.value ?? a?.price ?? 0)||0}
 function moneyBR(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function isCompletedStatus(s){return normalizeText(String(s||'')).includes('conclu')}
-function historyRecordFromAppointment(a){return {
+function historyRecordFromAppointment(a,completedAt){return {
  id:'hist_'+String(a.id||Date.now()), appointmentId:String(a.id||''), client:a.client||'', vehicle:a.vehicle||'', service:a.service||'Serviço',
- date:a.date||new Date().toISOString().slice(0,10), time:String(a.time||'').slice(0,5), value:serviceHistoryValue(a), collaborator:a.collaborator||'', notes:a.notes||'', completedAt:new Date().toISOString(), source:'appointment'
+ date:a.date||new Date().toISOString().slice(0,10), time:String(a.time||'').slice(0,5), value:serviceHistoryValue(a), collaborator:a.collaborator||'', notes:a.notes||'', completedAt:completedAt||new Date().toISOString(), source:'appointment'
 }}
 function financeRecordFromAppointment(a){return {
  id:'tx_'+String(a.id||Date.now()), appointmentId:String(a.id||''), date:a.date||agendaLocalToday(), type:'Entrada', tipo:'Entrada', category:'Serviço realizado',
@@ -6232,7 +6232,11 @@ function reconcileCompletedAppointmentRecords(appt,previousStatus,newStatus){
  const aid=String(appt?.id||''); if(!aid)return;
  let h=getServiceHistory(), f=getFinanceTransactions();
  if(isCompletedStatus(newStatus)){
-   const hr=historyRecordFromAppointment(appt); const hi=h.findIndex(x=>String(x.appointmentId||'')===aid); if(hi>=0)h[hi]={...h[hi],...hr}; else h.push(hr);
+   const hi=h.findIndex(x=>String(x.appointmentId||'')===aid);
+   // Uma migração ou reabertura não é uma nova conclusão: preserve a data original.
+   const completedAt=hi>=0?(h[hi].completedAt||h[hi].date):(isCompletedStatus(previousStatus)?(appt.completedAt||appt.date||new Date().toISOString()):new Date().toISOString());
+   const hr=historyRecordFromAppointment(appt,completedAt);
+   if(hi>=0)h[hi]={...h[hi],...hr}; else h.push(hr);
    const fr=financeRecordFromAppointment(appt); const fi=f.findIndex(x=>String(x.appointmentId||'')===aid && x.source==='appointment');
    if(fi>=0){
      const old=f[fi]||{};
@@ -7539,6 +7543,9 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
       }
 
       const inactive=new Set((snap.inactiveAppointmentIds||[]).map(String));
+      const inactiveLocalIds=new Set((la||[])
+        .filter(a=>a?.cloudId&&inactive.has(String(a.cloudId)))
+        .map(a=>String(a.id||'')).filter(Boolean));
 
       let localAppointments=(la||[]).filter(a=>!a?.cloudId || !inactive.has(String(a.cloudId)));
       let remoteAppointments=(snap.appointments||[]).filter(a=>!a?.cloudId || !inactive.has(String(a.cloudId)));
@@ -7563,6 +7570,16 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
       if(servicesChanged)setServiceCatalog(nextServices);
       if(collaboratorsChanged)setCollaborators(nextCollaborators);
       if(appointmentsChanged)setAppointments(nextAppointments);
+      // Quando a nuvem cancela um atendimento, remova só os lançamentos
+      // automáticos desse atendimento do histórico/financeiro local.
+      if(inactiveLocalIds.size){
+        const history=getServiceHistory();
+        const finance=getFinanceTransactions();
+        const nextHistory=history.filter(h=>h.source!=='appointment'||!inactiveLocalIds.has(String(h.appointmentId||'')));
+        const nextFinance=finance.filter(f=>f.source!=='appointment'||!inactiveLocalIds.has(String(f.appointmentId||'')));
+        if(nextHistory.length!==history.length)setServiceHistory(nextHistory);
+        if(nextFinance.length!==finance.length)setFinanceTransactions(nextFinance);
+      }
 
       // Atualiza somente a tela que realmente precisa mudar.
       // Isso evita a "piscada" em Cadastro/Cliente/Financeiro enquanto a nuvem sincroniza.
