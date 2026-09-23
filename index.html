@@ -7384,7 +7384,76 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
   function tstamp(x){const v=Date.parse(x||'');return Number.isFinite(v)?v:0}
   function newer(local,remote){if(!local)return remote;if(!remote)return local;const lt=tstamp(local.updatedAt||local.createdAt),rt=tstamp(remote.updatedAt||remote.createdAt||remote._cloudUpdatedAt);return lt>rt?{...remote,...local}:{...local,...remote}}
   function mergeList(local,remote,keyFn,{dropMissingCloudLinked=false}={}){const out=[...(local||[])],rkeys=new Set();for(const r of remote||[]){const k=keyFn(r);if(!k)continue;rkeys.add(k);let i=out.findIndex(x=>keyFn(x)===k);if(i>=0)out[i]=newer(out[i],r);else out.push(r)}if(dropMissingCloudLinked)return out.filter(x=>!x?.cloudId||rkeys.has(keyFn(x)));return out}
-  async function applySnapshot(snap){if(!snap||snap.ok!==true)return false;autoApplying=true;try{const lc=getClients?.()||[],lv=getVehicles?.()||readStore(STORAGE_VEHICLES,[]),ls=getServiceCatalog?.()||[],lx=getCollaborators?.()||[],la=getAppointments?.()||[];const appointmentKey=a=>a?.cloudId?('cloud:'+String(a.cloudId)):[normalizeText(a.client||''),cleanPlate(a.vehicle||''),String(a.date||''),String(a.time||'').slice(0,5),normalizeText(a.service||''),normalizeText(a.collaborator||'')].join('|');const dedupe=list=>{const m=new Map();for(const a of list||[]){const k=appointmentKey(a);if(!k||k==='||')continue;const p=m.get(k);if(!p)m.set(k,a);else if(a.cloudId&&!p.cloudId)m.set(k,a);else if(!(p.cloudId&&!a.cloudId))m.set(k,newer(p,a))}return [...m.values()]};writeStore(STORAGE_CLIENTS,mergeList(lc,snap.clients||[],c=>normalizeText(c.name||'')));writeStore(STORAGE_VEHICLES,mergeList(lv,snap.vehicles||[],v=>cleanPlate(v.plate||'')));setServiceCatalog(mergeList(ls,snap.services||[],s=>normalizeText(s.name||'')));setCollaborators(mergeList(lx,snap.collaborators||[],c=>normalizeText(c.name||'')));setAppointments(mergeList(dedupe(la),dedupe(snap.appointments||[]),appointmentKey));try{updateClientSuggestions();updatePlateSuggestions();updateAgendaVehicles();updateServiceSelects();updateCollaboratorSelects();renderAppointments();renderManagementDashboard();}catch(e){}return true}finally{autoApplying=false}}
+  async function applySnapshot(snap){
+    if(!snap||snap.ok!==true)return false;
+    autoApplying=true;
+    try{
+      const lc=getClients?.()||[],
+            lv=getVehicles?.()||readStore(STORAGE_VEHICLES,[]),
+            ls=getServiceCatalog?.()||[],
+            lx=getCollaborators?.()||[],
+            la=getAppointments?.()||[];
+
+      const appointmentKey=a=>a?.cloudId
+        ? ('cloud:'+String(a.cloudId))
+        : [normalizeText(a.client||''),cleanPlate(a.vehicle||''),String(a.date||''),String(a.time||'').slice(0,5),normalizeText(a.service||''),normalizeText(a.collaborator||'')].join('|');
+
+      const dedupe=list=>{
+        const m=new Map();
+        for(const a of list||[]){
+          const k=appointmentKey(a);
+          if(!k||k==='||')continue;
+          const p=m.get(k);
+          if(!p)m.set(k,a);
+          else if(a.cloudId&&!p.cloudId)m.set(k,a);
+          else if(!(p.cloudId&&!a.cloudId))m.set(k,newer(p,a));
+        }
+        return [...m.values()];
+      };
+
+      const nextClients=mergeList(lc,snap.clients||[],c=>normalizeText(c.name||''));
+      const nextVehicles=mergeList(lv,snap.vehicles||[],v=>cleanPlate(v.plate||''));
+      const nextServices=mergeList(ls,snap.services||[],s=>normalizeText(s.name||''));
+      const nextCollaborators=mergeList(lx,snap.collaborators||[],c=>normalizeText(c.name||''));
+      const nextAppointments=mergeList(dedupe(la),dedupe(snap.appointments||[]),appointmentKey);
+
+      const same=(a,b)=>{
+        try{return JSON.stringify(a||[])===JSON.stringify(b||[])}
+        catch(_){return false}
+      };
+
+      const clientsChanged=!same(lc,nextClients);
+      const vehiclesChanged=!same(lv,nextVehicles);
+      const servicesChanged=!same(ls,nextServices);
+      const collaboratorsChanged=!same(lx,nextCollaborators);
+      const appointmentsChanged=!same(dedupe(la),dedupe(nextAppointments));
+      const anyChanged=clientsChanged||vehiclesChanged||servicesChanged||collaboratorsChanged||appointmentsChanged;
+
+      // V168: sincronização silenciosa. Não reescreve armazenamento nem redesenha
+      // telas quando a nuvem devolveu exatamente os mesmos dados.
+      if(!anyChanged)return true;
+
+      if(clientsChanged)writeStore(STORAGE_CLIENTS,nextClients);
+      if(vehiclesChanged)writeStore(STORAGE_VEHICLES,nextVehicles);
+      if(servicesChanged)setServiceCatalog(nextServices);
+      if(collaboratorsChanged)setCollaborators(nextCollaborators);
+      if(appointmentsChanged)setAppointments(nextAppointments);
+
+      try{
+        if(clientsChanged)updateClientSuggestions();
+        if(vehiclesChanged)updatePlateSuggestions();
+        if(clientsChanged||vehiclesChanged||appointmentsChanged)updateAgendaVehicles();
+        if(servicesChanged)updateServiceSelects();
+        if(collaboratorsChanged)updateCollaboratorSelects();
+        if(appointmentsChanged)renderAppointments();
+        if(anyChanged)renderManagementDashboard();
+      }catch(e){}
+
+      return true;
+    }finally{
+      autoApplying=false;
+    }
+  }
   async function pushAuto({feedback=false}={}){if(!session||autoApplying||autoBusy)return false;autoBusy=true;try{await bridge('sync',{method:'POST',body:buildBundle()});await sleep(350);const snap=await cloudSnapshot();await applySnapshot(snap);if(feedback&&typeof showToast==='function')showToast('Dados salvos na nuvem','success');return true}catch(e){console.warn('Secure sync push',e);return false}finally{autoBusy=false;try{refreshDashboardSyncPanel(false)}catch(e){}}}
   async function pullAuto({feedback=false}={}){if(!session||autoBusy||autoApplying)return false;try{const ok=await applySnapshot(await cloudSnapshot());if(ok&&feedback&&typeof showToast==='function')showToast('Dados atualizados','success');return ok}catch(e){console.warn('Secure sync pull',e);if(feedback&&typeof showToast==='function')showToast('Não foi possível atualizar a agenda agora','error');return false}}
   // V160: permite à tela Agenda forçar uma leitura da nuvem sem enviar o estado local antes.
@@ -8645,7 +8714,7 @@ main,.screen{
     if(vpAgendaCloudRefreshBusy||typeof window.vpSecurePullNow!=='function')return false;
     const now=Date.now();if(!force&&now-vpAgendaLastCloudRefresh<4000)return false;
     vpAgendaCloudRefreshBusy=true;
-    try{const ok=await window.vpSecurePullNow(false);if(ok){vpAgendaLastCloudRefresh=Date.now();try{renderAppointments()}catch(_){}}return !!ok}
+    try{const ok=await window.vpSecurePullNow(false);if(ok){vpAgendaLastCloudRefresh=Date.now();}return !!ok}
     catch(e){console.warn('Agenda cloud refresh',e);return false}
     finally{vpAgendaCloudRefreshBusy=false}
   }
@@ -9238,6 +9307,26 @@ main{
   // Algumas versões anteriores substituem as funções durante a inicialização.
   // Reconfere por poucos segundos sem manter um timer permanente.
   [250,800,1800,3200].forEach(ms=>setTimeout(install,ms));
+})();
+</script>
+
+
+<!-- VAPOREASY_BUILD: v168-silent-sync-no-flicker-2026-09-22 -->
+<script id="vp-v168-silent-sync-no-flicker">
+(function(){
+  'use strict';
+
+  // Se uma sincronização real alterar os dados, mantém a posição da tela.
+  let lastScrollTop=0;
+  document.addEventListener('scroll',function(){
+    lastScrollTop=window.scrollY||document.documentElement.scrollTop||0;
+  },{passive:true});
+
+  window.addEventListener('pageshow',function(){
+    // Não força re-render; apenas garante que nenhuma classe visual transitória
+    // permaneça aplicada depois de voltar ao navegador.
+    document.documentElement.classList.remove('vp-sync-flash');
+  });
 })();
 </script>
 </body>
