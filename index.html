@@ -753,7 +753,7 @@ main{
 .agenda-daylabel{font-size:12px;letter-spacing:.01em}
 .agenda-day-summary{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(2,1fr);
   gap:8px;
   margin-bottom:10px;
 }
@@ -1330,8 +1330,16 @@ main{
 .agenda-calendar-day.selected{background:linear-gradient(135deg,#08b9f5,#159de0);color:#022235;border-color:transparent}
 .agenda-calendar-day .daynum{font-size:14px;font-weight:850;line-height:1}
 .agenda-calendar-day .daycount{font-size:11px;font-weight:900;min-width:21px;height:20px;padding:0 5px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:rgba(0,185,245,.17);color:#7ee1ff}
+.agenda-calendar-day .daycounts{display:flex;gap:2px}
+.agenda-calendar-day .daycount.done{background:rgba(64,207,143,.17);color:#97efbf}
 .agenda-calendar-day.selected .daycount{background:rgba(2,34,53,.18);color:#022235}
+.agenda-calendar-day.selected .daycount.done{color:#064b31}
 .agenda-calendar-day.zero .daycount{visibility:hidden}
+.agenda-completed-consult{margin:16px 0;padding:14px;border:1px solid rgba(64,207,143,.3);border-radius:16px;background:rgba(32,100,77,.12)}
+.agenda-completed-consult h3{font-size:15px;margin:0 0 10px;color:#a6efc7}
+.agenda-completed-row{padding:10px 0;border-top:1px solid rgba(148,200,185,.16);font-size:13px}
+.agenda-completed-row strong{display:block;color:#f2fbf5}
+.agenda-completed-row span{display:block;color:#a9c6ba;margin-top:3px}
 .agenda-calendar-legend{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;color:var(--muted);font-size:12px}
 .agenda-calendar-today-btn{border:0;background:transparent;color:#42cfff;font-weight:800;padding:6px 0}
 @media(max-width:430px){.agenda-calendar-card{padding:11px}.agenda-calendar-grid,.agenda-calendar-weekdays{gap:4px}.agenda-calendar-day{min-height:53px;border-radius:10px}.agenda-calendar-day .daynum{font-size:13px}}
@@ -1888,13 +1896,13 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
         <button type="button" onclick="shiftAgendaMonth(-1)" aria-label="Mês anterior">‹</button>
         <div class="agenda-calendar-title">
           <strong id="agendaCalendarTitle">Mês</strong>
-          <small>Toque em um dia para ver os carros agendados</small>
+          <small>Toque em um dia para ver agendados e concluídos</small>
         </div>
         <button type="button" onclick="shiftAgendaMonth(1)" aria-label="Próximo mês">›</button>
       </div>
       <div class="agenda-calendar-weekdays"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
       <div id="agendaCalendarGrid" class="agenda-calendar-grid"></div>
-      <div class="agenda-calendar-legend"><span>O número azul mostra quantos carros estão agendados no dia.</span><button type="button" class="agenda-calendar-today-btn" onclick="jumpAgendaToday()">Hoje</button></div>
+      <div class="agenda-calendar-legend"><span>Azul: agendados • Verde: concluídos</span><button type="button" class="agenda-calendar-today-btn" onclick="jumpAgendaToday()">Hoje</button></div>
     </div>
 
 <div class="agenda-daybar">
@@ -1906,6 +1914,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
 <div class="agenda-day-summary" id="agendaDaySummary">
   <div><strong id="agendaSummaryCount">0</strong><span>atendimentos</span></div>
   <div><strong id="agendaSummaryConfirmed">0</strong><span>confirmados</span></div>
+  <div><strong id="agendaSummaryCompleted">0</strong><span>concluídos</span></div>
   <div><strong id="agendaSummaryValue">R$ 0</strong><span>previstos</span></div>
 </div>
 
@@ -3652,7 +3661,7 @@ function enforceAgendaCompletionButtons(){
   });
 }
 
-function updateAppointmentStatus(id,newStatus){
+async function updateAppointmentStatus(id,newStatus){
   const list=getAppointments();
   const i=list.findIndex(a=>a.id===id); if(i<0)return;
   if(isCompletedStatus(newStatus) && !appointmentCanBeCompleted(list[i])){
@@ -3661,6 +3670,19 @@ function updateAppointmentStatus(id,newStatus){
     return;
   }
   const previousStatus=list[i].status||'';
+  if(newStatus==='Cancelado' && list[i].cloudId && typeof window.vpSecureBridge==='function'){
+    try{
+      const a=list[i];
+      await window.vpSecureBridge('appointment_update',{method:'POST',body:{
+        cloud_id:a.cloudId,date:a.date,time:String(a.time||'').slice(0,5),
+        vehicle:a.vehicle||'',service:a.service||'',collaborator:a.collaborator||'',
+        status:'Cancelado',notes:a.notes||''
+      }});
+    }catch(e){
+      showToast('Não foi possível cancelar na nuvem: '+(e.message||e),'error');
+      return;
+    }
+  }
   list[i].status=newStatus;
   list[i].updatedAt=new Date().toISOString();
   if(isCompletedStatus(newStatus)){
@@ -3675,7 +3697,7 @@ function updateAppointmentStatus(id,newStatus){
   try{renderFinanceiro()}catch(e){}
   try{renderManagementDashboard()}catch(e){}
   try{renderRealizedServices()}catch(e){}
-  if(typeof cloudSyncAppointment==='function')cloudSyncAppointment(list[i]).catch(e=>console.warn('Cloud appointment status:',e));
+  if(newStatus!=='Cancelado' && typeof cloudSyncAppointment==='function')cloudSyncAppointment(list[i]).catch(e=>console.warn('Cloud appointment status:',e));
   showToast(newStatus==='Concluído'?'Serviço concluído: removido da agenda e registrado no histórico/financeiro':'Status atualizado para '+newStatus,'success');
 }
 const APPT_TOMBSTONES_KEY='vaporeasy_deleted_appointments_v1';
@@ -3888,11 +3910,11 @@ function agendaAppointmentCountsByDate(){
   const out={};
   getAppointments().forEach(a=>{
     const group=agendaStatusGroup(a.status);
-    // A agenda mostra apenas serviços ainda ativos. Concluídos ficam no histórico.
-    if(group==='cancelled' || group==='completed')return;
+    if(group==='cancelled')return;
     const date=String(a.date||'');
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
-    out[date]=(out[date]||0)+1;
+    if(!out[date])out[date]={active:0,completed:0};
+    out[date][group==='completed'?'completed':'active']++;
   });
   return out;
 }
@@ -3917,13 +3939,13 @@ function renderAgendaCalendar(){
   for(let i=0;i<42;i++){
     const d=new Date(start); d.setDate(start.getDate()+i);
     const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    const count=counts[iso]||0;
+    const count=counts[iso]||{active:0,completed:0};
     const cls=['agenda-calendar-day'];
     if(d.getMonth()!==m-1)cls.push('other');
     if(iso===today)cls.push('today');
     if(iso===agendaFocusDate)cls.push('selected');
-    if(!count)cls.push('zero');
-    cells.push('<button type="button" class="'+cls.join(' ')+'" onclick="selectAgendaCalendarDay(\''+iso+'\')" aria-label="'+d.toLocaleDateString('pt-BR')+', '+count+' agendamentos"><span class="daynum">'+d.getDate()+'</span><span class="daycount">'+count+'</span></button>');
+    if(!count.active&&!count.completed)cls.push('zero');
+    cells.push('<button type="button" class="'+cls.join(' ')+'" onclick="selectAgendaCalendarDay(\''+iso+'\')" aria-label="'+d.toLocaleDateString('pt-BR')+', '+count.active+' agendados, '+count.completed+' concluídos"><span class="daynum">'+d.getDate()+'</span><span class="daycounts"><span class="daycount">'+count.active+'</span><span class="daycount done">'+count.completed+'</span></span></button>');
   }
   grid.innerHTML=cells.join('');
 }
@@ -4039,6 +4061,26 @@ document.addEventListener('pointerdown',function(ev){
   if(wrap && !wrap.contains(ev.target)) closeAgendaSearchSuggestions();
 });
 
+function agendaCompletedConsultation(date,search,collaborator){
+  const cars=typeof getVehicles==='function'?getVehicles():[];
+  const completed=getAppointments()
+    .filter(a=>String(a.date||'')===date&&agendaStatusGroup(a.status)==='completed')
+    .filter(a=>collaborator==='all'||String(a.collaborator||'')===collaborator)
+    .map(a=>{
+      const car=cars.find(v=>cleanPlate(v.plate||'')===cleanPlate(a.vehicle||''));
+      const label=[car?.brand,car?.model].filter(v=>v&&v!=='Outro').join(' ');
+      return {a,label};
+    })
+    .filter(({a,label})=>!search||normalizeText([a.client,a.vehicle,label,a.service,a.collaborator].join(' ')).includes(search))
+    .sort((x,y)=>String(x.a.time||'').localeCompare(String(y.a.time||'')));
+  const count=document.getElementById('agendaSummaryCompleted');
+  if(count)count.textContent=String(completed.length);
+  if(!completed.length)return '';
+  return '<section class="agenda-completed-consult" aria-label="Carros concluídos"><h3>Concluídos neste dia • '+completed.length+'</h3>'+
+    completed.map(({a,label})=>'<div class="agenda-completed-row"><strong>'+esc(String(a.time||'').slice(0,5)+' • '+(a.client||'Cliente'))+'</strong><span>'+esc([label,a.vehicle,a.service].filter(Boolean).join(' • '))+'</span></div>').join('')+
+    '</section>';
+}
+
 function renderAgendaTimeline(){
   const box=document.getElementById('agendaTimeline');
   if(!box)return;
@@ -4049,6 +4091,7 @@ function renderAgendaTimeline(){
   renderAgendaCollaboratorFilter();
 
   const agendaSearch=normalizeText((document.getElementById('agendaSearchInput')||{}).value||'').trim();
+  const completedHtml=agendaCompletedConsultation(agendaFocusDate,agendaSearch,agendaCollabSelected);
   const all=getAppointments()
     .filter(a=>a.date===agendaFocusDate)
     .filter(a=>!agendaSearch || normalizeText([a.client,a.plate,a.service,a.collaborator,a.status].join(' ')).includes(agendaSearch))
@@ -4076,7 +4119,7 @@ function renderAgendaTimeline(){
       (filterLabel
         ? 'Nenhum atendimento <b>'+esc(filterLabel)+'</b> em '+esc(formatAgendaDayLabel(agendaFocusDate))+'.'
         : 'Nenhum atendimento em '+esc(formatAgendaDayLabel(agendaFocusDate))+'.')+
-      '</div>';
+      '</div>'+completedHtml;
     return;
   }
 
@@ -4137,7 +4180,7 @@ function renderAgendaTimeline(){
     );
   });
 
-  box.innerHTML=parts.join('');
+  box.innerHTML=parts.join('')+completedHtml;
   enforceAgendaCompletionButtons();
 }
 
@@ -5965,12 +6008,15 @@ function renderManagementDashboard(){
     .slice(0,4);
   const list=document.getElementById('dashNextAppointments');
   if(list){
+    const vehicles=(typeof getVehicles==='function'?getVehicles():[]);
     list.innerHTML=next.length?next.map(a=>{
       const date=String(a.date||'')===iso?'Hoje':agendaDateObj(a.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+      const vehicle=vehicles.find(v=>cleanPlate(v.plate||'')===cleanPlate(a.vehicle||''));
+      const car=[vehicle?.brand,vehicle?.model].filter(v=>v&&v!=='Outro').join(' ');
       return '<div class="summary-next-item">'+
         '<div class="summary-next-time">'+esc(String(a.time||'--:--').slice(0,5))+'</div>'+
         '<div class="summary-next-main"><strong>'+esc(a.client||'Cliente')+'</strong>'+
-        '<span>'+esc(date+(a.vehicle?' • '+a.vehicle:'')+(a.collaborator?' • '+a.collaborator:''))+'</span></div>'+
+        '<span>'+esc(date+(car?' • '+car:'')+(a.vehicle?' • '+a.vehicle:'')+(a.collaborator?' • '+a.collaborator:''))+'</span></div>'+
         '<span class="summary-next-status">'+esc(a.status||'Agendado')+'</span></div>';
     }).join(''):'<div class="summary-empty">Nenhum próximo atendimento.</div>';
   }
@@ -7438,7 +7484,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     const vehicles=(typeof getVehicles==='function'?getVehicles():readStore(STORAGE_VEHICLES,[])).filter(v=>cleanPlate(v.plate||'')).map(v=>({client:v.client||'',plate:cleanPlate(v.plate||''),brand:v.brand||'',model:v.model||'',year:v.year||'',color:v.color||'',notes:v.notes||'',payload:v}));
     const services=(typeof getServiceCatalog==='function'?getServiceCatalog():[]).map(s=>({name:s.name||'',price:Number(s.price||s.value||0),duration_minutes:Number(s.durationMinutes||s.duration_minutes||s.duration||0)||90,disabled:!!s.disabled,payload:s})).filter(s=>s.name);
     const collaborators=(typeof getCollaborators==='function'?getCollaborators():[]).map(c=>({name:c.name||'',phone:c.phone||'',role:c.role||'',status:c.status||'Ativo',payload:c})).filter(c=>c.name);
-    const appointments=(typeof getAppointments==='function'?getAppointments():[]).map(a=>({client:a.client||'',vehicle:cleanPlate(a.vehicle||''),service:a.service||'',collaborator:a.collaborator||'',date:a.date||'',time:String(a.time||'').slice(0,5),status:a.status||'Agendado',value:Number(a.value||a.price||0),discount:Number(a.discount||0),finalValue:Number(a.finalValue||a.value||a.price||0),travelMinutes:Number(a.travelMinutes||0),travelMargin:Number(a.travelMargin||10),notes:a.notes||'',payload:a})).filter(a=>a.date&&a.time);
+    const appointments=(typeof getAppointments==='function'?getAppointments():[]).filter(a=>!['Cancelado','Excluído'].includes(String(a.status||''))).map(a=>({client:a.client||'',vehicle:cleanPlate(a.vehicle||''),service:a.service||'',collaborator:a.collaborator||'',date:a.date||'',time:String(a.time||'').slice(0,5),status:a.status||'Agendado',value:Number(a.value||a.price||0),discount:Number(a.discount||0),finalValue:Number(a.finalValue||a.value||a.price||0),travelMinutes:Number(a.travelMinutes||0),travelMargin:Number(a.travelMargin||10),notes:a.notes||'',payload:a})).filter(a=>a.date&&a.time);
     const tombstones=(typeof getAppointmentTombstones==='function'?getAppointmentTombstones():[]).map(t=>{const parts=String(t.fingerprint||'').split('|');return {...t,client:parts[0]||'',plate:parts[1]||'',date:parts[2]||'',time:parts[3]||''}});
     return {clients,vehicles,services,collaborators,appointments,tombstones,createdAt:new Date().toISOString(),version:155};
   }
