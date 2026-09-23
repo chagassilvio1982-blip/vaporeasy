@@ -1340,6 +1340,13 @@ main{
 .agenda-completed-row{padding:10px 0;border-top:1px solid rgba(148,200,185,.16);font-size:13px}
 .agenda-completed-row strong{display:block;color:#f2fbf5}
 .agenda-completed-row span{display:block;color:#a9c6ba;margin-top:3px}
+.vp-daily-report{margin:12px 0 18px;padding:14px;border:1px solid rgba(55,181,224,.22);border-radius:16px;background:rgba(8,31,46,.72)}
+.vp-daily-report label{display:block;font-weight:800;font-size:13px;margin-bottom:8px}
+.vp-daily-report-controls{display:flex;gap:8px}
+.vp-daily-report-controls input{min-width:0;flex:1;color:#e8f8ff;background:#102c3d;border:1px solid #366079;border-radius:10px;padding:10px}
+.vp-daily-report-controls button{border:0;border-radius:10px;background:#17aee1;color:#062534;font-weight:800;padding:0 14px}
+#vpDailyReportResult{margin-top:10px;font-size:13px;line-height:1.5;color:#c7dce7}
+body.vp-role-operator .vp-daily-report,body.vp-role-collaborator .vp-daily-report{display:none!important}
 .agenda-calendar-legend{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;color:var(--muted);font-size:12px}
 .agenda-calendar-today-btn{border:0;background:transparent;color:#42cfff;font-weight:800;padding:6px 0}
 @media(max-width:430px){.agenda-calendar-card{padding:11px}.agenda-calendar-grid,.agenda-calendar-weekdays{gap:4px}.agenda-calendar-day{min-height:53px;border-radius:10px}.agenda-calendar-day .daynum{font-size:13px}}
@@ -1661,6 +1668,14 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
       <small>lançamentos financeiros</small>
     </div>
   </div>
+  <div class="vp-daily-report">
+    <label for="vpReportDate">Consultar serviços de outra data</label>
+    <div class="vp-daily-report-controls">
+      <input id="vpReportDate" type="date" onchange="vpDailyReportRefresh()">
+      <button type="button" onclick="vpDailyReportRefresh()">Consultar</button>
+    </div>
+    <div id="vpDailyReportResult">Entre no Vaporeasy para consultar o relatório.</div>
+  </div>
 
 
   <div class="tasks-home">
@@ -1682,12 +1697,12 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
     <button type="button" class="summary-link" onclick="go('financeiro',document.querySelector('[data-go=financeiro]'))">Ver financeiro</button>
   </div>
   <div class="summary-management-grid">
-    <div class="summary-management-card"><span>Faturado</span><strong id="dashMonthRevenue">R$ 0,00</strong><small>serviços realizados no mês</small></div>
+    <div class="summary-management-card"><span>Faturado</span><strong id="dashMonthRevenue">R$ 0,00</strong><small id="dashMonthRevenueNote">serviços realizados no mês</small></div>
     <div class="summary-management-card"><span>Recebido</span><strong id="dashMonthReceived">R$ 0,00</strong><small>pagamentos confirmados</small></div>
     <div class="summary-management-card"><span>A receber</span><strong id="dashMonthPending">R$ 0,00</strong><small>valores ainda pendentes</small></div>
     <div class="summary-management-card"><span>Despesas</span><strong id="dashMonthExpenses">R$ 0,00</strong><small>saídas lançadas no mês</small></div>
     <div class="summary-management-card emphasis"><span>Resultado operacional</span><strong id="dashMonthResult">R$ 0,00</strong><small>recebido menos despesas</small></div>
-    <div class="summary-management-card"><span>Serviços</span><strong id="dashMonthServices">0</strong><small>concluídos no mês</small></div>
+    <div class="summary-management-card"><span>Serviços</span><strong id="dashMonthServices">0</strong><small id="dashMonthServicesNote">concluídos no mês</small></div>
     <div class="summary-management-card"><span>Ticket médio</span><strong id="dashMonthTicket">R$ 0,00</strong><small>faturado por serviço</small></div>
   </div>
 
@@ -6021,16 +6036,20 @@ function renderManagementDashboard(){
     }).join(''):'<div class="summary-empty">Nenhum próximo atendimento.</div>';
   }
 
-  const monthHistory=history.filter(h=>String(h.date||'').slice(0,7)===ym);
-  const monthFallback=appointments.filter(a=>isCompletedStatus(a.status) && !history.some(h=>String(h.appointmentId||'')===String(a.id||'')) && String(a.date||'').slice(0,7)===ym);
-  const monthServices=monthHistory.length+monthFallback.length;
-  const historyRevenue=monthHistory.reduce((s,h)=>s+Number(h.value||0),0)+monthFallback.reduce((s,a)=>s+dashboardValue(a),0);
+  // Os registros anteriores a 22/09 eram testes. O relatório começa no
+  // primeiro dia confirmado pelo proprietário e conta cada atendimento uma vez.
+  const reportStartDate='2026-09-22';
+  const monthCompleted=appointments.filter(a=>isCompletedStatus(a.status)
+    && String(a.date||'').slice(0,7)===ym
+    && String(a.date||'')>=reportStartDate);
+  const monthServices=monthCompleted.length;
+  const historyRevenue=monthCompleted.reduce((s,a)=>s+dashboardValue(a),0);
 
   let tx=[];
   try{tx=typeof getFinanceTransactions==='function'?getFinanceTransactions():[]}catch(e){tx=[]}
   const monthTx=tx.filter(x=>financeTransactionDate(x).slice(0,7)===ym);
   const billedFromFinance=monthTx.filter(financeIsIncoming).reduce((s,x)=>s+(Number(x.value||x.valor||0)||0),0);
-  const monthRevenue=billedFromFinance||historyRevenue;
+  const monthRevenue=historyRevenue;
   const monthReceived=tx.filter(x=>financeIsIncoming(x)&&financePaymentStatus(x)==='Pago'&&financePaidDate(x).slice(0,7)===ym).reduce((s,x)=>s+(Number(x.value||x.valor||0)||0),0);
   const monthPending=monthTx.filter(x=>financeIsIncoming(x)&&financePaymentStatus(x)==='Pendente').reduce((s,x)=>s+(Number(x.value||x.valor||0)||0),0);
   const monthExpenses=monthTx.filter(financeIsExpense).reduce((s,x)=>s+(Number(x.value||x.valor||0)||0),0);
@@ -6044,6 +6063,8 @@ function renderManagementDashboard(){
   set('dashMonthResult',dashboardMoney(monthResult));
   set('dashMonthServices',monthServices);
   set('dashMonthTicket',dashboardMoney(monthTicket));
+  set('dashMonthRevenueNote',ym==='2026-09'?'serviços válidos desde 22/09':'serviços realizados no mês');
+  set('dashMonthServicesNote',ym==='2026-09'?'concluídos desde 22/09':'concluídos no mês');
 
   // Mês anterior
   const [yy,mm]=ym.split('-').map(Number);
@@ -7514,6 +7535,36 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     if(button)button.disabled=!enabled;
   }
   async function cloudSnapshot(){return await bridge('snapshot')}
+  let dailyReportRequest=0;
+  window.vpDailyReportRefresh=async function(){
+    const input=document.getElementById('vpReportDate'),result=document.getElementById('vpDailyReportResult');
+    if(!input||!result)return;
+    if(!input.value){
+      const today=typeof agendaLocalToday==='function'?agendaLocalToday():new Date().toISOString().slice(0,10);
+      const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-1);
+      input.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+    const date=input.value,request=++dailyReportRequest;
+    if(!session){result.textContent='Entre no Vaporeasy para consultar o relatório.';return}
+    result.textContent='Consultando serviços registrados na nuvem…';
+    try{
+      const snap=await cloudSnapshot();
+      if(request!==dailyReportRequest)return;
+      const rows=(snap.appointments||[]).filter(a=>String(a.date||'')===date&&agendaStatusGroup(a.status)==='completed');
+      const total=rows.reduce((sum,a)=>sum+(Number(a.finalValue??a.value??0)||0),0);
+      const cars=snap.vehicles||[];
+      result.replaceChildren();
+      const title=document.createElement('strong');
+      title.textContent=rows.length+' serviço(s) concluído(s) • '+formatMoneyBR(total)+' em '+date.split('-').reverse().join('/');
+      result.append(title);
+      rows.forEach(a=>{
+        const car=cars.find(v=>cleanPlate(v.plate||'')===cleanPlate(a.vehicle||''));
+        const line=document.createElement('div');
+        line.textContent=[a.client,[car?.brand,car?.model].filter(Boolean).join(' '),a.vehicle,formatMoneyBR(a.finalValue??a.value??0)].filter(Boolean).join(' • ');
+        result.append(line);
+      });
+    }catch(e){if(request===dailyReportRequest)result.textContent='Não foi possível consultar esta data: '+(e.message||e)}
+  };
   function tstamp(x){const v=Date.parse(x||'');return Number.isFinite(v)?v:0}
   function newer(local,remote){if(!local)return remote;if(!remote)return local;const lt=tstamp(local.updatedAt||local.createdAt),rt=tstamp(remote.updatedAt||remote.createdAt||remote._cloudUpdatedAt);return lt>rt?{...remote,...local}:{...local,...remote}}
   function mergeList(local,remote,keyFn,{dropMissingCloudLinked=false}={}){const out=[...(local||[])],rkeys=new Set();for(const r of remote||[]){const k=keyFn(r);if(!k)continue;rkeys.add(k);let i=out.findIndex(x=>keyFn(x)===k);if(i>=0)out[i]=newer(out[i],r);else out.push(r)}if(dropMissingCloudLinked)return out.filter(x=>!x?.cloudId||rkeys.has(keyFn(x)));return out}
@@ -7663,7 +7714,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
   window.syncEverything=async()=>{await pushAuto({feedback:true})};
   window.refreshDashboardSyncPanel=async function(showFeedback=false){if(!document.getElementById('dashSyncStatus'))return;let local;try{local=dashboardLocalSyncCounts()}catch(e){setDashboardSyncEnabled(false);setDashboardSyncState('offline','Erro local','Não foi possível contar os dados deste aparelho: '+(e.message||e),'err');return}if(!session){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncEnabled(false);setDashboardSyncState('offline','Login necessário','Entre para acessar a nuvem.','warn');return}try{const cloud=await bridgeCloudCounts();setDashboardSyncCounts(local,cloud);setDashboardSyncEnabled(true);const same=local.clients===cloud.clients&&local.vehicles===cloud.vehicles&&local.appointments===cloud.appointments;setDashboardSyncState(same?'synced':'different',same?'Sincronizado':'Diferença encontrada',same?'Os totais locais e da nuvem estão iguais.':'Existem diferenças entre este aparelho e a nuvem.',same?'ok':'warn');if(showFeedback&&typeof showToast==='function')showToast('Conexão segura validada','success')}catch(e){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncEnabled(false);setDashboardSyncState('offline','Desconectado','Falha na sessão segura: '+(e.message||e),'err')}};
   window.dashboardSyncNow=async function(){await pushAuto({feedback:true});await pullAuto();await refreshDashboardSyncPanel(false)};
-  async function startSecureApp(){if(started)return;started=true;const note=document.getElementById('dashSyncNote');if(note){note.textContent='Sincronização protegida por login e sessão individual.';note.className='sync-dashboard-note ok'}await pullAuto();await pushAuto();await pullAuto();await refreshDashboardSyncPanel(false);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullAuto().then(()=>refreshDashboardSyncPanel(false))});window.addEventListener('online',()=>pullAuto().then(()=>pushAuto()));setInterval(()=>{if(document.visibilityState==='visible'&&!autoBusy&&!autoApplying)pullAuto().then(()=>refreshDashboardSyncPanel(false))},10000)}
+  async function startSecureApp(){if(started)return;started=true;const note=document.getElementById('dashSyncNote');if(note){note.textContent='Sincronização protegida por login e sessão individual.';note.className='sync-dashboard-note ok'}await pullAuto();await pushAuto();await pullAuto();await refreshDashboardSyncPanel(false);window.vpDailyReportRefresh();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullAuto().then(()=>refreshDashboardSyncPanel(false))});window.addEventListener('online',()=>pullAuto().then(()=>pushAuto()));setInterval(()=>{if(document.visibilityState==='visible'&&!autoBusy&&!autoApplying)pullAuto().then(()=>refreshDashboardSyncPanel(false))},10000)}
   document.addEventListener('DOMContentLoaded',async()=>{
     // Agenda pública nunca deve exigir login interno.
     if(typeof isPublicBookingMode==='function' && isPublicBookingMode()){
