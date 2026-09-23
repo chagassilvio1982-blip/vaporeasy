@@ -1562,7 +1562,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
     <div class="vp-auth-sub">Acesso interno protegido</div>
     <div id="vpLoginPane">
       <label>E-mail</label><input id="vpAuthEmail" type="email" autocomplete="username" placeholder="seu@email.com">
-      <label>Senha</label><input id="vpAuthPassword" type="password" autocomplete="current-password" placeholder="Sua senha">
+      <label>Senha</label><input id="vpAuthPassword" type="password" autocomplete="off" placeholder="Sua senha">
       <button class="vp-auth-primary" type="button" onclick="vpLogin()">Entrar</button>
       <button class="vp-auth-secondary" type="button" onclick="vpToggleSetup()">Primeiro acesso / criar proprietário</button>
     </div>
@@ -1570,7 +1570,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
       <label>Código de ativação</label><input id="vpSetupCode" type="text" autocomplete="one-time-code" placeholder="Código fornecido na configuração">
       <label>Seu nome</label><input id="vpSetupName" type="text" value="Silvio">
       <label>E-mail do proprietário</label><input id="vpSetupEmail" type="email" autocomplete="username" placeholder="seu@email.com">
-      <label>Crie uma senha</label><input id="vpSetupPassword" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+      <label>Crie uma senha</label><input id="vpSetupPassword" type="password" autocomplete="off" placeholder="Mínimo 8 caracteres">
       <button class="vp-auth-primary" type="button" onclick="vpCreateOwner()">Criar acesso do proprietário</button>
     </div>
     <div id="vpAuthMsg" class="vp-auth-msg"></div>
@@ -2107,7 +2107,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
       <small style="display:block;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px">Dados do cliente</small>
       <h3 id="clientDetailsName" style="margin:0">Cliente</h3>
     </div>
-    <button type="button" class="btn-ghost" onclick="openSelectedClientEdit()">✏️ Editar</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn-ghost" onclick="openSelectedClientEdit()">✏️ Editar</button><button id="vpDeleteClientCadastroBtn" type="button" class="btn-ghost" style="display:none" onclick="vpDeleteClientFromCadastro()">Excluir cliente</button></div>
   </div>
   <div id="clientDetailsBody" style="margin-top:12px"></div>
 </div>
@@ -2484,7 +2484,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
   <div class="sb-sheet">
     <div class="sb-head"><div><h2>Conexão Vaporeasy</h2><div style="color:#8fa7b6;font-size:12px;margin-top:3px">Supabase • sincronização automática em nuvem</div></div><button class="sb-close" onclick="closeSupabaseConfig()" type="button">✕</button></div>
     <label for="sbUrl">API URL</label><input id="sbUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://seu-projeto.supabase.co">
-    <label for="sbKey">Publishable key</label><input id="sbKey" type="password" autocomplete="off" placeholder="sb_publishable_...">
+    <label for="sbKey">Publishable key</label><input id="sbKey" type="text" autocomplete="off" spellcheck="false" placeholder="sb_publishable_...">
     <div class="sb-actions"><button class="sb-test" type="button" onclick="testSupabaseConnection()">Testar conexão</button><button class="sb-save" type="button" onclick="saveSupabaseConfig()">Salvar</button></div>
     <button class="sb-sync sb-sync-all" type="button" onclick="syncEverything()">Sincronizar tudo</button>
     <button class="sb-sync sb-pull-all" type="button" onclick="pullEverythingFromCloud(true)">Atualizar dados deste aparelho</button>
@@ -2493,7 +2493,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
   </div>
 </div>
 
-<section id="vpTeamAccess" class="vp-team-access" style="display:none"><h3>Equipe e acessos</h3><p>Crie logins, altere o nível de acesso e exclua usuários. Proprietários ficam protegidos.</p><div class="vp-team-form"><input id="vpTeamName" placeholder="Nome do colaborador"><input id="vpTeamEmail" type="email" placeholder="E-mail de acesso"><input id="vpTeamPassword" type="password" placeholder="Senha inicial (mínimo 8 caracteres)"><select id="vpTeamRole"><option value="collaborator">Colaborador — sem Financeiro</option><option value="operator">Operacional completo — sem configurações</option><option value="admin">Administrador — acesso completo</option></select><button type="button" onclick="vpCreateTeamUser()">Criar acesso</button></div><div id="vpTeamMsg" class="vp-team-msg"></div><div id="vpTeamList" class="vp-team-list"></div></section>
+<section id="vpTeamAccess" class="vp-team-access" style="display:none"><h3>Equipe e acessos</h3><p>Crie logins, altere o nível de acesso e exclua usuários. Proprietários ficam protegidos.</p><div class="vp-team-form"><input id="vpTeamName" placeholder="Nome do colaborador"><input id="vpTeamEmail" type="email" placeholder="E-mail de acesso"><input id="vpTeamPassword" type="password" autocomplete="new-password" placeholder="Senha inicial (mínimo 8 caracteres)"><select id="vpTeamRole"><option value="collaborator">Colaborador — sem Financeiro</option><option value="operator">Operacional completo — sem configurações</option><option value="admin">Administrador — acesso completo</option></select><button type="button" onclick="vpCreateTeamUser()">Criar acesso</button></div><div id="vpTeamMsg" class="vp-team-msg"></div><div id="vpTeamList" class="vp-team-list"></div></section>
 <div id="vpToast" class="vp-toast" role="status" aria-live="polite"></div>
 <script>
 
@@ -7292,6 +7292,8 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     document.getElementById('vpLoginPane').style.display='';
     document.getElementById('vpAuthEmail').value='';
     document.getElementById('vpAuthPassword').value='';
+    document.getElementById('vpAuthPassword').disabled=false;
+    document.getElementById('vpSetupPassword').disabled=false;
     document.getElementById('vpUserChip')?.classList.remove('show');
     msg('Sessão encerrada. Informe e-mail e senha para entrar novamente.','ok');
     if(token){try{await fetch(SB_URL+'/auth/v1/logout?scope=local',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token},cache:'no-store'})}catch(e){console.warn('Logout remoto indisponível',e)}}
@@ -7308,6 +7310,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     msg('Sessão expirada. Informe e-mail e senha.','err');
   };
   function unlock(){
+    ['vpAuthPassword','vpSetupPassword'].forEach(id=>{const input=document.getElementById(id);if(input){input.value='';input.disabled=true}});
     document.body.classList.remove('vp-auth-locked');
     document.getElementById('vpAuthGate')?.classList.add('hidden');
     const displayName=String(profile?.name||'Usuário').trim()||'Usuário';
@@ -7353,6 +7356,8 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     const condo=document.getElementById('condoManagerCard');if(condo&&isCollaborator)condo.style.display='none';
     const team=document.getElementById('vpTeamAccess');if(team)team.style.display='none';
     const teamBtn=document.getElementById('vpMenuTeamBtn');if(teamBtn)teamBtn.style.display=isManager?'flex':'none';
+    const deleteClientBtn=document.getElementById('vpDeleteClientCadastroBtn');
+    if(deleteClientBtn)deleteClientBtn.style.display=isManager?'':'none';
     // Esconde controles administrativos do catálogo de serviços, mantendo a tela operacional.
     ['deleteServiceEditBtn'].forEach(id=>{const e=document.getElementById(id);if(e&&isCollaborator)e.style.display='none'});
     document.querySelectorAll('[onclick="openServiceCatalogForm()"], [onclick^="editServiceCatalog"], [onclick^="deleteCurrentService"]').forEach(e=>{e.style.display=isCollaborator?'none':''});
@@ -8452,6 +8457,19 @@ main,.screen{
 
   function vpSelectedBookingClient(){return vpBookingSelectedClient}
 
+  window.vpDeleteClientFromCadastro=async function(){
+    const name=String(selectedExistingClientName||document.getElementById('clienteSelecionado')?.value||'').trim();
+    const client=typeof getClients==='function'?getClients().find(c=>vpNorm(c.name)===vpNorm(name)):null;
+    if(!client){showToast?.('Selecione um cliente da lista antes de excluir.','error');return}
+    vpBookingSelectedClient=client;
+    if(await window.vpDeleteSelectedBookingClient()){
+      const input=document.getElementById('clienteSelecionado');
+      if(input)input.value='';
+      if(typeof resetExistingClientSelection==='function')resetExistingClientSelection();
+      showToast?.('Cliente excluído.','success');
+    }
+  };
+
   window.vpDeleteSelectedBookingClient=async function(){
     const client=vpSelectedBookingClient();
     if(!client){vpPersonalNotice('Selecione um cliente.',false);return}
@@ -8463,7 +8481,12 @@ main,.screen{
     vpPersonalNotice('Excluindo cadastro…',true);
     try{
       if(typeof window.vpSecureBridge!=='function')throw new Error('Atualização segura ainda não está disponível. Atualize o aplicativo e tente novamente.');
-      const result=await window.vpSecureBridge('client_delete',{method:'POST',body:{client_id:client.cloudId||'',name}});
+      let result;
+      try{result=await window.vpSecureBridge('client_delete',{method:'POST',body:{client_id:client.cloudId||'',name}})}
+      catch(e){
+        if(e.message!=='client_not_found'||client.cloudId)throw e;
+        result={ok:true,client_id:''}; // Cadastro existente somente neste aparelho.
+      }
       if(result?.ok===false)throw new Error(result.error||'Não foi possível excluir o cliente.');
 
       const clientName=vpNorm(name), clientId=String(client.cloudId||result?.client_id||'');
@@ -8475,7 +8498,8 @@ main,.screen{
       vpPopulateBookingClients();
       vpPersonalNotice('Cadastro de '+name+' excluído com sucesso.',true);
       try{window.vpSecureSchedule?.()}catch(_){}
-    }catch(e){vpPersonalNotice(e.message||String(e),false)}
+      return true;
+    }catch(e){vpPersonalNotice(e.message||String(e),false);return false}
   };
 
   async function vpEnsureCloudClientId(client){
