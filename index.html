@@ -8124,6 +8124,31 @@ main{padding-left:16px!important;padding-right:16px!important}.vp-auth-card{padd
 }
 </style>
 
+
+
+<!-- VAPOREASY_BUILD: v162-horizontal-drag-lock-2026-09-22 -->
+<style id="vp-v162-horizontal-drag-lock">
+/* Impede que um arraste lateral desloque o documento e revele uma faixa branca.
+   A navegação entre áreas continua pelos botões do app; rolagem vertical e zoom permanecem liberados. */
+html,body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden!important;
+  overscroll-behavior-x:none;
+}
+body,.app{
+  touch-action:pan-y pinch-zoom;
+}
+.app{
+  width:100%!important;
+  max-width:560px!important;
+  overflow-x:hidden!important;
+}
+main,.screen{
+  max-width:100%!important;
+  overflow-x:hidden!important;
+}
+</style>
 </body>
 </html>
 
