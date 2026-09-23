@@ -7261,7 +7261,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     typeof STORAGE_SERVICE_CATALOG!=='undefined'?STORAGE_SERVICE_CATALOG:'vaporeasy_service_catalog_v1',
     typeof STORAGE_COLLABORATORS!=='undefined'?STORAGE_COLLABORATORS:'vaporeasy_collaborators_v1'
   ]);
-  let session=null,profile=null,autoTimer=null,autoBusy=false,autoApplying=false,started=false;
+  let session=null,profile=null,autoTimer=null,autoBusy=false,autoApplying=false,started=false,authGeneration=0;
   // V154: expõe o perfil atual com segurança para scripts de navegação fora deste escopo.
   window.vpGetCurrentProfile=()=>profile;
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -7273,15 +7273,40 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error_description||d.msg||d.error||'Falha de autenticação');return d;
   }
   async function getMe(token){const r=await fetch(AUTH_FN,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({action:'me'})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Sessão inválida');return d}
-  async function refreshSession(){if(!session?.refresh_token)return false;try{const d=await authRest('/auth/v1/token?grant_type=refresh_token',{refresh_token:session.refresh_token});saveSession(d);return true}catch(e){saveSession(null);return false}}
-  async function validSession(){session=loadSession();if(!session?.access_token)return false;try{profile=await getMe(session.access_token);return true}catch(e){if(await refreshSession()){try{profile=await getMe(session.access_token);return true}catch(_){}}return false}}
+  async function refreshSession(){if(!session?.refresh_token)return false;const generation=authGeneration,refreshToken=session.refresh_token;try{const d=await authRest('/auth/v1/token?grant_type=refresh_token',{refresh_token:refreshToken});if(generation!==authGeneration)return false;saveSession(d);return true}catch(e){if(generation===authGeneration)saveSession(null);return false}}
+  async function validSession(){const generation=authGeneration;session=loadSession();if(!session?.access_token)return false;try{const p=await getMe(session.access_token);if(generation!==authGeneration)return false;profile=p;return true}catch(e){if(generation===authGeneration&&await refreshSession()){try{const p=await getMe(session.access_token);if(generation!==authGeneration)return false;profile=p;return true}catch(_){}}if(generation===authGeneration){saveSession(null);profile=null}return false}}
   function authHeaders(){if(!session?.access_token)throw new Error('Faça login novamente.');return {'apikey':SB_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'}}
   async function bridge(action,opts={}){let r=await fetch(BRIDGE+'?action='+encodeURIComponent(action),{method:opts.method||'GET',headers:authHeaders(),body:opts.body?JSON.stringify(opts.body):undefined,cache:'no-store'});if(r.status===401&&await refreshSession())r=await fetch(BRIDGE+'?action='+encodeURIComponent(action),{method:opts.method||'GET',headers:authHeaders(),body:opts.body?JSON.stringify(opts.body):undefined,cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d.error||('Erro '+r.status));return d}
   window.vpSecureBridge=bridge;
   window.vpToggleSetup=()=>{document.getElementById('vpSetupPane')?.classList.toggle('show');msg('')};
-  window.vpLogin=async()=>{const email=document.getElementById('vpAuthEmail')?.value.trim(),password=document.getElementById('vpAuthPassword')?.value||'';if(!email||!password){msg('Informe e-mail e senha.','err');return}msg('Entrando…');try{const d=await authRest('/auth/v1/token?grant_type=password',{email,password});saveSession(d);profile=await getMe(d.access_token);unlock();await startSecureApp()}catch(e){msg(e.message||String(e),'err')}};
+  window.vpLogin=async()=>{const generation=authGeneration,email=document.getElementById('vpAuthEmail')?.value.trim(),password=document.getElementById('vpAuthPassword')?.value||'';if(!email||!password){msg('Informe e-mail e senha.','err');return}msg('Entrando…');try{const d=await authRest('/auth/v1/token?grant_type=password',{email,password});if(generation!==authGeneration)return;saveSession(d);profile=await getMe(d.access_token);if(generation!==authGeneration)return;document.getElementById('vpAuthPassword').value='';unlock();await startSecureApp()}catch(e){if(generation!==authGeneration)return;saveSession(null);profile=null;msg(e.message||String(e),'err')}};
   window.vpCreateOwner=async()=>{const code=document.getElementById('vpSetupCode')?.value.trim(),name=document.getElementById('vpSetupName')?.value.trim()||'Silvio',email=document.getElementById('vpSetupEmail')?.value.trim(),password=document.getElementById('vpSetupPassword')?.value||'';if(!code||!email||password.length<8){msg('Preencha o código, o e-mail e uma senha com pelo menos 8 caracteres.','err');return}msg('Criando acesso seguro…');try{const r=await fetch(AUTH_FN,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'setup',code,name,email,password})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error==='setup_already_completed'?'O proprietário já foi criado. Use Entrar.':(d.error||'Não foi possível criar o acesso.'));msg('Acesso criado. Entrando…','ok');document.getElementById('vpAuthEmail').value=email;document.getElementById('vpAuthPassword').value=password;await window.vpLogin()}catch(e){msg(e.message||String(e),'err')}};
-  window.vpLogout=()=>{saveSession(null);location.reload()};
+  window.vpLogout=async()=>{
+    ++authGeneration;
+    const token=session?.access_token||loadSession()?.access_token;
+    clearTimeout(autoTimer);autoTimer=null;
+    saveSession(null);profile=null;started=false;
+    document.body.classList.add('vp-auth-locked');
+    document.getElementById('vpAuthGate')?.classList.remove('hidden');
+    document.getElementById('vpResumePane')?.remove();
+    document.getElementById('vpLoginPane').style.display='';
+    document.getElementById('vpAuthEmail').value='';
+    document.getElementById('vpAuthPassword').value='';
+    document.getElementById('vpUserChip')?.classList.remove('show');
+    msg('Sessão encerrada. Informe e-mail e senha para entrar novamente.','ok');
+    if(token){try{await fetch(SB_URL+'/auth/v1/logout?scope=local',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token},cache:'no-store'})}catch(e){console.warn('Logout remoto indisponível',e)}}
+  };
+  window.vpResume=async()=>{
+    const generation=authGeneration;
+    const button=document.getElementById('vpResumeButton');if(button)button.disabled=true;
+    msg('Validando sessão…');
+    if(await validSession() && generation===authGeneration){unlock();await startSecureApp();return}
+    if(generation!==authGeneration)return;
+    saveSession(null);profile=null;
+    document.getElementById('vpResumePane')?.remove();
+    document.getElementById('vpLoginPane').style.display='';
+    msg('Sessão expirada. Informe e-mail e senha.','err');
+  };
   function unlock(){
     document.body.classList.remove('vp-auth-locked');
     document.getElementById('vpAuthGate')?.classList.add('hidden');
@@ -7539,12 +7564,15 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
       document.getElementById('vpAuthGate')?.classList.add('hidden');
       return;
     }
-    if(await validSession()){
-      unlock();
-      await startSecureApp();
-    }else{
-      document.body.classList.add('vp-auth-locked');
-      document.getElementById('vpAuthGate')?.classList.remove('hidden');
+    document.body.classList.add('vp-auth-locked');
+    document.getElementById('vpAuthGate')?.classList.remove('hidden');
+    if(loadSession()?.access_token){
+      const pane=document.createElement('div');pane.id='vpResumePane';
+      const button=document.createElement('button');button.id='vpResumeButton';button.type='button';
+      button.className='vp-auth-primary';button.textContent='Entrar no Vaporeasy';
+      button.onclick=window.vpResume;pane.append(button);
+      document.getElementById('vpLoginPane').style.display='none';
+      document.getElementById('vpLoginPane').before(pane);
     }
   });
 })();
