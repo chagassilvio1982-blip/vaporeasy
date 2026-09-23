@@ -2519,7 +2519,7 @@ function go(id,btn){
   // V155: telas gerenciais ficam bloqueadas para o perfil Colaborador.
   const vpProfile=(typeof window.vpGetCurrentProfile==='function'?window.vpGetCurrentProfile():null);
   const vpRole=vpProfile?.role||'';
-  if(vpRole==='collaborator' && ['home','financeiro','tarefas','agendaonline','retornos','comercial'].includes(id)){
+  if((vpRole==='collaborator' && ['home','financeiro','tarefas','agendaonline','retornos','comercial'].includes(id)) || (vpRole==='operator' && id==='financeiro')){
     showToast('Área disponível somente para administrador.','success');
     id='clientes'; btn=[...document.querySelectorAll('nav button')].find(b=>b.textContent.trim()==='Cadastro')||null;
   }
@@ -6351,7 +6351,7 @@ ensureBundledSupabaseConfig();
 function getSupabaseConfig(){try{return JSON.parse(localStorage.getItem(SB_CFG_KEY)||'{}')}catch(e){return {}}}
 function setSbStatus(msg,type=''){const el=document.getElementById('sbStatus');if(!el)return;el.textContent=msg;el.className='sb-status '+type}
 function refreshCloudBadge(){const c=getSupabaseConfig(),b=document.getElementById('cloudConfigBtn');if(!b)return;b.classList.toggle('connected',!!(c.url&&c.key&&c.verified));b.textContent=(c.url&&c.key&&c.verified)?'✓':'☁'}
-function openSupabaseConfig(){const c=getSupabaseConfig();document.getElementById('sbUrl').value=c.url||'';document.getElementById('sbKey').value=c.key||'';setSbStatus(c.verified?'Conexão salva e verificada neste aparelho.':'Cole a API URL e a Publishable key copiadas do Supabase.',c.verified?'ok':'');document.getElementById('supabaseModal').classList.add('show')}
+function openSupabaseConfig(){if(['operator','collaborator'].includes(window.vpGetCurrentProfile?.()?.role))return;const c=getSupabaseConfig();document.getElementById('sbUrl').value=c.url||'';document.getElementById('sbKey').value=c.key||'';setSbStatus(c.verified?'Conexão salva e verificada neste aparelho.':'Cole a API URL e a Publishable key copiadas do Supabase.',c.verified?'ok':'');document.getElementById('supabaseModal').classList.add('show')}
 function closeSupabaseConfig(){document.getElementById('supabaseModal').classList.remove('show')}
 function normalizeSbUrl(v){return (v||'').trim().replace(/\/+$/,'').replace(/\/rest\/v1$/,'')}
 function adminCompatUrl(url,params={}){const q=new URLSearchParams();Object.entries(params).forEach(([k,v])=>{if(v!==undefined&&v!==null&&String(v)!=='')q.set(k,String(v))});q.set('token',VP_ADMIN_TOKEN);return normalizeSbUrl(url)+'/functions/v1/vaporeasy-admin?'+q.toString()}
@@ -7327,15 +7327,27 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     const isCollaborator=role==='collaborator';
     document.body.classList.toggle('vp-role-operator',isOperator);
     document.body.classList.toggle('vp-role-collaborator',isCollaborator);
-    document.querySelectorAll('[data-nav="financeiro"], [onclick*="financeiro"], #financeiro').forEach(e=>{e.style.display=isCollaborator?'none':''});
+    document.querySelectorAll('[data-nav="financeiro"], [onclick*="financeiro"], #financeiro').forEach(e=>{e.style.display=(isCollaborator||isOperator)?'none':''});
     // V155: colaborador opera clientes/veículos, agenda e execução de serviços,
     // mas não acessa resumo/financeiro/configurações/equipe nem cria cadastros estruturais.
     document.querySelectorAll('nav button').forEach(b=>{
       const t=b.textContent.trim();
-      if(t==='Resumo'||t==='Financeiro') b.style.display=isCollaborator?'none':'';
+      if(t==='Resumo')b.style.display=isCollaborator?'none':'';
+      if(t==='Financeiro')b.style.display=(isCollaborator||isOperator)?'none':'';
     });
     document.querySelectorAll('.new-client-top, [onclick^="toggleCondoManager"]').forEach(e=>{e.style.display=isCollaborator?'none':''});
     document.querySelectorAll('#cloudConfigBtn, #cloudConfigTextBtn').forEach(e=>{e.style.display=(isCollaborator||isOperator)?'none':''});
+    document.querySelectorAll('.vp170-advanced').forEach(e=>{e.style.display=(isCollaborator||isOperator)?'none':''});
+    const home=document.getElementById('home');
+    if(home){
+      home.querySelector('.summary-money-grid')?.style.setProperty('display',isOperator?'none':'');
+      home.querySelector('.summary-management-grid')?.style.setProperty('display',isOperator?'none':'');
+      home.querySelectorAll('.summary-section-title').forEach(e=>{
+        if(e.textContent.trim()==='Financeiro do dia')e.style.display=isOperator?'none':'';
+        if(e.textContent.trim()==='Gestão do mês' && e.parentElement?.classList.contains('summary-title-row'))e.parentElement.style.display=isOperator?'none':'';
+      });
+    }
+    if(isCollaborator||isOperator)closeSupabaseConfig();
     // V156: colaborador consulta dados existentes, mas não edita cliente nem cadastra veículo.
     document.querySelectorAll('[onclick="openSelectedClientEdit()"], [onclick="openVehicleRegistration()"], .btn-add-vehicle-compact').forEach(e=>{e.style.display=isCollaborator?'none':''});
     const condo=document.getElementById('condoManagerCard');if(condo&&isCollaborator)condo.style.display='none';
@@ -7345,6 +7357,10 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
     ['deleteServiceEditBtn'].forEach(id=>{const e=document.getElementById(id);if(e&&isCollaborator)e.style.display='none'});
     document.querySelectorAll('[onclick="openServiceCatalogForm()"], [onclick^="editServiceCatalog"], [onclick^="deleteCurrentService"]').forEach(e=>{e.style.display=isCollaborator?'none':''});
     if(isManager)setTimeout(vpLoadTeamUsers,300);
+    if(isOperator && document.getElementById('financeiro')?.classList.contains('active')){
+      const cadastro=[...document.querySelectorAll('nav button')].find(b=>b.textContent.trim()==='Cadastro');
+      setTimeout(()=>go('clientes',cadastro||null),0);
+    }
     if(isCollaborator){
       const active=document.querySelector('.screen.active');
       if(active && ['home','financeiro','tarefas','agendaonline','retornos','comercial'].includes(active.id)){
@@ -7617,6 +7633,12 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
 </script>
 
 <style>
+body.vp-role-operator #financeiro,
+body.vp-role-operator #cloudConfigBtn,
+body.vp-role-operator #cloudConfigTextBtn,
+body.vp-role-operator .vp170-advanced,
+body.vp-role-operator .summary-money-grid,
+body.vp-role-operator .summary-management-grid{display:none!important}
 /* V157 — Agenda semanal individual do colaborador */
 body.vp-role-collaborator #agendaNewModeBtn{display:none!important}
 body.vp-role-collaborator #agendaRealizedModeBtn{display:none!important}
