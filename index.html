@@ -7713,57 +7713,6 @@ body.vp-role-collaborator #agendaFilterBar{display:none!important}
 
 
 
-<script id="vp-v160-agenda-live-cloud">
-(function(){
-  let vpAgendaCloudRefreshBusy=false;
-  let vpAgendaLastCloudRefresh=0;
-
-  function vpAgendaIsOpen(){
-    const a=document.getElementById('agenda');
-    return !!(a && a.classList.contains('active'));
-  }
-
-  async function vpRefreshAgendaFromCloud(force=false){
-    if(vpAgendaCloudRefreshBusy)return false;
-    if(typeof window.vpSecurePullNow!=='function')return false;
-    const now=Date.now();
-    if(!force && now-vpAgendaLastCloudRefresh<4000)return false;
-    vpAgendaCloudRefreshBusy=true;
-    try{
-      const ok=await window.vpSecurePullNow(false);
-      if(ok){
-        vpAgendaLastCloudRefresh=Date.now();
-        try{renderAppointments?.()}catch(_){}
-      }
-      return !!ok;
-    }finally{
-      vpAgendaCloudRefreshBusy=false;
-    }
-  }
-
-  // Sempre que o proprietário abrir Agendamentos, lê primeiro o estado mais novo do Supabase.
-  document.addEventListener('click',function(ev){
-    const nav=ev.target.closest?.('nav button');
-    if(nav && /Agendamentos/i.test(nav.textContent||'')){
-      setTimeout(()=>vpRefreshAgendaFromCloud(true),80);
-      setTimeout(()=>vpRefreshAgendaFromCloud(true),900);
-    }
-  },true);
-
-  // Ao voltar para o aplicativo, atualiza a agenda se ela estiver aberta.
-  document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible' && vpAgendaIsOpen())vpRefreshAgendaFromCloud(true);
-  });
-
-  // Enquanto a Agenda estiver aberta, mantém uma leitura leve periódica.
-  setInterval(function(){
-    if(vpAgendaIsOpen())vpRefreshAgendaFromCloud(false);
-  },5000);
-
-  window.vpRefreshAgendaFromCloud=()=>vpRefreshAgendaFromCloud(true);
-})();
-</script>
-
 </body></html>`);
     w.document.close();
   };
@@ -8149,8 +8098,6 @@ main,.screen{
   overflow-x:hidden!important;
 }
 </style>
-</body>
-</html>
 
 <style id="vaporeasy-v105-booking-search-css">
 #agendaonline .online-admin-card{margin-bottom:14px}
@@ -8803,3 +8750,81 @@ main,.screen{
   [300,900,1800].forEach(ms=>setTimeout(()=>{try{if(vpAgendaIsOpen())renderAppointments()}catch(_){}},ms));
 })();
 </script>
+
+<!-- VAPOREASY_BUILD: v163-agenda-scroll-rawcode-fix-2026-09-22 -->
+<style id="vp-v163-agenda-scroll-fix">
+/* Mantém o documento verticalmente rolável, bloqueia apenas vazamento horizontal
+   e reserva espaço suficiente para as ações abertas acima da navegação fixa. */
+html{
+  width:100%;
+  max-width:100%;
+  min-height:100%;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+}
+body{
+  width:100%;
+  max-width:100%;
+  min-height:100%;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+}
+.app{
+  width:100%!important;
+  max-width:560px!important;
+  min-height:100vh!important;
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+}
+main{
+  max-width:100%!important;
+  min-height:0!important;
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+  padding-bottom:190px!important;
+  touch-action:pan-y pinch-zoom!important;
+}
+.screen,
+.screen.active{
+  max-width:100%!important;
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+}
+.vp-agenda-compact-list,
+.vp-agenda-item,
+.vp-agenda-item>summary,
+.vp-agenda-item-body{
+  touch-action:pan-y!important;
+}
+.vp-agenda-item[open]{
+  scroll-margin-top:110px;
+  scroll-margin-bottom:180px;
+}
+nav{z-index:400!important}
+@supports (overflow:clip){
+  html,body,.app,main,.screen{overflow-x:clip!important}
+}
+</style>
+<script id="vp-v163-agenda-scroll-script">
+(function(){
+  'use strict';
+  // Ao abrir um atendimento perto do rodapé, reposiciona suavemente o cartão
+  // para deixar espaço para os controles que aparecem abaixo dele.
+  document.addEventListener('toggle',function(ev){
+    const item=ev.target;
+    if(!item || !item.classList || !item.classList.contains('vp-agenda-item') || !item.open)return;
+    setTimeout(function(){
+      const nav=document.querySelector('nav');
+      const navTop=nav ? nav.getBoundingClientRect().top : window.innerHeight;
+      const r=item.getBoundingClientRect();
+      if(r.bottom > navTop-18){
+        const delta=Math.max(0,Math.min(r.top-92,r.bottom-(navTop-18)));
+        if(delta>0)window.scrollBy({top:delta,behavior:'smooth'});
+      }
+    },90);
+  },true);
+})();
+</script>
+</body>
+</html>
