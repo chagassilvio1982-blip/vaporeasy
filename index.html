@@ -1779,19 +1779,28 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
 
 <section id="agendaonline" class="screen">
   <div class="agenda-topbar">
-    <div><h2 style="margin:0">Agenda online</h2><p class="muted" style="margin:5px 0 0">Escolha um cliente cadastrado ou envie o link público para um cliente novo/avulso.</p></div>
+    <div>
+      <h2 style="margin:0">Enviar agendamento</h2>
+      <p class="muted" style="margin:5px 0 0">Escolha o cliente e envie o acesso direto para ele.</p>
+    </div>
     <button class="btn-ghost" type="button" onclick="voltarParaResumo()">Voltar</button>
   </div>
 
-  <div class="card online-admin-card" id="personalizedBookingAdmin">
-    <h3 style="margin-top:0">Cliente cadastrado</h3>
-    <p class="online-help">Busque por <b>nome, telefone ou placa</b>. A lista completa não fica mais aberta na tela.</p>
-    <label for="onlineBookingClientSearch">Buscar cliente</label>
+  <div class="card online-admin-card vp170-booking-card" id="personalizedBookingAdmin">
+    <div class="vp170-booking-icon">👤</div>
+    <div class="vp170-booking-copy">
+      <h3>Cliente já cadastrado</h3>
+      <p>Pesquise o cliente. O link reconhecerá o cadastro e os veículos já salvos.</p>
+    </div>
+
+    <label for="onlineBookingClientSearch">Nome, telefone ou placa</label>
     <div class="vp-booking-client-search-row">
-      <input id="onlineBookingClientSearch" type="search" autocomplete="off" placeholder="Ex.: Enrico, 1199999..., BMW..." oninput="vpFilterBookingClients(this.value)">
+      <input id="onlineBookingClientSearch" type="search" autocomplete="off"
+             placeholder="Ex.: Enrico, 1199999..., placa..."
+             oninput="vpFilterBookingClients(this.value)">
       <button class="btn-ghost" type="button" onclick="vpClearBookingClientSelection()">Limpar</button>
     </div>
-    <div id="onlineBookingClientHint" class="online-help vp-booking-search-hint">Digite pelo menos 2 caracteres para pesquisar.</div>
+    <div id="onlineBookingClientHint" class="online-help vp-booking-search-hint">Digite pelo menos 2 caracteres.</div>
     <div id="onlineBookingClientResults" class="vp-booking-client-results" aria-live="polite"></div>
 
     <div id="onlineBookingSelectedClientCard" class="vp-booking-selected hidden">
@@ -1803,45 +1812,50 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
         </div>
         <button class="btn-ghost" type="button" onclick="vpClearBookingClientSelection()">Trocar</button>
       </div>
-      <div class="online-admin-actions" style="margin-top:12px">
-        <button class="btn-primary" type="button" onclick="vpCopyPersonalizedBookingLink()">Copiar link personalizado</button>
-        <button class="btn-green" type="button" onclick="vpCopyPersonalizedBookingWhatsApp()">Copiar mensagem do WhatsApp</button>
+
+      <div class="vp170-primary-actions">
+        <button class="vp170-whatsapp-btn" type="button" onclick="vpV170SendPersonalizedWhatsApp()">
+          Enviar pelo WhatsApp
+        </button>
+        <button class="btn-ghost" type="button" onclick="vpV170CopyPersonalizedLink()">
+          Copiar somente o link
+        </button>
       </div>
-      <button id="vpDeleteBookingClientBtn" class="vp-booking-delete-client" type="button" onclick="vpDeleteSelectedBookingClient()" style="display:none">Excluir cadastro deste cliente</button>
+
+      <button id="vpDeleteBookingClientBtn" class="vp-booking-delete-client" type="button"
+              onclick="vpDeleteSelectedBookingClient()" style="display:none">Excluir cadastro deste cliente</button>
     </div>
     <div id="personalizedBookingNotice" class="notice hidden" style="margin-top:12px"></div>
   </div>
 
-  <div class="card online-admin-card vp-booking-new-client-card">
-    <h3 style="margin-top:0">Cliente novo / avulso</h3>
-    <p class="online-help">Use este fluxo para quem ainda não tem cadastro. A pessoa informa os dados uma única vez e escolhe o atendimento.</p>
-    <div class="online-admin-actions">
-      <button class="btn-primary" type="button" onclick="copyOnlineBookingLink()">Copiar link público</button>
-      <button class="btn-green" type="button" onclick="copyOnlineBookingWhatsApp()">Copiar mensagem do WhatsApp</button>
+  <div class="card online-admin-card vp170-booking-card vp170-new-client-card">
+    <div class="vp170-booking-icon">＋</div>
+    <div class="vp170-booking-copy">
+      <h3>Cliente novo / avulso</h3>
+      <p>Use este link para quem ainda não possui cadastro na Vaporeasy.</p>
+    </div>
+    <div class="vp170-primary-actions">
+      <button class="vp170-whatsapp-btn" type="button" onclick="vpV170SharePublicBooking()">
+        Compartilhar link público
+      </button>
+      <button class="btn-ghost" type="button" onclick="copyOnlineBookingLink()">
+        Copiar somente o link
+      </button>
     </div>
     <div id="onlineBookingAdminNotice" class="notice hidden" style="margin-top:12px"></div>
   </div>
 
-  <details class="card online-admin-card vp-booking-details">
-    <summary>Configuração e teste da agenda</summary>
+  <details class="card online-admin-card vp-booking-details vp170-advanced">
+    <summary>Configurações avançadas</summary>
     <div class="vp-booking-details-body">
       <div class="online-admin-status" id="onlineBookingCloudStatus">Verificando conexão…</div>
       <label>URL pública</label>
-      <input id="onlineBookingBaseUrl" type="url" inputmode="url" placeholder="https://vaporeasy.vercel.app/" oninput="saveOnlineBookingBaseUrl()">
-      <div class="online-help">Configuração técnica. Normalmente não é necessário alterar este endereço.</div>
+      <input id="onlineBookingBaseUrl" type="url" inputmode="url"
+             placeholder="https://vaporeasy.vercel.app/" oninput="saveOnlineBookingBaseUrl()">
+      <div class="online-help">Normalmente você não precisa alterar este endereço.</div>
       <div class="online-admin-actions">
-        <button class="btn-ghost" type="button" onclick="previewOnlineBooking()">Pré-visualizar agenda pública</button>
+        <button class="btn-ghost" type="button" onclick="previewOnlineBooking()">Pré-visualizar</button>
       </div>
-    </div>
-  </details>
-
-  <details class="card online-admin-card vp-booking-details">
-    <summary>Como funciona</summary>
-    <div class="vp-booking-details-body online-steps">
-      <div><b>1.</b><span>Cliente cadastrado: pesquise e envie o link exclusivo.</span></div>
-      <div><b>2.</b><span>No link exclusivo, ele escolhe um dos veículos já cadastrados, o serviço, a data e o horário.</span></div>
-      <div><b>3.</b><span>Cliente novo/avulso recebe o link público e faz um cadastro rápido.</span></div>
-      <div><b>4.</b><span>O sistema mostra somente horários disponíveis.</span></div>
     </div>
   </details>
 </section>
@@ -9389,6 +9403,190 @@ main{
   // Sincronização continua automática. A interface só redesenha quando
   // dados funcionais realmente mudam e apenas na tela relevante.
   window.vpSyncVersion='169';
+})();
+</script>
+
+
+<!-- VAPOREASY_BUILD: v170-personalized-link-whatsapp-2026-09-22 -->
+<style id="vp-v170-booking-style">
+#agendaonline .vp170-booking-card{
+  position:relative;
+  padding:17px!important;
+  border-radius:18px!important;
+}
+.vp170-booking-icon{
+  width:42px;height:42px;border-radius:13px;
+  display:grid;place-items:center;
+  background:rgba(30,187,240,.10);
+  border:1px solid rgba(30,187,240,.22);
+  color:#77ddff;font-size:20px;margin-bottom:10px;
+}
+.vp170-booking-copy h3{margin:0 0 5px;font-size:18px}
+.vp170-booking-copy p{margin:0 0 15px;color:#9fb5c3;font-size:12px;line-height:1.5}
+.vp170-primary-actions{display:grid;grid-template-columns:1fr;gap:9px;margin-top:13px}
+.vp170-whatsapp-btn{
+  width:100%;min-height:50px;border:0;border-radius:14px;
+  background:#22c55e;color:#062112;font-size:15px;font-weight:950;
+  box-shadow:0 8px 20px rgba(34,197,94,.16);
+}
+.vp170-primary-actions .btn-ghost{min-height:45px}
+.vp170-advanced{opacity:.92}
+.vp170-advanced summary{cursor:pointer;font-weight:850;color:#a8c2d1}
+#onlineBookingSelectedClientCard{
+  margin-top:14px!important;
+  border:1px solid rgba(30,187,240,.18)!important;
+  background:rgba(30,187,240,.035)!important;
+}
+@media(max-width:430px){
+  #agendaonline .agenda-topbar{align-items:flex-start}
+  #agendaonline .agenda-topbar h2{font-size:25px}
+}
+</style>
+
+<script id="vp-v170-booking-script">
+(function(){
+  'use strict';
+
+  const PUBLIC_APP='https://vaporeasy.vercel.app/';
+
+  function norm(v){
+    try{return normalizeText(v||'')}catch(_){
+      return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+    }
+  }
+
+  function selectedClient(){
+    const name=(document.getElementById('onlineBookingSelectedClientName')?.textContent||'').trim();
+    if(!name || name==='—')return null;
+    const clients=(typeof getClients==='function'?getClients():[])||[];
+    return clients.find(c=>norm(c.name)===norm(name))||{name};
+  }
+
+  function personalizedLink(token){
+    const u=new URL(PUBLIC_APP);
+    u.searchParams.set('booking','1');
+    u.searchParams.set('share','3');
+    u.searchParams.set('client',token);
+    return u.toString();
+  }
+
+  function publicLink(){
+    const u=new URL(PUBLIC_APP);
+    u.searchParams.set('booking','1');
+    u.searchParams.set('share','3');
+    return u.toString();
+  }
+
+  function notice(msg,ok=true){
+    const el=document.getElementById('personalizedBookingNotice');
+    if(!el)return;
+    el.textContent=msg||'';
+    el.classList.toggle('hidden',!msg);
+    el.classList.toggle('ok',!!ok);
+    el.classList.toggle('err',!ok);
+  }
+
+  async function createToken(client){
+    if(!client)throw new Error('Selecione um cliente.');
+    if(typeof window.vpSecureBridge!=='function'){
+      throw new Error('Sessão segura indisponível. Atualize o aplicativo e entre novamente.');
+    }
+    const result=await window.vpSecureBridge('booking_link_create',{
+      method:'POST',
+      body:{
+        client_id:client.cloudId||'',
+        name:client.name||''
+      }
+    });
+    const token=result?.token||result?.booking_token||'';
+    if(!token)throw new Error('Não foi possível gerar o link personalizado.');
+    return token;
+  }
+
+  async function copySafe(text){
+    if(typeof copyTextSafe==='function')return await copyTextSafe(text);
+    if(navigator.clipboard?.writeText)return await navigator.clipboard.writeText(text);
+    const ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+  }
+
+  function phoneForWhatsApp(v){
+    let n=String(v||'').replace(/\D/g,'');
+    if(!n)return '';
+    if(n.startsWith('0'))n=n.replace(/^0+/,'');
+    if(!n.startsWith('55'))n='55'+n;
+    return n;
+  }
+
+  window.vpV170CopyPersonalizedLink=async function(){
+    const client=selectedClient();
+    if(!client){notice('Selecione um cliente primeiro.',false);return}
+    notice('Gerando link personalizado…',true);
+    try{
+      const token=await createToken(client);
+      const link=personalizedLink(token);
+      await copySafe(link);
+      notice('Link personalizado copiado para '+(client.name||'o cliente')+'.',true);
+    }catch(e){
+      notice(String(e?.message||e),false);
+    }
+  };
+
+  window.vpV170SendPersonalizedWhatsApp=async function(){
+    const client=selectedClient();
+    if(!client){notice('Selecione um cliente primeiro.',false);return}
+
+    // Abre a aba imediatamente para o Android não bloquear o WhatsApp após a chamada assíncrona.
+    let popup=null;
+    try{popup=window.open('about:blank','_blank')}catch(_){}
+
+    notice('Preparando o WhatsApp…',true);
+    try{
+      const token=await createToken(client);
+      const link=personalizedLink(token);
+      const first=String(client.name||'').trim().split(/\s+/)[0]||'';
+      const msg='Olá'+(first?', '+first:'')+'! Para facilitar seu agendamento com a Vaporeasy, seu cadastro e seus veículos já estão vinculados. Escolha o veículo, o serviço, a data e o melhor horário: '+link;
+      const phone=phoneForWhatsApp(client.phone||client.telefone||'');
+      const wa='https://wa.me/'+(phone?phone:'')+'?text='+encodeURIComponent(msg);
+
+      notice(phone?'Abrindo a conversa do cliente no WhatsApp…':'Abrindo o WhatsApp para você escolher o contato…',true);
+
+      if(popup && !popup.closed){
+        popup.location.href=wa;
+      }else{
+        window.location.href=wa;
+      }
+    }catch(e){
+      try{if(popup&&!popup.closed)popup.close()}catch(_){}
+      notice(String(e?.message||e),false);
+    }
+  };
+
+  window.vpV170SharePublicBooking=async function(){
+    const link=publicLink();
+    const msg='Olá! Para facilitar seu agendamento com a Vaporeasy, acesse o link e escolha o serviço, a data e o melhor horário: '+link;
+    try{
+      if(navigator.share){
+        await navigator.share({title:'Agendamento Vaporeasy',text:msg});
+        return;
+      }
+    }catch(e){
+      if(e?.name==='AbortError')return;
+    }
+    try{
+      window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+    }catch(_){
+      await copySafe(msg);
+      const el=document.getElementById('onlineBookingAdminNotice');
+      if(el){el.textContent='Mensagem copiada. Cole no WhatsApp.';el.classList.remove('hidden')}
+    }
+  };
+
+  // Mantém compatibilidade: os botões antigos que ainda chamarem estas funções
+  // passam a usar a implementação segura da V170.
+  window.vpCopyPersonalizedBookingLink=window.vpV170CopyPersonalizedLink;
+  window.vpCopyPersonalizedBookingWhatsApp=window.vpV170SendPersonalizedWhatsApp;
 })();
 </script>
 </body>
