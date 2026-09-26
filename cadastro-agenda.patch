@@ -1,0 +1,836 @@
+diff --git a/REVISAO_CADASTRO_AGENDA.md b/REVISAO_CADASTRO_AGENDA.md
+new file mode 100644
+index 0000000..daf1505
+--- /dev/null
++++ b/REVISAO_CADASTRO_AGENDA.md
+@@ -0,0 +1,45 @@
++# Cadastro e Agendamento — revisão de 26/09/2026
++
++Base: commit `169521928494c69e53732fa86f7a01ca7f1e8549`, conferido byte a byte com a página publicada durante a revisão.
++
++## Alterações
++
++- Busca única de clientes, incluindo nome, telefone e placa; seleção abre consulta, com edição explícita.
++- Bloqueio de criação/renomeação que sobrescreveria outro cliente.
++- Validação de placa, marca, modelo e vínculo com cliente nos caminhos Cadastro, RG e cadastro rápido.
++- Uma placa de outro cliente não troca silenciosamente o cliente selecionado.
++- Cadastrar novamente uma placa existente orienta abrir o RG, evitando apagar diagnóstico anterior.
++- Limpeza dos campos ao abrir outro RG ou iniciar um novo veículo.
++- Marca/modelo com sugestões e digitação livre para versões ausentes do catálogo.
++- Remoção do exemplo de ficha e da inclusão automática de veículos de demonstração. Nenhum registro salvo é apagado.
++- Preservação da seleção do veículo ao reconstruir as opções da agenda; troca de cliente limpa o vínculo anterior.
++- Colaborador e status voltam a ficar habilitados ao retornar ao atendimento único.
++- Horário recorrente lido do campo correto; rótulo quinzenal e cálculo local de 14 dias; mensal limitado ao último dia válido do mês.
++- Deslocamento recolhido enquanto a recorrência está sem equipe.
++- Bloqueio de duplo envio de agendamento e opção de continuar com outro veículo.
++- Sincronização serializada: alterações durante leitura impedem aplicar resposta antiga; alterações durante gravação entram em nova gravação.
++- Cadastro só informa sincronização concluída depois de resposta efetiva. Erros permanecem como pendência.
++- Registro retroativo usa a mesma fila de sincronização.
++- Remoção da referência ao arquivo de correção de colaborador ausente; a correção fica integrada às funções originais.
++
++## Verificação
++
++`node --test tests/cadastro-agenda.test.cjs`
++
++23 testes passaram. Cobrem funções reais extraídas do aplicativo, validação, RG, vínculo cliente/veículo, datas, seleção de colaborador/veículo, duplo envio e concorrência de sincronização. Os scripts também passaram pela compilação e pela verificação de referências locais.
++
++Não foram criados nem excluídos clientes, veículos ou atendimentos reais nos testes. Não foram alterados o banco, funções Supabase, Financeiro ou acessos.
++
++## Antes de liberar em produção
++
++O navegador de auditoria estava sem login. Ainda é necessário homologar com sessão autenticada: criar e editar cliente/veículo de teste; fazer dois agendamentos consecutivos; remanejar equipe; concluir, cancelar e recarregar; conferir persistência em dois aparelhos; validar os controles em Android/PWA. Os testes automatizados não substituem essa verificação.
++
++Não foi feita migração de séries antigas, deduplicação destrutiva de dados, transferência de propriedade de veículo nem alteração em agendamentos existentes. Para corrigir placa de veículo com histórico é necessária uma operação própria que preserve vínculos; esta revisão impede que a edição de RG crie acidentalmente outro veículo.
++
++## Publicação e reversão
++
++Publicar `index.html`, `cadastro-agenda-rules.js` e `vaporeasy_fix_v171_registrar_servico_realizado.js` no mesmo commit. Manter os scripts v169, v170, v174 e v175 já existentes. Não instalar este trabalho como mais um script de sobreposição. A reversão é feita revertendo o commit; não há migração de banco neste conjunto.
++
++## Estado da entrega
++
++A criação da branch pelo conector GitHub foi recusada com HTTP 403, `Resource not accessible by integration`, apesar da consulta ao repositório informar permissão de push. Nenhuma alteração foi publicada em produção. A continuação exige liberar a gravação pela integração ou autorizar o uso do GitHub pelo navegador.
+diff --git a/cadastro-agenda-rules.js b/cadastro-agenda-rules.js
+new file mode 100644
+index 0000000..906df50
+--- /dev/null
++++ b/cadastro-agenda-rules.js
+@@ -0,0 +1,30 @@
++/* Shared, side-effect-free validation for Cadastro and Agenda. */
++(function(root){
++  'use strict';
++  const nameKey=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLocaleLowerCase('pt-BR');
++  const plate=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
++  function vehicleError({client,registration,brand,model,vehicles=[],clients=[],originalPlate=''}){
++    if(!clients.some(c=>nameKey(c.name)===nameKey(client)))return 'Selecione um cliente já cadastrado.';
++    if(!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(plate(registration)))return 'Confira a placa: use ABC1234 ou ABC1D23.';
++    if(!String(brand||'').trim()||!String(model||'').trim()||nameKey(brand)==='outro'||nameKey(model)==='outro')return 'Informe a marca e o modelo do veículo.';
++    const existing=vehicles.find(v=>plate(v.plate)===plate(registration));
++    if(existing&&nameKey(existing.client)!==nameKey(client))return 'Esta placa já pertence a outro cliente. Abra o cadastro existente para conferir.';
++    if(originalPlate&&plate(originalPlate)!==plate(registration))return 'A placa identifica o histórico deste veículo. Mantenha a placa original nesta edição.';
++    return '';
++  }
++  function clientError(name,original,clients){
++    if(!String(name||'').trim())return 'Informe o nome do cliente.';
++    const match=clients.find(c=>nameKey(c.name)===nameKey(name));
++    if(match&&(!original||nameKey(match.name)!==nameKey(original)))return 'Já existe um cliente com este nome. Selecione o cadastro e toque em Editar.';
++    return '';
++  }
++  function appointmentError(client,registration,clients,vehicles){
++    if(!clients.some(c=>nameKey(c.name)===nameKey(client)))return 'Selecione um cliente cadastrado na lista.';
++    if(!vehicles.some(v=>plate(v.plate)===plate(registration)&&nameKey(v.client)===nameKey(client)))return 'Selecione um veículo deste cliente.';
++    return '';
++  }
++  const encodeArg=value=>encodeURIComponent(value).replace(/'/g,'%27');
++  const api={nameKey,plate,vehicleError,clientError,appointmentError,encodeArg};
++  if(typeof module==='object'&&module.exports)module.exports=api;
++  else root.VaporeasyCadastroAgenda=api;
++})(typeof window!=='undefined'?window:globalThis);
+diff --git a/index.html b/index.html
+index 6ee421b..d712baa 100644
+--- a/index.html
++++ b/index.html
+@@ -1601,6 +1601,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
+ #clientes .condo-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+ #clientes .condo-actions button{min-height:44px}
+ </style>
++<script src="./cadastro-agenda-rules.js?v=20260926"></script>
+ </head>
+ <!-- VAPOREASY_BUILD: access-header-v2-2026-09-19 -->
+ <body class="vp-auth-locked">
+@@ -2083,7 +2084,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
+       <select id="agendaFrequencia" onchange="toggleRecurrence()">
+         <option value="single">Atendimento único</option>
+         <option value="weekly">Semanal • a cada 7 dias</option>
+-        <option value="biweekly">Quinzenal • a cada 15 dias</option>
++        <option value="biweekly">Quinzenal • a cada 14 dias</option>
+         <option value="monthly">Mensal</option>
+         <option value="custom">Personalizado</option>
+       </select>
+@@ -2101,6 +2102,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
+     <label style="margin-top:10px">Observações</label>
+     <textarea id="agendaObservacoes" placeholder="Ex.: cliente prefere atendimento pela manhã"></textarea>
+ 
++    <label style="display:flex;align-items:center;gap:8px"><input id="agendaKeepOpen" type="checkbox" style="width:auto"> Continuar com outro veículo após salvar</label>
+     <button type="button" class="btn-primary" onclick="saveAppointment()">Salvar agendamento</button>
+     <div id="agendaSaveStatus" class="notice hidden" style="margin-top:10px"></div>
+   </div>
+@@ -2113,7 +2115,7 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
+   <div class="client-shell">
+     <div id="clientEditPanel">
+       <div id="clienteSelecionadoSugestoes" class="hidden" style="max-height:220px;overflow-y:auto;border-radius:14px;padding:8px;margin:0 0 8px 0"></div>
+-      <div class="client-search-wrap"><div class="universal-client-search" data-client-search="clienteSelecionado"><input id="clienteSelecionado" placeholder="Digite o nome do cliente..." oninput="searchExistingClientForEdit();renderUniversalClientSuggestions('clienteSelecionado')" onfocus="searchExistingClientForEdit()" autocomplete="off" autocapitalize="words" spellcheck="false"><div id="clienteSelecionadoSuggestions" class="universal-client-suggestions"></div></div></div>
++      <div class="client-search-wrap"><div class="universal-client-search" data-client-search="clienteSelecionado"><input id="clienteSelecionado" placeholder="Buscar por nome, telefone ou placa..." oninput="searchExistingClientForEdit()" onfocus="searchExistingClientForEdit()" autocomplete="off" autocapitalize="words" spellcheck="false"><div id="clienteSelecionadoSuggestions" class="universal-client-suggestions"></div></div></div>
+       <div id="clienteManageStatus" class="notice hidden client-manage-status"></div>
+     </div>
+   </div>
+@@ -2190,8 +2192,8 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
+   <div id="cadastrarVeiculoCard" class="card big hidden" style="display:none;margin-top:12px">
+     <h3>Cadastrar veículo</h3>
+     <label>Cliente</label><div class="universal-client-search" data-client-search="cvCliente"><input id="cvCliente" list="clientesSugestoes2" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="words" spellcheck="false" oninput="renderUniversalClientSuggestions('cvCliente')" onfocus="renderUniversalClientSuggestions('cvCliente')"><div id="cvClienteSuggestions" class="universal-client-suggestions"></div></div><datalist id="clientesSugestoes2"></datalist>
+-    <label>Marca</label><select id="cvMarca" onchange="populateModels('cvMarca','cvModelo')"></select>
+-    <label>Modelo</label><select id="cvModelo"></select>
++    <label>Marca</label><input id="cvMarca" list="cvMarcaOptions" onchange="populateModels('cvMarca','cvModelo')" placeholder="Digite ou selecione"><datalist id="cvMarcaOptions"></datalist>
++    <label>Modelo</label><input id="cvModelo" list="cvModeloOptions" placeholder="Digite ou selecione"><datalist id="cvModeloOptions"></datalist>
+     <div class="row">
+       <div><label>Placa</label><input id="cvPlaca" maxlength="8" list="placasSugestoes" placeholder="ABC1D23" oninput="formatPlateSearch(this);searchClientVehiclePlate(false)" onchange="searchClientVehiclePlate(true)" autocomplete="off"><datalist id="placasSugestoes"></datalist></div>
+       <div><label>Cor</label><input id="cvCor" placeholder="Preto"></div>
+@@ -2290,8 +2292,8 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
+     <label>Condomínio</label><input id="rgCondominio" list="condominiosSugestoes" placeholder="Ex.: Condomínio Paradiso">
+ 
+     <div class="row">
+-      <div><label>Marca</label><select id="rgMarca" onchange="populateModels('rgMarca','rgModelo')"></select></div>
+-      <div><label>Modelo</label><select id="rgModelo"></select></div>
++      <div><label>Marca</label><input id="rgMarca" list="rgMarcaOptions" onchange="populateModels('rgMarca','rgModelo')" placeholder="Digite ou selecione"><datalist id="rgMarcaOptions"></datalist></div>
++      <div><label>Modelo</label><input id="rgModelo" list="rgModeloOptions" placeholder="Digite ou selecione"><datalist id="rgModeloOptions"></datalist></div>
+     </div>
+ 
+     <div class="row">
+@@ -2401,14 +2403,6 @@ body.vp-auth-locked> *:not(#vpAuthGate){visibility:hidden!important}
+     <div id="vehicleHistoryList" class="history-list"></div>
+   </div>
+ 
+-  <div class="section-title">Exemplo de ficha</div>
+-  <div class="item">
+-    <div class="item-top"><b>BMW X3 • ABC1D23</b><span class="tag">Oportunidade</span></div>
+-    <small>Cliente: Senhor Selim • Condomínio Paradiso</small>
+-    <hr>
+-    <small><b>Necessidades:</b> chuva ácida nos vidros, polimento técnico e higienização interna.</small><br>
+-    <small><b>Próxima ação:</b> ofertar no próximo atendimento.</small>
+-  </div>
+ </section>
+ 
+ <section id="servicos" class="screen">
+@@ -2630,7 +2624,7 @@ const VEHICLE_CATALOG = {
+ };
+ function initVehicleCatalog(){
+   ['cvMarca','rgMarca'].forEach(id=>{
+-    const el=document.getElementById(id); if(!el)return;
++    const el=document.getElementById(id+'Options')||document.getElementById(id); if(!el)return;
+     el.innerHTML='<option value="">Selecione a marca...</option>'+Object.keys(VEHICLE_CATALOG).map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+   });
+   ['cvModelo','rgModelo'].forEach(id=>{const el=document.getElementById(id); if(el)el.innerHTML='<option value="">Selecione primeiro a marca...</option>'});
+@@ -2638,7 +2632,9 @@ function initVehicleCatalog(){
+ function populateModels(brandId, modelId, selected=''){
+   const brand=document.getElementById(brandId)?.value||'';
+   const model=document.getElementById(modelId); if(!model)return;
+-  const list=VEHICLE_CATALOG[brand]||[];
++  const catalogBrand=Object.keys(VEHICLE_CATALOG).find(x=>normalizeText(x)===normalizeText(brand));
++  const list=VEHICLE_CATALOG[catalogBrand]||[];
++  if(model.tagName==='INPUT'){const options=document.getElementById(modelId+'Options');if(options)options.innerHTML=list.filter(x=>x!=='Outro').map(m=>`<option value="${esc(m)}"></option>`).join('');model.value=selected;return;}
+   model.innerHTML='<option value="">Selecione o modelo...</option>'+list.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
+   if(selected){
+     if(!list.includes(selected)){ const o=document.createElement('option');o.value=selected;o.textContent=selected;model.appendChild(o); }
+@@ -2653,6 +2649,7 @@ function setAppointments(v){writeStore(STORAGE_APPOINTMENTS,v)}
+ function toggleRecurrence(){
+   const freq=document.getElementById('agendaFrequencia')?.value||'single';
+   const recurring=freq!=='single';
++  document.querySelector('#appointmentFormCard .travel-card')?.classList.toggle('hidden',recurring);
+   document.getElementById('recurrenceOptions')?.classList.toggle('hidden',!recurring);
+   document.getElementById('customFrequencyDays')?.classList.toggle('hidden',freq!=='custom');
+   document.getElementById('vpRecurringTimeWrap')?.classList.toggle('hidden',!recurring);
+@@ -2664,8 +2661,8 @@ function toggleRecurrence(){
+ function addRecurrenceDate(base, freq, idx, customDays=0){
+   const d=new Date(base+'T12:00:00');
+   if(freq==='weekly') d.setDate(d.getDate()+7*idx);
+-  else if(freq==='biweekly') d.setDate(d.getDate()+15*idx);
+-  else if(freq==='monthly') d.setMonth(d.getMonth()+idx);
++  else if(freq==='biweekly') d.setDate(d.getDate()+14*idx);
++  else if(freq==='monthly'){const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+idx);d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));}
+   else if(freq==='custom') d.setDate(d.getDate()+Math.max(2,customDays)*idx);
+   return d.toISOString().slice(0,10);
+ }
+@@ -2795,6 +2792,7 @@ function updateCollaboratorSelects(){
+       el.dispatchEvent(new Event('change',{bubbles:true}));
+     }
+   });
++  toggleRecurrence();
+ }
+ 
+ function getClientByName(name){
+@@ -3438,7 +3436,10 @@ function cleanupAppointmentDuplicates(){
+   return clean;
+ }
+ 
++let appointmentSaveInFlight=false;
+ async function saveAppointment(){
++  if(appointmentSaveInFlight)return;
++  appointmentSaveInFlight=true;
+   const saveButton=document.querySelector('#appointmentFormCard button[onclick="saveAppointment()"]');
+   if(saveButton){
+     saveButton.disabled=true;
+@@ -3450,7 +3451,7 @@ async function saveAppointment(){
+   const client=(document.getElementById('agendaCliente')?.value||'').trim();
+   const vehicle=(document.getElementById('agendaVeiculo')?.value||window.__agendaTargetVehiclePlate||'').trim();
+   const date=document.getElementById('agendaData')?.value||'';
+-  const time=document.getElementById('agendaHora')?.value||'';
++  const time=(document.getElementById('agendaFrequencia')?.value||'single')==='single'?(document.getElementById('agendaHora')?.value||''):(document.getElementById('agendaRecurringTime')?.value||'');
+   const service=document.getElementById('agendaServico')?.value||'';
+   const notes=(document.getElementById('agendaObservacoes')?.value||'').trim();
+   const freq=document.getElementById('agendaFrequencia')?.value||'single';
+@@ -3485,6 +3486,8 @@ async function saveAppointment(){
+     }
+     return;
+   }
++  const validation=VaporeasyCadastroAgenda.appointmentError(client,vehicle,getClients(),getVehicles());
++  if(validation)throw new Error(validation);
+   let count=1;
+   let customDays=0;
+   if(recurring){
+@@ -3638,6 +3641,17 @@ async function saveAppointment(){
+     saveButton.textContent=saveButton.dataset.originalText||'Salvar agendamento';
+   }
+ 
++  if(document.getElementById('agendaKeepOpen')?.checked){
++    const vehicleSelect=document.getElementById('agendaVeiculo');
++    if(vehicleSelect){vehicleSelect.value='';vehicleSelect.classList.remove('hidden');}
++    document.getElementById('agendaVehicleLocked')?.classList.add('hidden');
++    document.getElementById('agendaHora').value='';
++    document.getElementById('agendaObservacoes').value='';
++    toggleRecurrence();
++    updateAvailableAppointmentTimes();
++    if(status){status.classList.remove('hidden');status.textContent='Atendimento salvo neste aparelho. Selecione o próximo veículo; cliente e data foram mantidos.';}
++    return;
++  }
+   setTimeout(()=>{
+     if(typeof toggleAppointmentForm==='function')toggleAppointmentForm(false);
+     if(typeof renderAgendaTimeline==='function')renderAgendaTimeline();
+@@ -3665,6 +3679,9 @@ async function saveAppointment(){
+       status.scrollIntoView({behavior:'smooth',block:'center'});
+     }
+     if(typeof showToast==='function')showToast('Erro ao salvar agendamento','success');
++  }finally{
++    appointmentSaveInFlight=false;
++    if(saveButton){saveButton.disabled=false;saveButton.textContent=saveButton.dataset.originalText||'Salvar agendamento';}
+   }
+ }
+ 
+@@ -3908,6 +3925,8 @@ function openAgendaViewMode(){
+ }
+ function openNewAppointmentMode(){
+  window.vpEditingRecurrenceId=null;
++  document.getElementById('agendaFrequencia').value='single';
++  toggleRecurrence();
+   const rp=document.getElementById('realizedServicesPanel');if(rp)rp.classList.add('hidden');document.getElementById('agendaRealizedModeBtn')?.classList.remove('active');
+   window.__agendaTargetVehiclePlate=''; window.__agendaTargetClient='';
+   const v=document.getElementById('agendaViewBtn'), n=document.getElementById('agendaNewModeBtn'), q=document.getElementById('agendaQuickSearch');
+@@ -3918,6 +3937,7 @@ function toggleAppointmentForm(show){
+   const el=document.getElementById('appointmentFormCard'); if(!el)return;
+   el.classList.toggle('hidden',!show);
+   if(!show)window.vpEditingRecurrenceId=null;
++  if(show)toggleRecurrence();
+   if(show){setTimeout(()=>{el.scrollIntoView({behavior:'smooth',block:'start'}); const c=document.getElementById('agendaCliente'); if(c)c.focus();},80);}
+ }
+ function setAgendaFilter(filter,btn){
+@@ -4277,7 +4297,7 @@ function writeStore(key, value){localStorage.setItem(key,JSON.stringify(value))}
+ function getClients(){return readStore(STORAGE_CLIENTS,[])}
+ function getVehicles(){
+   const saved=readStore(STORAGE_VEHICLES,[]);
+-  const byPlate=new Map(seedVehicles.map(v=>[v.plate,v]));
++  const byPlate=new Map();
+   saved.forEach(v=>byPlate.set(v.plate,v));
+   return [...byPlate.values()];
+ }
+@@ -4291,6 +4311,12 @@ function updatePlateSuggestions(){
+ }
+ function applyClientVehicle(v){
+   if(!v)return;
++  const chosen=document.getElementById('cvCliente')?.value||'';
++  if(chosen&&normalizeText(chosen)!==normalizeText(v.client)){
++    const warning=document.getElementById('cvVehicleLookupStatus');
++    if(warning){warning.classList.remove('hidden');warning.textContent='Esta placa já está cadastrada para '+v.client+'. Confira o cadastro existente.';}
++    return;
++  }
+   document.getElementById('cvPlaca').value=cleanPlate(v.plate||'');
+   if(v.client) document.getElementById('cvCliente').value=v.client;
+   const brand=document.getElementById('cvMarca');
+@@ -4377,7 +4403,7 @@ function renderAgendaClientProfessionalSuggestions(){
+ 
+   box.innerHTML=matches.map(c=>{
+     const condo=c.condominio||c.condominium||c.condominioNome||c.condo||'';
+-    const encoded=encodeURIComponent(c.name||'');
++    const encoded=VaporeasyCadastroAgenda.encodeArg(c.name||'');
+     return '<button type="button" class="agenda-client-option" data-client="'+esc(encoded)+'">'+
+       '<span class="agenda-client-name">'+esc(c.name||'')+'</span>'+
+       (condo?'<span class="agenda-client-condo">'+esc(condo)+'</span>':'<span class="agenda-client-condo">Cliente cadastrado</span>')+
+@@ -4430,7 +4456,11 @@ function updateAgendaVehicles(){
+   toggleQuickClientAgendaButton();
+ 
+   const typed=clientInput.value.trim();
++  const previousPlate=select.value;
++  const previousClient=select.dataset.client||'';
++  select.dataset.client=typed;
+   select.innerHTML='';
++  if(normalizeText(previousClient)!==normalizeText(typed)&&normalizeText(window.__agendaTargetClient)!==normalizeText(typed)){window.__agendaTargetVehiclePlate='';window.__agendaTargetClient='';document.getElementById('agendaVehicleLocked')?.classList.add('hidden');select.classList.remove('hidden');}
+ 
+   if(!typed){
+     select.innerHTML='<option value="">Selecione primeiro o cliente...</option>';
+@@ -4513,6 +4543,9 @@ function updateAgendaVehicles(){
+     }
+   }
+ 
++  if(normalizeText(previousClient)===normalizeText(client)&&vehicles.some(v=>cleanPlate(v.plate)===cleanPlate(previousPlate)))select.value=previousPlate;
++  else if(vehicles.length===1)select.value=vehicles[0].plate;
++
+   // Fluxo normal: só pede seleção quando o usuário entrou pela Agenda
+   // sem escolher um veículo anteriormente.
+   select.classList.remove('hidden');
+@@ -4872,7 +4905,7 @@ function renderClientVehicles(clientName=''){
+   }
+   list.innerHTML=vehicles
+     .sort((a,b)=>((a.brand||'')+' '+(a.model||'')).localeCompare((b.brand||'')+' '+(b.model||''),'pt-BR'))
+-    .map(v=>`<div class="item" style="margin-top:8px"><div class="item-top"><b>${esc((v.brand||'Veículo')+' '+(v.model||''))}</b><span class="tag">${esc(v.plate||'Sem placa')}</span></div><small>${esc(v.color||'Cor não informada')}${v.condo?' • '+esc(v.condo):''}</small>${(v.needs||[]).length?`<div class="rg-need-count">💡 ${(v.needs||[]).length} oportunidade(s) de serviço</div>`:''}<div class="actions"><button class="btn-ghost" type="button" onclick="openVehicle('${esc(v.plate)}')">Abrir RG</button><button class="btn-green" type="button" onclick="scheduleClientVehicle('${encodeURIComponent(name)}','${encodeURIComponent(v.plate||'')}')">Agendar serviço</button></div></div>`).join('');
++    .map(v=>`<div class="item" style="margin-top:8px"><div class="item-top"><b>${esc((v.brand||'Veículo')+' '+(v.model||''))}</b><span class="tag">${esc(v.plate||'Sem placa')}</span></div><small>${esc(v.color||'Cor não informada')}${v.condo?' • '+esc(v.condo):''}</small>${(v.needs||[]).length?`<div class="rg-need-count">💡 ${(v.needs||[]).length} oportunidade(s) de serviço</div>`:''}<div class="actions"><button class="btn-ghost" type="button" onclick="openVehicle('${esc(v.plate)}')">Abrir RG</button><button class="btn-green" type="button" onclick="scheduleClientVehicle('${VaporeasyCadastroAgenda.encodeArg(name)}','${VaporeasyCadastroAgenda.encodeArg(v.plate||'')}')">Agendar serviço</button></div></div>`).join('');
+ }
+ function scheduleClientVehicle(encodedClient, encodedPlate, encodedService){
+   const client=decodeURIComponent(encodedClient||'');
+@@ -4972,7 +5005,7 @@ function openQuickClientAgenda(){
+   const brand=document.getElementById('quickVehicleBrand');
+   if(brand && brand.options.length<=1){
+     const src=document.getElementById('cvMarca');
+-    if(src) brand.innerHTML=src.innerHTML;
++    if(src) brand.innerHTML=document.getElementById('cvMarcaOptions')?.innerHTML||src.innerHTML;
+     populateModels('quickVehicleBrand','quickVehicleModel');
+   }
+   setTimeout(()=>{card.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('quickClientName')?.focus()},50);
+@@ -4983,13 +5016,15 @@ function closeQuickClientAgenda(){
+ async function saveQuickClientAgenda(){
+   const name=(document.getElementById('quickClientName')?.value||'').trim();
+   const phone=(document.getElementById('quickClientPhone')?.value||'').trim();
+-  const plate=cleanPlate(document.getElementById('quickVehiclePlate')?.value||'');
++  const plate=VaporeasyCadastroAgenda.plate(document.getElementById('quickVehiclePlate')?.value||'');
+   const brand=(document.getElementById('quickVehicleBrand')?.value||'').trim();
+   const model=(document.getElementById('quickVehicleModel')?.value||'').trim();
+   const st=document.getElementById('quickClientStatus');
+   const show=m=>{if(st){st.classList.remove('hidden');st.innerHTML=m}};
+   if(!name){show('Informe o nome do cliente.');document.getElementById('quickClientName')?.focus();return}
+   if(plate.length<7){show('Informe uma placa válida com 7 caracteres.');document.getElementById('quickVehiclePlate')?.focus();return}
++  const validation=VaporeasyCadastroAgenda.vehicleError({client:name,registration:plate,brand,model,clients:[...getClients(),{name}],vehicles:getVehicles()});
++  if(validation){show(validation);return;}
+   let clients=getClients(); let ci=clients.findIndex(c=>String(c.name||'').toLocaleLowerCase('pt-BR')===name.toLocaleLowerCase('pt-BR'));
+   const existing=ci>=0?clients[ci]:null;
+   const client={...(existing||{}),name,phone:phone||(existing?.phone||''),updatedAt:new Date().toISOString()};
+@@ -5041,7 +5076,7 @@ function loadClientForEdit(){
+   const cancelBtn=document.getElementById('clienteCancelEditBtn'); if(cancelBtn) cancelBtn.classList.remove('hidden');
+   document.getElementById('clienteNome').value=c.name||'';
+   document.getElementById('clienteTelefone').value=c.phone||'';
+-  document.getElementById('clienteCondominio').value=c.condo||'';
++  document.getElementById('clienteCondominio').value=c.condo||c.condominium||'';
+   document.getElementById('clienteEndereco').value=c.address||'';
+   document.getElementById('clienteObservacoes').value=c.notes||'';
+   st.classList.remove('hidden');
+@@ -5091,7 +5126,7 @@ function prepareAddVehicleForSelectedClient(){
+   document.getElementById('cvCliente').value=c.name;
+   document.getElementById('cvPlaca').value=''; document.getElementById('cvCor').value=''; document.getElementById('cvObservacoes').value='';
+   document.querySelectorAll('#clientes .rgNeed').forEach(cb=>cb.checked=false);
+-  document.getElementById('cvMarca').selectedIndex=0; populateModels('cvMarca','cvModelo');
++  document.getElementById('cvMarca').value=''; populateModels('cvMarca','cvModelo');
+   st.classList.remove('hidden');st.innerHTML=` Novo veículo para <b>${esc(c.name)}</b>. Preencha os dados abaixo.`;
+   renderClientVehicles(c.name);
+   document.getElementById('cvMarca')?.scrollIntoView({behavior:'smooth',block:'center'});
+@@ -5100,6 +5135,8 @@ function saveClient(){
+   const name=document.getElementById('clienteNome').value.trim();
+   const status=document.getElementById('clienteSaveStatus');
+   if(!name){status.classList.remove('hidden');status.textContent='Informe o nome do cliente.';return}
++  const validation=VaporeasyCadastroAgenda.clientError(name,editingClientOriginalName,getClients());
++  if(validation){status.classList.remove('hidden');status.textContent=validation;return;}
+   const client={name,phone:document.getElementById('clienteTelefone').value.trim(),condo:document.getElementById('clienteCondominio').value.trim(),address:document.getElementById('clienteEndereco').value.trim(),notes:document.getElementById('clienteObservacoes').value.trim(),updatedAt:new Date().toISOString()};
+   const clients=getClients();
+   let idx=-1;
+@@ -5228,7 +5265,7 @@ function searchExistingClientForEdit(){
+ 
+   const clients=getClients().slice();
+   const matches=clients
+-    .filter(c=>normalizeText(c.name).includes(q))
++    .filter(c=>normalizeText([c.name,c.phone,c.condo,c.condominium].join(' ')).includes(q)||(typed.replace(/\D/g,'').length>=3&&String(c.phone||'').replace(/\D/g,'').includes(typed.replace(/\D/g,'')))||getVehicles().some(v=>normalizeText(v.client)===normalizeText(c.name)&&cleanPlate(v.plate).includes(typed.toUpperCase().replace(/[^A-Z0-9]/g,''))&&/[A-Za-z0-9]/.test(typed)))
+     .sort((a,b)=>{
+       const an=normalizeText(a.name), bn=normalizeText(b.name);
+       const aStarts=an.startsWith(q)?0:1;
+@@ -5248,7 +5285,7 @@ function searchExistingClientForEdit(){
+     '<div style="font-size:12px;font-weight:700;color:#8fd8ff;text-transform:uppercase;letter-spacing:.6px;padding:2px 6px 8px">Clientes encontrados</div>' +
+     matches.map(c=>`
+       <button type="button"
+-        onclick="selectExistingClientForEdit('${encodeURIComponent(c.name||'')}')"
++        onclick="selectExistingClientForEdit('${VaporeasyCadastroAgenda.encodeArg(c.name||'')}')"
+         style="display:block;width:100%;text-align:left;border:1px solid #39536a;background:#172838;color:#ffffff;padding:12px 14px;border-radius:10px;margin:0 0 7px 0;cursor:pointer;font-size:16px;box-shadow:0 2px 6px rgba(0,0,0,.18);position:relative;z-index:10000">
+         <b style="display:block;color:#ffffff">${esc(c.name||'')}</b>
+         ${(c.condo||c.address||c.endereco)?`<small style="display:block;color:#b8c7d4;margin-top:3px">${esc(c.condo||c.address||c.endereco||'')}</small>`:''}
+@@ -5270,7 +5307,7 @@ function renderClientDetails(clientName=''){
+   if(card.dataset.clientName!==c.name){document.querySelectorAll('#clientes .vp-client-fold').forEach(d=>d.open=false);card.dataset.clientName=c.name;}
+   title.textContent=c.name||'Cliente';
+   const phone=c.phone||c.telefone||'Não informado';
+-  const condo=c.condo||c.condominio||'Não informado';
++  const condo=c.condo||c.condominium||c.condominio||'Não informado';
+   const address=c.address||c.endereco||'Não informado';
+   const notes=c.notes||c.observacoes||'Sem observações';
+   body.innerHTML=`
+@@ -5312,6 +5349,7 @@ function selectExistingClientForEdit(encodedName){
+   if(editCard){editCard.classList.add('hidden');editCard.style.display='none';}
+   const c=findClient(name);
+   renderClientDetails(name);
++  document.querySelector('#clientVehiclesCard details')?.setAttribute('open','');
+   renderClientVehicles(name);
+   const st=document.getElementById('clienteManageStatus');
+   if(st){
+@@ -5378,7 +5416,7 @@ function searchClientByName(){
+   }
+   box.classList.remove('hidden');
+   box.innerHTML=matches.map(c=>`
+-    <button type="button" onclick="selectClientSuggestion('${encodeURIComponent(c.name||'')}')" style="display:block;width:100%;text-align:left;border:0;background:transparent;padding:10px;border-radius:9px;cursor:pointer">
++    <button type="button" onclick="selectClientSuggestion('${VaporeasyCadastroAgenda.encodeArg(c.name||'')}')" style="display:block;width:100%;text-align:left;border:0;background:transparent;padding:10px;border-radius:9px;cursor:pointer">
+       <b>${esc(c.name||'')}</b>
+       ${(c.condo||c.address||c.endereco)?`<br><small>${esc(c.condo||c.address||c.endereco||'')}</small>`:''}
+     </button>`).join('');
+@@ -5403,6 +5441,9 @@ function selectClientByTypedName(){
+ }
+ function fillClientFormFromSearch(c, showStatus=true){
+   if(!c)return;
++  editingClientOriginalName=c.name;
++  document.getElementById('clienteFormTitle').textContent='Editar cliente';
++  document.getElementById('clienteSaveBtn').textContent='Salvar alterações';
+   const name=document.getElementById('clienteNome');
+   const phone=document.getElementById('clienteTelefone');
+   const condo=document.getElementById('clienteCondominio');
+@@ -5431,10 +5472,15 @@ function fillClientFormFromSearch(c, showStatus=true){
+ function findClient(name){return getClients().find(x=>x.name.toLocaleLowerCase('pt-BR')===String(name||'').trim().toLocaleLowerCase('pt-BR'))}
+ function addVehicleToClient(){
+   const client=document.getElementById('cvCliente').value.trim();
+-  const plate=cleanPlate(document.getElementById('cvPlaca').value);
++  const plate=VaporeasyCadastroAgenda.plate(document.getElementById('cvPlaca').value);
+   const status=document.getElementById('cvSaveStatus');
+   if(!findClient(client)){status.classList.remove('hidden');status.textContent='Primeiro salve o cliente ou escolha um nome já cadastrado.';return}
+   if(plate.length<7){status.classList.remove('hidden');status.textContent='Informe uma placa válida com 7 caracteres.';return}
++  const validation=VaporeasyCadastroAgenda.vehicleError({client,registration:plate,brand:document.getElementById('cvMarca').value,model:document.getElementById('cvModelo').value,clients:getClients(),vehicles:getVehicles(),originalPlate:''});
++  if(validation){status.classList.remove('hidden');status.textContent=validation;return;}
++  if(getVehicles().some(v=>cleanPlate(v.plate)===plate)){
++    status.classList.remove('hidden');status.textContent='Este veículo já está cadastrado. Use Abrir RG para editar os dados e preservar o histórico.';return;
++  }
+   const c=findClient(client);
+   const needs=[...document.querySelectorAll('#clientes .rgNeed:checked')].map(x=>x.value);
+   const vehicle={plate,client,condo:c?.condo||'',brand:document.getElementById('cvMarca').value.trim(),model:document.getElementById('cvModelo').value.trim(),color:document.getElementById('cvCor').value.trim(),needs,priority:needs.length?'Média':'Baixa',notes:document.getElementById('cvObservacoes')?.value||'',updatedAt:new Date().toISOString()};
+@@ -5465,7 +5511,7 @@ function renderRgOpportunities(){
+   if(summary)summary.innerHTML=needs.length?`<b>${needs.length} oportunidade(s)</b> identificada(s). Ao agendar, o serviço já fica vinculado a este veículo.`:'Nenhuma necessidade pendente marcada para este veículo.';
+   list.innerHTML=needs.map(service=>{
+     const st=rgNeedState(plate,service), ap=st.appointment;
+-    const action=st.state==='scheduled'?`<button class="btn-ghost" type="button" onclick="go('agenda',document.querySelector('[data-go=&quot;agenda&quot;]'))">Ver na agenda</button>`:`<button class="btn-green" type="button" onclick="scheduleRgOpportunity('${encodeURIComponent(client)}','${encodeURIComponent(plate)}','${encodeURIComponent(service)}')">Agendar serviço</button>`;
++    const action=st.state==='scheduled'?`<button class="btn-ghost" type="button" onclick="go('agenda',document.querySelector('[data-go=&quot;agenda&quot;]'))">Ver na agenda</button>`:`<button class="btn-green" type="button" onclick="scheduleRgOpportunity('${VaporeasyCadastroAgenda.encodeArg(client)}','${VaporeasyCadastroAgenda.encodeArg(plate)}','${VaporeasyCadastroAgenda.encodeArg(service)}')">Agendar serviço</button>`;
+     const detail=ap?`<small>${esc((ap.date||'').split('-').reverse().join('/'))}${ap.time?' às '+esc(ap.time):''}</small>`:'<small>Pronto para oferecer ao cliente.</small>';
+     return `<div class="rg-opportunity"><div class="rg-opportunity-top"><div><strong>${esc(service)}</strong>${detail}</div><span class="rg-opportunity-state ${st.state}">${st.label}</span></div><div class="actions">${action}</div></div>`;
+   }).join('');
+@@ -5485,11 +5531,13 @@ function reconcileVehicleNeedsAfterCompletion(appt){
+ }
+ document.querySelectorAll('#veiculos .rgNeed').forEach(cb=>cb.addEventListener('change',renderRgOpportunities));
+ function saveVehicle(){
+-  const plate=cleanPlate(document.getElementById('rgPlaca').value);
++  const plate=VaporeasyCadastroAgenda.plate(document.getElementById('rgPlaca').value);
+   const client=document.getElementById('rgCliente').value.trim();
+   const status=document.getElementById('vehicleSaveStatus');
+   if(!client){status.classList.remove('hidden');status.textContent='Selecione ou informe o cliente.';return}
+   if(plate.length<7){status.classList.remove('hidden');status.textContent='Informe uma placa válida com 7 caracteres.';return}
++  const validation=VaporeasyCadastroAgenda.vehicleError({client,registration:plate,brand:document.getElementById('rgMarca').value,model:document.getElementById('rgModelo').value,clients:getClients(),vehicles:getVehicles(),originalPlate:document.getElementById('rgPlaca').dataset.originalPlate||''});
++  if(validation){status.classList.remove('hidden');status.textContent=validation;return;}
+   const section=document.getElementById('veiculos');
+   const needs=[...section.querySelectorAll('.rgNeed:checked')].map(x=>x.value);
+   const vehicle={plate,client,condo:document.getElementById('rgCondominio').value.trim(),brand:document.getElementById('rgMarca').value.trim(),model:document.getElementById('rgModelo').value.trim(),color:document.getElementById('rgCor').value.trim(),needs,priority:document.getElementById('rgPrioridade')?.value||'Baixa',paint:document.getElementById('rgPintura')?.value||'',glass:document.getElementById('rgVidros')?.value||'',interior:document.getElementById('rgInterior')?.value||'',protection:document.getElementById('rgProtecao')?.value||'',notes:document.getElementById('rgObservacoes')?.value||'',updatedAt:new Date().toISOString()};
+@@ -5510,9 +5558,17 @@ function searchPlate(){
+   if(!matches.length){box.innerHTML='<div class="no-result"><b>Nenhum veículo encontrado.</b><br><small>Você pode cadastrar esta placa no RG do veículo.</small><div class="actions"><button class="btn-ghost" onclick="newVehicleFromSearch()">Cadastrar veículo</button></div></div>';return}
+   box.innerHTML=matches.map((v,i)=>`<div class="item" style="margin-top:${i?8:0}px"><div class="result-head"><div><div class="result-title">${esc(v.brand||'Veículo')} ${esc(v.model||'')} • ${esc(v.plate)}</div><div class="result-meta">${esc(v.client)}<br>${esc(v.condo||'Sem condomínio')} • ${esc(v.color||'Cor não informada')}</div></div><span class="tag">${esc(v.priority||'Cadastrado')}</span></div><div class="opportunity"><b>Oportunidades:</b> ${v.needs?.length?v.needs.map(esc).join(', '):'Nenhuma registrada'}</div><div class="actions"><button class="btn-primary" onclick="openVehicle('${esc(v.plate)}')">Abrir RG do veículo</button></div></div>`).join('');
+ }
++function resetVehicleRgForm(){
++  ['rgCliente','rgCondominio','rgMarca','rgModelo','rgPlaca','rgCor','rgObservacoes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
++  ['rgPrioridade','rgPintura','rgVidros','rgInterior','rgProtecao'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
++  document.querySelectorAll('#veiculos .rgNeed').forEach(cb=>cb.checked=false);
++  delete document.getElementById('rgPlaca').dataset.originalPlate;
++}
+ function openVehicle(plate){
+-  const v=getVehicles().find(x=>x.plate===plate); if(!v)return;
++  const v=getVehicles().find(x=>cleanPlate(x.plate)===cleanPlate(plate)); if(!v)return;
++  resetVehicleRgForm();
+   go('veiculos');
++  document.getElementById('rgPlaca').dataset.originalPlate=v.plate;
+   document.getElementById('rgCliente').value=v.client||''; document.getElementById('rgCondominio').value=v.condo||''; document.getElementById('rgMarca').value=v.brand||''; populateModels('rgMarca','rgModelo',v.model||''); document.getElementById('rgPlaca').value=v.plate||''; document.getElementById('rgCor').value=v.color||'';
+   if(document.getElementById('rgPrioridade')) document.getElementById('rgPrioridade').value=v.priority||'Baixa';
+   if(document.getElementById('rgPintura')&&v.paint) document.getElementById('rgPintura').value=v.paint;
+@@ -5524,7 +5580,7 @@ function openVehicle(plate){
+   renderRgOpportunities();
+   renderVehicleServiceHistory(v.plate||'');
+ }
+-function newVehicleFromSearch(){const plate=cleanPlate(document.getElementById('plateSearch').value);go('veiculos');document.getElementById('rgPlaca').value=plate;document.getElementById('rgCliente').focus()}
++function newVehicleFromSearch(){const plate=cleanPlate(document.getElementById('plateSearch').value);resetVehicleRgForm();go('veiculos');document.getElementById('rgPlaca').value=plate;document.getElementById('rgCliente').focus()}
+ 
+ const STORAGE_PLATE_API_TOKEN='vaporeasy_plate_api_token_v1';
+ function getPlateApiToken(){return localStorage.getItem(STORAGE_PLATE_API_TOKEN)||''}
+@@ -5543,6 +5599,7 @@ function clearPlateApiToken(){
+ function normalizeKey(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim()}
+ function selectOrAdd(selectId,value){
+   const el=document.getElementById(selectId); if(!el||!value)return;
++  if(el.tagName==='INPUT'){el.value=value;return;}
+   const key=normalizeKey(value);
+   let opt=[...el.options].find(o=>normalizeKey(o.value)===key || normalizeKey(o.textContent)===key);
+   if(!opt){opt=document.createElement('option');opt.value=value;opt.textContent=value;el.appendChild(opt)}
+@@ -6187,6 +6244,7 @@ document.addEventListener('DOMContentLoaded',()=>{
+ 
+ 
+ function renderUniversalClientSuggestions(inputId){
++  if(inputId==='clienteSelecionado'){searchExistingClientForEdit();return;}
+   const input=document.getElementById(inputId);
+   const box=document.getElementById(inputId+'Suggestions');
+   if(!input||!box)return;
+@@ -6240,7 +6298,7 @@ function selectUniversalClient(inputId,name){
+     if(typeof hideExistingClientSuggestions==='function')hideExistingClientSuggestions();
+     const legacyBox=document.getElementById('clienteSelecionadoSugestoes');
+     if(legacyBox){legacyBox.classList.add('hidden');legacyBox.innerHTML='';}
+-    if(typeof loadClientForEdit==='function')loadClientForEdit();
++    if(typeof selectExistingClientForEdit==='function')selectExistingClientForEdit(encodeURIComponent(name));
+     setTimeout(updateClientEmptyState,0);
+   }
+ 
+@@ -7234,7 +7292,7 @@ function applyCondoAddressFromName(){const name=(document.getElementById('client
+ document.addEventListener('DOMContentLoaded',()=>{updateCondoSuggestions();renderCondoList();const cc=document.getElementById('clienteCondominio');if(cc){cc.addEventListener('change',applyCondoAddressFromName);cc.addEventListener('blur',applyCondoAddressFromName)}});
+ 
+ document.addEventListener('DOMContentLoaded',()=>{
+-  setTimeout(()=>{const q=document.getElementById('quickVehicleBrand'),src=document.getElementById('cvMarca');if(q&&src&&q.options.length<=1){q.innerHTML=src.innerHTML;populateModels('quickVehicleBrand','quickVehicleModel')}},250);
++  setTimeout(()=>{const q=document.getElementById('quickVehicleBrand'),src=document.getElementById('cvMarca');if(q&&src&&q.options.length<=1){q.innerHTML=document.getElementById('cvMarcaOptions')?.innerHTML||src.innerHTML;populateModels('quickVehicleBrand','quickVehicleModel')}},250);
+ });
+ </script>
+ 
+@@ -7721,7 +7779,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
+         }
+ 
+         // A nuvem é a fonte de verdade para itens já sincronizados.
+-        for(const item of r)out.push(item);
++        for(const item of r){const localItem=(local||[]).find(x=>item.cloudId&&x.cloudId===item.cloudId);out.push(localItem?newer(localItem,item):item);}
+         return out;
+       }
+ 
+@@ -7788,19 +7846,62 @@ document.addEventListener('DOMContentLoaded',()=>{if(!localStorage.getItem(ONLIN
+       autoApplying=false;
+     }
+   }
+-  async function pushAuto({feedback=false}={}){if(!session||autoApplying||autoBusy)return false;autoBusy=true;try{await bridge('sync',{method:'POST',body:buildBundle()});await sleep(350);const snap=await cloudSnapshot();await applySnapshot(snap);if(feedback&&typeof showToast==='function')showToast('Dados salvos na nuvem','success');return true}catch(e){console.warn('Secure sync push',e);return false}finally{autoBusy=false;try{refreshDashboardSyncPanel(false)}catch(e){}}}
+-  async function pullAuto({feedback=false}={}){if(!session||autoBusy||autoApplying)return false;try{const ok=await applySnapshot(await cloudSnapshot());if(ok&&feedback&&typeof showToast==='function')showToast('Dados atualizados','success');return ok}catch(e){console.warn('Secure sync pull',e);if(feedback&&typeof showToast==='function')showToast('Não foi possível atualizar a agenda agora','error');return false}}
+-  // V160: permite à tela Agenda forçar uma leitura da nuvem sem enviar o estado local antes.
+-  // Isso garante que um agendamento feito pelo cliente apareça assim que a Agenda for aberta.
++  let localRevision=0,needsPush=false,syncFlight=null;
++  async function pushAuto({feedback=false}={}){
++    if(!session||autoApplying)return false;
++    while(syncFlight){const result=await syncFlight;if(!needsPush)return result;}
++    autoBusy=true;
++    const generation=authGeneration;
++    syncFlight=(async()=>{
++      try{
++        do{
++          const revision=localRevision;
++          await bridge('sync',{method:'POST',body:buildBundle()});
++          if(generation!==authGeneration||!session)return false;
++          const snap=await cloudSnapshot();
++          if(generation!==authGeneration||!session)return false;
++          // Edits made while the request was in flight must be sent first.
++          if(revision!==localRevision)continue;
++          await applySnapshot(snap);
++          needsPush=false;
++        }while(needsPush);
++        if(feedback&&typeof showToast==='function')showToast('Cadastro e agenda salvos na nuvem.','success');
++        return true;
++      }catch(e){needsPush=true;console.warn('Secure sync push',e);return false;}
++    })();
++    try{return await syncFlight;}finally{syncFlight=null;autoBusy=false;}
++  }
++  async function pullAuto({feedback=false}={}){
++    if(!session||autoBusy||autoApplying||needsPush)return false;
++    autoBusy=true;
++    const revision=localRevision,generation=authGeneration;
++    syncFlight=(async()=>{
++      try{
++        const snap=await cloudSnapshot();
++        if(revision!==localRevision||generation!==authGeneration||!session)return false;
++        const ok=await applySnapshot(snap);
++        if(ok&&feedback&&typeof showToast==='function')showToast('Dados atualizados','success');
++        return ok;
++      }catch(e){console.warn('Secure sync pull',e);return false;}
++    })();
++    try{return await syncFlight;}finally{syncFlight=null;autoBusy=false;}
++  }
+   window.vpSecurePullNow=async function(feedback=false){return await pullAuto({feedback:!!feedback})};
+-  function scheduleAuto(){if(!session||autoApplying)return;clearTimeout(autoTimer);autoTimer=setTimeout(()=>pushAuto(),1000)} window.vpSecureSchedule=scheduleAuto;
++  window.vpSecureFlushNow=()=>pushAuto();
++  function scheduleAuto(){
++    if(!session||autoApplying)return;
++    localRevision++;needsPush=true;
++    if(!session)return;
++    clearTimeout(autoTimer);autoTimer=setTimeout(()=>pushAuto(),1000);
++  }
++  window.vpSecureSchedule=scheduleAuto;
+   const ow=window.writeStore;if(typeof ow==='function')window.writeStore=function(k,v){const r=ow(k,v);if(AUTO_SYNC_KEYS.has(k))scheduleAuto();return r};
+   const oc=window.setCollaborators;if(typeof oc==='function')window.setCollaborators=function(v){const r=oc(v);scheduleAuto();return r};
+-  window.cloudSyncClient=async()=>{scheduleAuto();return null}; window.cloudSyncVehicle=async()=>{scheduleAuto();return null};
++  window.cloudSyncClient=window.cloudSyncVehicle=async()=>{if(!await pushAuto())throw new Error('Alteração salva neste aparelho; sincronização pendente.');return true;};
+   window.syncEverything=async()=>{await pushAuto({feedback:true})};
+   window.refreshDashboardSyncPanel=async function(showFeedback=false){if(!document.getElementById('dashSyncStatus'))return;let local;try{local=dashboardLocalSyncCounts()}catch(e){setDashboardSyncEnabled(false);setDashboardSyncState('offline','Erro local','Não foi possível contar os dados deste aparelho: '+(e.message||e),'err');return}if(!session){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncEnabled(false);setDashboardSyncState('offline','Login necessário','Entre para acessar a nuvem.','warn');return}try{const cloud=await bridgeCloudCounts();setDashboardSyncCounts(local,cloud);setDashboardSyncEnabled(true);const same=local.clients===cloud.clients&&local.vehicles===cloud.vehicles&&local.appointments===cloud.appointments;setDashboardSyncState(same?'synced':'different',same?'Sincronizado':'Diferença encontrada',same?'Os totais locais e da nuvem estão iguais.':'Existem diferenças entre este aparelho e a nuvem.',same?'ok':'warn');if(showFeedback&&typeof showToast==='function')showToast('Conexão segura validada','success')}catch(e){setDashboardSyncCounts(local,{clients:'—',vehicles:'—',appointments:'—'});setDashboardSyncEnabled(false);setDashboardSyncState('offline','Desconectado','Falha na sessão segura: '+(e.message||e),'err')}};
+   window.dashboardSyncNow=async function(){await pushAuto({feedback:true});await pullAuto();await refreshDashboardSyncPanel(false)};
+-  async function startSecureApp(){if(started)return;started=true;const note=document.getElementById('dashSyncNote');if(note){note.textContent='Sincronização protegida por login e sessão individual.';note.className='sync-dashboard-note ok'}await pullAuto();await pushAuto();await pullAuto();await refreshDashboardSyncPanel(false);window.vpDailyReportRefresh();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullAuto().then(()=>refreshDashboardSyncPanel(false))});window.addEventListener('online',()=>pullAuto().then(()=>pushAuto()));setInterval(()=>{if(document.visibilityState==='visible'&&!autoBusy&&!autoApplying)pullAuto().then(()=>refreshDashboardSyncPanel(false))},10000)}
++  async function startSecureApp(){if(started)return;started=true;const note=document.getElementById('dashSyncNote');if(note){note.textContent='Sincronização protegida por login e sessão individual.';note.className='sync-dashboard-note ok'}await pullAuto();await pushAuto();await pullAuto();await refreshDashboardSyncPanel(false);window.vpDailyReportRefresh();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullAuto().then(()=>refreshDashboardSyncPanel(false))});window.addEventListener('online',()=>pushAuto().then(()=>pullAuto()));setInterval(()=>{if(document.visibilityState==='visible'&&!autoBusy&&!autoApplying)pullAuto().then(()=>refreshDashboardSyncPanel(false))},10000)}
+   document.addEventListener('DOMContentLoaded',async()=>{
+     // Agenda pública nunca deve exigir login interno.
+     if(typeof isPublicBookingMode==='function' && isPublicBookingMode()){
+@@ -10616,6 +10717,6 @@ body.vp-role-collaborator #vpRecurrenceManager{display:none}
+   <script src="./vaporeasy_fix_v171_registrar_servico_realizado.js?v=171"></script>
+   <script src="./vaporeasy_fix_v174_anti_duplicidade.js?v=174"></script>
+   <script src="./vaporeasy_fix_v175_status_persistente.js?v=175"></script>
+-  <script src="./vaporeasy_hotfix_colaborador_agenda.js?v=1"></script>
++
+ </body>
+ </html>
+diff --git a/tests/cadastro-agenda.test.cjs b/tests/cadastro-agenda.test.cjs
+new file mode 100644
+index 0000000..ab21c2a
+--- /dev/null
++++ b/tests/cadastro-agenda.test.cjs
+@@ -0,0 +1,156 @@
++const {test}=require('node:test');
++const assert=require('node:assert/strict');
++const fs=require('node:fs');
++const vm=require('node:vm');
++const path=require('node:path');
++const root=path.join(__dirname,'..');
++const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
++const rules=require('../cadastro-agenda-rules.js');
++function extract(name){
++ const re=new RegExp('(?:async )?function '+name+'\\(');const match=re.exec(html);assert.ok(match,name);
++ for(let i=html.indexOf('}',match.index);i>=0;i=html.indexOf('}',i+1)){
++  const source=html.slice(match.index,i+1);
++  try{new vm.Script('('+source+')');return source;}catch{}
++ }
++ throw Error('Cannot parse '+name);
++}
++function element(value=''){
++ const classes=new Set();
++ return {value,dataset:{},style:{},textContent:'',innerHTML:'',tagName:'INPUT',selectedIndex:2,
++ classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle:(x,on)=>on?classes.add(x):classes.delete(x)},
++ focus(){},blur(){},scrollIntoView(){},setAttribute(){},dispatchEvent(){}};
++}
++function context(ids={}){
++ return {console,Date,Map,Set,JSON,Number,String,Array,Math,Event:class{},setTimeout:()=>0,
++  document:{getElementById:id=>ids[id]||null,querySelector:()=>null,querySelectorAll:()=>[]},
++  window:{},normalizeText:rules.nameKey,cleanPlate:rules.plate,VaporeasyCadastroAgenda:rules,
++  getClients:()=>[{name:'Ana'}],getVehicles:()=>[],showToast(){}};
++}
++test('all inline scripts compile and referenced local scripts exist',()=>{
++ for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
++  const src=/src="([^"]+)"/.exec(m[1]);
++  if(src){if(src[1].startsWith('./'))assert.ok(fs.existsSync(path.join(root,src[1].split('?')[0])),src[1]);}
++  else if(!/type="application\//.test(m[1]))new vm.Script(m[2]);
++ }
++ for(const f of ['cadastro-agenda-rules.js','vaporeasy_fix_v171_registrar_servico_realizado.js','vaporeasy_fix_v174_anti_duplicidade.js','vaporeasy_fix_v175_status_persistente.js'])new vm.Script(fs.readFileSync(path.join(root,f),'utf8'));
++});
++const vehicle={client:'Ana',registration:'abc-1d23',brand:'Porsche',model:'911',clients:[{name:'Ana'}],vehicles:[]};
++test('valid legacy and Mercosul plates, including pasted formatting',()=>{
++ for(const registration of ['ABC1234','abc-1d23'])assert.equal(rules.vehicleError({...vehicle,registration}),'');
++});
++test('reject malformed/overlong plate, missing client and generic model',()=>{
++ for(const registration of ['1234567','ABC12345','ABC12'])assert.ok(rules.vehicleError({...vehicle,registration}));
++ assert.ok(rules.vehicleError({...vehicle,client:'Unknown'}));
++ assert.ok(rules.vehicleError({...vehicle,model:'Outro'}));
++});
++test('same plate cannot silently move between clients',()=>{
++ assert.ok(rules.vehicleError({...vehicle,vehicles:[{plate:'ABC1D23',client:'Bruno'}]}));
++ assert.equal(rules.vehicleError({...vehicle,vehicles:[{plate:'ABC1D23',client:'Ana'}]}),'');
++});
++test('RG edit cannot lose plate/history identity',()=>{
++ assert.ok(rules.vehicleError({...vehicle,originalPlate:'DEF4G56'}));
++ assert.equal(rules.vehicleError({...vehicle,originalPlate:'ABC1D23'}),'');
++});
++test('duplicate creation and rename collision are blocked, normal edit allowed',()=>{
++ const clients=[{name:'José Silva'},{name:'Ana'}];
++ assert.ok(rules.clientError(' Jose   Silva ','',clients));
++ assert.ok(rules.clientError('Ana','José Silva',clients));
++ assert.equal(rules.clientError('José Silva','José Silva',clients),'');
++ assert.equal(rules.clientError('José Santos','José Silva',clients),'');
++});
++test('booking must reference a vehicle belonging to the selected client',()=>{
++ const clients=[{name:'Ana'},{name:'Bruno'}],vehicles=[{client:'Ana',plate:'ABC1D23'}];
++ assert.equal(rules.appointmentError('Ana','ABC1D23',clients,vehicles),'');
++ assert.ok(rules.appointmentError('Bruno','ABC1D23',clients,vehicles));
++ assert.ok(rules.appointmentError('Ana','XXX1X11',clients,vehicles));
++});
++test('weekly, fortnightly and month-end recurrence dates',()=>{
++ const c=context();vm.createContext(c);vm.runInContext(extract('addRecurrenceDate'),c);
++ assert.equal(c.addRecurrenceDate('2026-09-23','weekly',1),'2026-09-30');
++ assert.equal(c.addRecurrenceDate('2026-09-23','biweekly',1),'2026-10-07');
++ assert.equal(c.addRecurrenceDate('2026-01-31','monthly',1),'2026-02-28');
++ assert.equal(c.addRecurrenceDate('2028-01-31','monthly',1),'2028-02-29');
++ assert.equal(c.addRecurrenceDate('2026-01-31','monthly',2),'2026-03-31');
++});
++test('team becomes selectable again after returning from recurring to single',()=>{
++ const ids=Object.fromEntries(['agendaFrequencia','agendaColaborador','agendaStatus','recurrenceOptions','customFrequencyDays','vpRecurringTimeWrap'].map(x=>[x,element()]));
++ const c=context(ids);vm.createContext(c);vm.runInContext(extract('toggleRecurrence'),c);
++ ids.agendaFrequencia.value='biweekly';c.toggleRecurrence();assert.equal(ids.agendaColaborador.disabled,true);
++ ids.agendaFrequencia.value='single';c.toggleRecurrence();assert.equal(ids.agendaColaborador.disabled,false);assert.equal(ids.agendaStatus.disabled,false);
++});
++test('RG reset clears previous client, diagnostics and editing identity',()=>{
++ const ids=Object.fromEntries(['rgCliente','rgCondominio','rgMarca','rgModelo','rgPlaca','rgCor','rgObservacoes','rgPrioridade','rgPintura','rgVidros','rgInterior','rgProtecao'].map(x=>[x,element('old')]));
++ ids.rgPlaca.dataset.originalPlate='ABC1D23';
++ const c=context(ids);vm.createContext(c);vm.runInContext(extract('resetVehicleRgForm'),c);c.resetVehicleRgForm();
++ assert.equal(ids.rgCliente.value,'');assert.equal(ids.rgObservacoes.value,'');assert.equal(ids.rgPintura.selectedIndex,0);assert.equal(ids.rgPlaca.dataset.originalPlate,undefined);
++});
++test('custom brand/model remains editable and catalog models remain available',()=>{
++ const ids={rgMarca:element('Porsche'),rgModelo:element(),rgModeloOptions:element()};
++ const c={...context(ids),VEHICLE_CATALOG:{Porsche:['911','Cayenne','Outro']},esc:String};vm.createContext(c);vm.runInContext(extract('populateModels'),c);
++ c.populateModels('rgMarca','rgModelo','911 GT3 RS');assert.equal(ids.rgModelo.value,'911 GT3 RS');assert.match(ids.rgModeloOptions.innerHTML,/Cayenne/);
++ ids.rgMarca.value='Marca específica';c.populateModels('rgMarca','rgModelo','Modelo específico');assert.equal(ids.rgModelo.value,'Modelo específico');
++});
++function syncContext(){
++ const c={console,session:{},authGeneration:1,autoApplying:false,autoBusy:false,autoTimer:null,showToast(){},clearTimeout(){},setTimeout(){},window:{},buildBundle:()=>({}),bridge:async()=>({ok:true}),cloudSnapshot:async()=>({ok:true}),applySnapshot:async()=>true};
++ vm.createContext(c);
++ const start=html.indexOf('  let localRevision=0,needsPush=false,syncFlight=null;'),end=html.indexOf('  const ow=window.writeStore;',start);
++ vm.runInContext(html.slice(start,end),c);return c;
++}
++test('edit during cloud read is not overwritten by the older response',async()=>{
++ const c=syncContext();let resolve,applied=0;c.cloudSnapshot=()=>new Promise(r=>resolve=r);c.applySnapshot=async()=>{applied++;return true;};
++ const pending=c.pullAuto();c.scheduleAuto();resolve({ok:true});assert.equal(await pending,false);assert.equal(applied,0);
++});
++test('edit during cloud write is included in a second write before snapshot applies',async()=>{
++ const c=syncContext();let resolve,calls=0,applied=0;c.bridge=async()=>{calls++;if(calls===1)await new Promise(r=>resolve=r);};c.applySnapshot=async()=>{applied++;return true;};
++ c.scheduleAuto();const pending=c.pushAuto();c.scheduleAuto();resolve();assert.equal(await pending,true);assert.equal(calls,2);assert.equal(applied,1);
++});
++test('failed sync reports failure and retains pending changes for retry',async()=>{
++ const c=syncContext();c.console={warn(){}};c.bridge=async()=>{throw Error('offline');};c.scheduleAuto();assert.equal(await c.pushAuto(),false);assert.equal(await c.pullAuto(),false);
++ c.bridge=async()=>({ok:true});assert.equal(await c.pushAuto(),true);
++});
++test('logout while fetching does not apply a former session snapshot',async()=>{
++ const c=syncContext();let resolve,applied=false;c.cloudSnapshot=()=>new Promise(r=>resolve=r);c.applySnapshot=async()=>{applied=true;return true;};
++ const pending=c.pullAuto();c.authGeneration++;c.session=null;resolve({ok:true});assert.equal(await pending,false);assert.equal(applied,false);
++});
++test('vehicle lookup never changes the selected client silently',()=>{
++ const ids={cvCliente:element('Ana'),cvPlaca:element('DEF4G56'),cvVehicleLookupStatus:element()};
++ const c=context(ids);vm.createContext(c);vm.runInContext(extract('applyClientVehicle'),c);
++ c.applyClientVehicle({client:'Bruno',plate:'ABC1D23'});assert.equal(ids.cvCliente.value,'Ana');assert.equal(ids.cvPlaca.value,'DEF4G56');assert.match(ids.cvVehicleLookupStatus.textContent,/Bruno/);
++});
++test('no demonstration vehicles appear when the vehicle store is empty',()=>{
++ const c={readStore:()=>[],STORAGE_VEHICLES:'vehicles',seedVehicles:[{plate:'EXAMPLE'}]};vm.createContext(c);vm.runInContext(extract('getVehicles'),c);assert.equal(c.getVehicles().length,0);
++});
++test('saving an existing vehicle from New Vehicle cannot erase its RG',()=>{
++ const ids=Object.fromEntries(['cvCliente','cvPlaca','cvMarca','cvModelo','cvSaveStatus'].map(x=>[x,element()]));
++ Object.assign(ids.cvCliente,{value:'Ana'});ids.cvPlaca.value='ABC1D23';ids.cvMarca.value='Porsche';ids.cvModelo.value='911';
++ let writes=0;const c={...context(ids),getVehicles:()=>[{client:'Ana',plate:'ABC1D23',notes:'Preserve'}],findClient:()=>({name:'Ana'}),writeStore(){writes++;}};
++ vm.createContext(c);vm.runInContext(extract('addVehicleToClient'),c);c.addVehicleToClient();assert.equal(writes,0);assert.match(ids.cvSaveStatus.textContent,/Abrir RG/);
++});
++test('duplicate client submit exits without changing any data',()=>{
++ const ids={clienteNome:element('Ana'),clienteSaveStatus:element()};let writes=0;
++ const c={...context(ids),editingClientOriginalName:'',writeStore(){writes++;}};vm.createContext(c);vm.runInContext(extract('saveClient'),c);c.saveClient();assert.equal(writes,0);assert.match(ids.clienteSaveStatus.textContent,/Já existe/);
++});
++test('booking double submit only saves once and guard releases for next booking',async()=>{
++ const ids=Object.fromEntries(['agendaCliente','agendaVeiculo','agendaData','agendaHora','agendaRecurringTime','agendaServico','agendaFrequencia','agendaSaveStatus'].map(x=>[x,element()]));
++ ids.agendaCliente.value='Ana';ids.agendaVeiculo.value='ABC1D23';ids.agendaData.value='2026-10-02';ids.agendaRecurringTime.value='08:00';ids.agendaFrequencia.value='weekly';ids.agendaServico.value='Estética';
++ let calls=0,resolve;const c={...context(ids),getVehicles:()=>[{client:'Ana',plate:'ABC1D23'}],calculateDiscount:()=>({base:150,discount:0,total:150}),vpSaveContinuousRecurrence:async()=>{calls++;await new Promise(r=>resolve=r);}};
++ vm.createContext(c);vm.runInContext('let appointmentSaveInFlight=false;'+extract('saveAppointment'),c);
++ const first=c.saveAppointment();await c.saveAppointment();assert.equal(calls,1);resolve();await first;
++ const next=c.saveAppointment();assert.equal(calls,2);resolve();await next;
++});
++test('cloud queue coalesces simultaneous saves',async()=>{
++ const c=syncContext();let resolve,calls=0;c.bridge=async()=>{calls++;await new Promise(r=>resolve=r);};
++ c.scheduleAuto();const one=c.pushAuto(),two=c.pushAuto();resolve();assert.equal(await one,true);assert.equal(await two,true);assert.equal(calls,1);
++});
++test('names with apostrophes safely round-trip through action buttons',()=>{
++ const name="Ana D'Ávila";const encoded=rules.encodeArg(name);assert.ok(!encoded.includes("'"));assert.equal(decodeURIComponent(encoded),name);
++});
++test('rebuilding vehicle choices keeps selection but changing client clears it',()=>{
++ const ids={agendaCliente:element('Ana'),agendaVeiculo:element('ABC1D23'),agendaVehicleStatus:element(),agendaVehicleLocked:element(),agendaVehicleLabel:element()};
++ const select=ids.agendaVeiculo;select.dataset.client='Ana';select.options=[];
++ Object.defineProperty(select,'innerHTML',{set(v){this.value='';this.options=[...v.matchAll(/value="([^"]*)"/g)].map(m=>({value:m[1],textContent:m[1]}));},get(){return '';}});
++ const vehicles=[{client:'Ana',plate:'ABC1D23',brand:'Porsche',model:'911'},{client:'Ana',plate:'DEF4G56',brand:'BMW',model:'X5'},{client:'Bruno',plate:'HIJ7K89',brand:'Audi',model:'Q5'}];
++ const c={...context(ids),getClients:()=>[{name:'Ana'},{name:'Bruno'}],getVehicles:()=>vehicles,toggleQuickClientAgendaButton(){},syncTravelLocations(){},esc:String};
++ vm.createContext(c);vm.runInContext(extract('updateAgendaVehicles'),c);c.updateAgendaVehicles();assert.equal(select.value,'ABC1D23');
++ ids.agendaCliente.value='Bruno';c.updateAgendaVehicles();assert.equal(select.value,'HIJ7K89');assert.notEqual(select.value,'ABC1D23');
++});
+diff --git a/vaporeasy_fix_v171_registrar_servico_realizado.js b/vaporeasy_fix_v171_registrar_servico_realizado.js
+index 5a8b4cc..9d0151d 100644
+--- a/vaporeasy_fix_v171_registrar_servico_realizado.js
++++ b/vaporeasy_fix_v171_registrar_servico_realizado.js
+@@ -225,6 +225,7 @@
+ 
+   async function syncHistorical(){
+     try{
++      if(typeof window.vpSecureFlushNow==='function')return await window.vpSecureFlushNow();
+       if(typeof window.vpSecureBridge==='function'&&typeof window.buildBridgeSyncBundle==='function'){
+         await window.vpSecureBridge('sync',{method:'POST',body:window.buildBridgeSyncBundle()});
+         try{await window.vpSecurePullNow?.(false)}catch(_){}
+@@ -259,7 +260,9 @@
+     const value=document.getElementById('agendaValorServico');if(value)value.value='';
+     const disc=document.getElementById('agendaDesconto');if(disc)disc.value='0';
+     const notes=document.getElementById('agendaObservacoes');if(notes)notes.value='';
+-    const status=document.getElementById('agendaStatus');if(status)status.value='Agendado';
++    const status=document.getElementById('agendaStatus');if(status){status.value='Agendado';status.disabled=false;}
++    const frequency=document.getElementById('agendaFrequencia');if(frequency)frequency.value='single';
++    if(typeof toggleRecurrence==='function')toggleRecurrence();
+     const time=document.getElementById('agendaHora');
+     if(time){time.innerHTML='<option value="">Escolha primeiro data, serviço e colaborador...</option>';time.value=''}
+     try{updateAvailableAppointmentTimes?.()}catch(_){}
+@@ -282,6 +285,8 @@
+     if(!isPastSelection(date,time)){
+       return originalSaveAppointment?.();
+     }
++    const validation=VaporeasyCadastroAgenda.appointmentError(client,vehicle,getClientsSafe(),getVehicles());
++    if(validation){setStatus(validation,false);return;}
+     const values=calcValues();
+     const iso=new Date().toISOString();
+     const a={

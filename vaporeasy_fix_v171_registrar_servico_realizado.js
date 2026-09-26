@@ -225,6 +225,7 @@
 
   async function syncHistorical(){
     try{
+      if(typeof window.vpSecureFlushNow==='function')return await window.vpSecureFlushNow();
       if(typeof window.vpSecureBridge==='function'&&typeof window.buildBridgeSyncBundle==='function'){
         await window.vpSecureBridge('sync',{method:'POST',body:window.buildBridgeSyncBundle()});
         try{await window.vpSecurePullNow?.(false)}catch(_){}
@@ -259,7 +260,9 @@
     const value=document.getElementById('agendaValorServico');if(value)value.value='';
     const disc=document.getElementById('agendaDesconto');if(disc)disc.value='0';
     const notes=document.getElementById('agendaObservacoes');if(notes)notes.value='';
-    const status=document.getElementById('agendaStatus');if(status)status.value='Agendado';
+    const status=document.getElementById('agendaStatus');if(status){status.value='Agendado';status.disabled=false;}
+    const frequency=document.getElementById('agendaFrequencia');if(frequency)frequency.value='single';
+    if(typeof toggleRecurrence==='function')toggleRecurrence();
     const time=document.getElementById('agendaHora');
     if(time){time.innerHTML='<option value="">Escolha primeiro data, serviço e colaborador...</option>';time.value=''}
     try{updateAvailableAppointmentTimes?.()}catch(_){}
@@ -282,6 +285,8 @@
     if(!isPastSelection(date,time)){
       return originalSaveAppointment?.();
     }
+    const validation=VaporeasyCadastroAgenda.appointmentError(client,vehicle,getClientsSafe(),getVehicles());
+    if(validation){setStatus(validation,false);return;}
     const values=calcValues();
     const iso=new Date().toISOString();
     const a={
