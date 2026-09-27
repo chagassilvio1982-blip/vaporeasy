@@ -77,13 +77,14 @@
 </section>
 </main>
 <dialog id="ld"><div class="stack"><h3 style="margin:4px 0">Gerar link de agendamento</h3><div class="notice">O cliente nunca verá nem escolherá colaborador.</div><label>Cliente destinatário<select id="lclient"><option value="">Novo cliente</option></select></label><div id="lpreview" class="meta">Link para um novo cliente preencher o próprio cadastro.</div><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="lat" type="checkbox" checked style="width:22px;min-height:22px">Permitir que o cliente agende para hoje</label><button id="mklink" class="primary" type="button">Gerar link</button><label>Link<input id="linkout" readonly placeholder="O link aparecerá aqui"></label><label id="sharemsgwrap" class="hidden">Mensagem para o cliente<textarea id="sharemsg" readonly></textarea></label><div class="actions"><button id="copylink" class="ghost" type="button" disabled>Copiar mensagem</button><button id="sharelink" class="ghost" type="button" disabled>Compartilhar</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
-<dialog id="rd"><div class="stack"><div id="rcontent"></div><div class="actions"><button id="rshare" class="ghost" type="button">Compartilhar</button><button id="rprint" class="primary" type="button">Imprimir / PDF</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
+<dialog id="rd"><div class="stack"><div id="rcontent"></div><div class="actions"><button id="rshare" class="primary" type="button">Compartilhar comprovante</button><button id="rcharge" class="ghost" type="button">Cobrança / Pix</button><button id="rprint" class="ghost" type="button">Gerar PDF</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
 <dialog id="pd"><form id="payf" class="stack"><input id="payid" type="hidden"><h3>Confirmar pagamento</h3><div id="paymsg" class="notice hidden"></div><label>Forma de pagamento<select id="paymethod" required><option value="">Selecione</option><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Transferência</option><option>Outro</option></select></label><label>Observações<textarea id="paynotes"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="success">Confirmar recebimento</button></div></form></dialog>
 <dialog id="nd"><div class="stack"><div class="actions"><h3 style="margin:8px 0;flex:3">Notificações</h3><button type="button" class="ghost" data-close>Fechar</button></div><div id="nlist"><div class="empty">Nenhuma notificação.</div></div></div></dialog>
 <dialog id="cd"><form id="cf" class="stack"><input id="cid" type="hidden"><h3>Cliente</h3><label>Nome<input id="cn" required></label><div class="row"><label>Telefone<input id="cp"></label><label>WhatsApp<input id="cw"></label></div><label>Condomínio<input id="cc"></label><label>Endereço<input id="ca"></label><label>Observações<textarea id="co"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar</button></div></form></dialog>
 <dialog id="vd"><form id="vf" class="stack"><input id="vid" type="hidden"><input id="vcid" type="hidden"><h3>Veículo</h3><div class="row"><label>Montadora<select id="vb" required></select></label><label>Modelo<select id="vm" required></select></label></div><div class="row"><label id="vboc" class="hidden">Outra montadora<input id="vbo"></label><label id="vmoc" class="hidden">Outro modelo<input id="vmo"></label></div><div class="row"><label>Placa<input id="vp"></label><label>Ano<input id="vy"></label></div><label>Cor<input id="vco"></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar</button></div></form></dialog>
 <dialog id="ad"><form id="apf" class="stack"><input id="aid" type="hidden"><h3 id="aptitle">Novo agendamento</h3><div id="apmsg" class="notice hidden"></div><label>Cliente<select id="ac" required></select></label><label>Veículo<select id="av" required></select></label><label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label>Colaborador<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary">Agendar</button></div></form></dialog>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/+esm";
 const URL="https://asuppjeomaymzromgcrp.supabase.co", KEY="sb_publishable_LfmsuPyDMKnyKHGh0x7Akw_yJfQ15bI", FN=URL+"/functions/v1/vaporeasy-v2-staging";
@@ -102,7 +103,7 @@ async function boot(){wire();if(new URLSearchParams(location.search).get("bookin
 function wire(){
  $("lin").onclick=()=>authMode("login");$("sup").onclick=()=>authMode("signup");$("af").onsubmit=authSubmit;$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceipt;$("rprint").onclick=printReceipt;$("ac").onchange=async()=>{await fillVehicles($("ac").value);await loadAvailableSlots()};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=loadApps;$("q").oninput=renderClients;
+ $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("ac").onchange=async()=>{await fillVehicles($("ac").value);await loadAvailableSlots()};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=loadApps;$("q").oninput=renderClients;
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -175,11 +176,208 @@ function findVehicleLocal(id){for(const list of vehicles.values()){const v=(list
 async function getReceiptData(id){const x=currentApps.find(a=>a.id===id);if(!x)throw Error("Atendimento não encontrado.");const client=clients.find(c=>c.id===x.client_id),vehicle=findVehicleLocal(x.vehicle_id),service=services.find(s=>s.id===x.service_id);const [ax,py,bs,wc]=await Promise.all([sb.from("appointment_addons").select("*").eq("appointment_id",id).order("created_at"),sb.from("appointment_payments").select("*").eq("appointment_id",id).maybeSingle(),sb.from("business_payment_settings").select("*").eq("id",1).single(),sb.from("appointments").select("id",{count:"exact",head:true}).eq("status","completed").gte("completed_at","2026-09-20T13:45:00.000Z")]);if(ax.error)throw ax.error;if(py.error)throw py.error;if(bs.error)throw bs.error;const totalWater=1094400+(wc.count||0)*190;return{x,client,vehicle,service,addons:ax.data||[],payment:py.data||{status:"pending",amount:x.final_value},bank:bs.data,totalWater}}
 function receiptText(d){const paid=d.payment?.status==="paid",lines=[paid?"RECIBO DE PAGAMENTO VAPOREASY":"COMPROVANTE DE SERVIÇO REALIZADO — VAPOREASY","Cliente: "+(d.client?.name||"Cliente"),"Veículo: "+(d.vehicle?(d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:"")):"Veículo"),"Serviço: "+(d.service?.name||"Serviço")];d.addons.forEach(a=>lines.push("Extra: "+a.addon_name+" — "+money(a.unit_price)));lines.push("Valor total: "+money(d.x.final_value));if(paid){lines.push("Pagamento recebido: "+receiptDate(d.payment.paid_at||new Date()),"Forma: "+(d.payment.payment_method||"—"))}else{lines.push("Pagamento pendente","Pix: "+d.bank.pix_key,"Banco: "+d.bank.bank_name+" • Ag. "+d.bank.branch+" • C/C "+d.bank.account_number,"Favorecido: "+d.bank.account_holder)}lines.push("","Obrigado por escolher a Vaporeasy. Neste atendimento você participou diretamente de uma economia estimada de 190 litros de água.","A Vaporeasy já contribuiu para uma economia estimada de "+new Intl.NumberFormat("pt-BR").format(d.totalWater)+" litros de água.");return lines.join("\n")}
 function receiptHtml(d){const paid=d.payment?.status==="paid",title=paid?"Recibo de pagamento":"Comprovante de serviço realizado",veh=d.vehicle?(d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:"")):"Veículo",when=d.x.completed_at||d.x.starts_at,base=Number(d.x.base_value||0),extras=d.addons.map(a=>'<div class="receipt-line"><span>'+esc(a.addon_name)+'</span><b>'+esc(money(a.unit_price))+'</b></div>').join("");return '<div class="receipt-sheet"><div class="receipt-head"><div><div class="receipt-brand">Vapor<span>easy</span></div><div class="receipt-muted">Estética automotiva ecológica</div></div><div style="text-align:right"><div class="receipt-title">'+esc(title)+'</div><div class="receipt-muted">'+esc(receiptDate(when))+'</div></div></div><p>Olá, <b>'+esc(d.client?.name||"cliente")+'</b>. Obrigado por confiar seu veículo à Vaporeasy.</p><div class="receipt-grid"><div class="receipt-box"><b>Veículo</b>'+esc(veh)+'</div><div class="receipt-box"><b>Atendimento</b>'+esc(d.service?.name||"Serviço")+'</div></div><div class="receipt-lines"><div class="receipt-line"><span>'+esc(d.service?.name||"Serviço")+'</span><b>'+esc(money(base))+'</b></div>'+extras+'</div><div class="receipt-total"><span>Valor total</span><span>'+esc(money(d.x.final_value))+'</span></div><div class="receipt-pay">'+(paid?'<span class="paid-pill">PAGAMENTO RECEBIDO</span><div style="margin-top:8px"><b>Forma:</b> '+esc(d.payment.payment_method||"—")+'<br><b>Recebido em:</b> '+esc(receiptDate(d.payment.paid_at||new Date()))+'</div>':'<span class="pending-pill">PAGAMENTO PENDENTE</span><div style="margin-top:8px"><b>Pix ('+esc(d.bank.pix_key_type||"") +'):</b> '+esc(d.bank.pix_key)+'<br><b>Banco:</b> '+esc(d.bank.bank_name)+'<br><b>Agência:</b> '+esc(d.bank.branch)+'<br><b>Conta corrente:</b> '+esc(d.bank.account_number)+'<br><b>Favorecido:</b> '+esc(d.bank.account_holder)+'</div>')+'</div><div class="receipt-water"><b>💧 Obrigado por fazer parte dessa economia.</b><div style="margin-top:6px">Neste atendimento, você participou diretamente de uma economia estimada de <b>190 litros de água</b>.</div><div class="receipt-muted" style="margin-top:6px">Economia acumulada estimada da Vaporeasy: <b>'+esc(new Intl.NumberFormat("pt-BR").format(d.totalWater))+' litros</b>.</div></div><p class="receipt-muted" style="margin-top:12px">Estimativa ambiental utilizada pela Vaporeasy: aproximadamente 200 L em uma lavagem convencional versus cerca de 10 L por atendimento Vaporeasy.</p></div>'}
-async function openReceipt(id){if(!financeAllowed())return show("msg","Seu nível de acesso não permite visualizar valores e dados bancários.","error");try{currentReceipt=await getReceiptData(id);$("rcontent").innerHTML=receiptHtml(currentReceipt);$("rd").showModal()}catch(e){show("msg",fail(e),"error")}}
-function openPayment(id){if(!financeAllowed())return show("msg","Seu nível de acesso não permite confirmar pagamentos.","error");$("payf").reset();$("payid").value=id;show("paymsg","");$("pd").showModal()}
-async function savePayment(e){e.preventDefault();const id=$("payid").value,appt=currentApps.find(x=>x.id===id),method=$("paymethod").value;if(!appt||!method)return;try{const r=await sb.from("appointment_payments").upsert({appointment_id:id,status:"paid",amount:appt.final_value,payment_method:method,paid_at:new Date().toISOString(),notes:$("paynotes").value,confirmed_by:currentUserId,updated_at:new Date().toISOString()},{onConflict:"appointment_id"});if(r.error)throw r.error;$("pd").close();show("msg","Pagamento confirmado. O documento agora é um recibo de pagamento.","ok");await loadApps();await openReceipt(id)}catch(e){show("paymsg",fail(e),"error")}}
-async function shareReceipt(){if(!currentReceipt)return;const txt=receiptText(currentReceipt);if(navigator.share){try{await navigator.share({title:currentReceipt.payment?.status==="paid"?"Recibo Vaporeasy":"Comprovante Vaporeasy",text:txt});return}catch{}}try{await navigator.clipboard.writeText(txt);show("msg","Texto do comprovante copiado.","ok")}catch{}}
-function printReceipt(){if(!currentReceipt)return;const w=window.open("","_blank");if(!w){show("msg","Não foi possível abrir a impressão. Libere pop-ups e tente novamente.","error");return}const body=receiptHtml(currentReceipt);w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Vaporeasy - '+(currentReceipt.payment?.status==="paid"?"Recibo":"Comprovante")+'</title><style>body{font:14px Arial,sans-serif;color:#13212a;margin:28px}.receipt-sheet{max-width:720px;margin:auto}.receipt-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;border-bottom:1px solid #dbe4e9;padding-bottom:12px;margin-bottom:12px}.receipt-brand{font-size:24px;font-weight:900;color:#082232}.receipt-brand span{color:#078fcd}.receipt-title{font-size:18px;font-weight:900}.receipt-muted{color:#647581;font-size:11px;line-height:1.5}.receipt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.receipt-box,.receipt-pay,.receipt-water{border:1px solid #d9e3e8;border-radius:10px;padding:10px}.receipt-lines{border-top:1px solid #e1e8ec;border-bottom:1px solid #e1e8ec;margin:12px 0;padding:10px 0}.receipt-line,.receipt-total{display:flex;justify-content:space-between;gap:12px;padding:4px 0}.receipt-total{font-size:19px;font-weight:900;margin:12px 0}.paid-pill,.pending-pill{display:inline-block;border-radius:999px;padding:4px 8px;font-weight:900;font-size:10px;background:#eef5f1}@media print{body{margin:0}}</style></head><body>'+body+'</body></html>');w.document.close();w.focus();setTimeout(()=>w.print(),250)}
+
+async function openReceipt(id){
+  if(!financeAllowed())return show("msg","Seu nível de acesso não permite visualizar valores e dados bancários.","error");
+  try{
+    currentReceipt=await getReceiptData(id);
+    const paid=currentReceipt.payment?.status==="paid";
+    $("rcontent").innerHTML=receiptHtml(currentReceipt);
+    $("rshare").textContent=paid?"Compartilhar recibo":"Compartilhar comprovante";
+    $("rcharge").classList.toggle("hidden",paid);
+    $("rprint").textContent="Gerar PDF";
+    $("rd").showModal();
+  }catch(e){show("msg",fail(e),"error")}
+}
+function openPayment(id){
+  if(!financeAllowed())return show("msg","Seu nível de acesso não permite confirmar pagamentos.","error");
+  $("payf").reset();$("payid").value=id;show("paymsg","");$("pd").showModal()
+}
+async function savePayment(e){
+  e.preventDefault();
+  const id=$("payid").value,appt=currentApps.find(x=>x.id===id),method=$("paymethod").value;
+  if(!appt||!method)return;
+  try{
+    const r=await sb.from("appointment_payments").upsert({
+      appointment_id:id,status:"paid",amount:appt.final_value,payment_method:method,
+      paid_at:new Date().toISOString(),notes:$("paynotes").value,
+      confirmed_by:currentUserId,updated_at:new Date().toISOString()
+    },{onConflict:"appointment_id"});
+    if(r.error)throw r.error;
+    $("pd").close();
+    show("msg","Pagamento confirmado. O documento agora é um recibo de pagamento.","ok");
+    await loadApps();await openReceipt(id)
+  }catch(e){show("paymsg",fail(e),"error")}
+}
+function cleanFileName(s){return String(s||"cliente").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").toLowerCase()}
+function canvasRoundRect(ctx,x,y,w,h,r,fill,stroke){
+  ctx.beginPath();ctx.roundRect(x,y,w,h,r);
+  if(fill){ctx.fillStyle=fill;ctx.fill()}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke()}
+}
+function canvasText(ctx,text,x,y,maxWidth,lineHeight,font,fill){
+  ctx.font=font;ctx.fillStyle=fill;
+  const words=String(text).split(/\s+/),lines=[];let line="";
+  for(const word of words){
+    const t=line?line+" "+word:word;
+    if(ctx.measureText(t).width>maxWidth&&line){lines.push(line);line=word}else line=t
+  }
+  if(line)lines.push(line);
+  lines.forEach((l,i)=>ctx.fillText(l,x,y+i*lineHeight));
+  return y+lines.length*lineHeight
+}
+function receiptVisualCanvas(d){
+  const paid=d.payment?.status==="paid";
+  if(paid)return paidReceiptCanvas(d);
+  const width=1080,height=1500,cv=document.createElement("canvas");cv.width=width;cv.height=height;
+  const ctx=cv.getContext("2d"),pad=78;
+  ctx.fillStyle="#061722";ctx.fillRect(0,0,width,height);
+  const g=ctx.createLinearGradient(0,0,width,height);g.addColorStop(0,"#0a3449");g.addColorStop(1,"#0a2534");
+  canvasRoundRect(ctx,42,42,width-84,height-84,42,g,"#1d5c74");
+
+  ctx.font="900 54px system-ui, sans-serif";ctx.fillStyle="#ffffff";ctx.fillText("Vapor",pad,128);
+  const vaporW=ctx.measureText("Vapor").width;ctx.fillStyle="#27b8e8";ctx.fillText("easy",pad+vaporW,128);
+  ctx.font="700 24px system-ui, sans-serif";ctx.fillStyle="#96c8d8";ctx.fillText("ESTÉTICA AUTOMOTIVA ECOLÓGICA",pad,168);
+
+  ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#ffffff";
+  ctx.fillText("Serviço realizado ✓",pad,255);
+  let y=310;
+  y=canvasText(ctx,"Obrigado, "+(d.client?.name||"cliente")+"! Seu veículo recebeu o cuidado Vaporeasy.",pad,y,width-pad*2,42,"600 29px system-ui, sans-serif","#dceff6")+22;
+
+  canvasRoundRect(ctx,pad,y,width-pad*2,175,26,"#0e4257","#2d728b");
+  ctx.font="800 24px system-ui, sans-serif";ctx.fillStyle="#82d9f5";ctx.fillText("SEU ATENDIMENTO",pad+30,y+42);
+  ctx.font="900 34px system-ui, sans-serif";ctx.fillStyle="#ffffff";
+  ctx.fillText((d.vehicle?d.vehicle.brand+" "+d.vehicle.model:"Veículo"),pad+30,y+88);
+  ctx.font="600 25px system-ui, sans-serif";ctx.fillStyle="#b7d7e2";
+  ctx.fillText(d.service?.name||"Serviço",pad+30,y+128);
+  if(d.vehicle?.plate)ctx.fillText("• "+d.vehicle.plate,pad+420,y+88);
+  y+=205;
+
+  const rows=[{n:d.service?.name||"Serviço",v:Number(d.x.base_value||0)},...d.addons.map(a=>({n:a.addon_name,v:Number(a.unit_price||0)}))];
+  ctx.font="800 24px system-ui, sans-serif";ctx.fillStyle="#82d9f5";ctx.fillText("SERVIÇOS",pad,y);
+  y+=42;
+  for(const row of rows){
+    ctx.font="600 27px system-ui, sans-serif";ctx.fillStyle="#eef8fb";ctx.fillText(row.n,pad,y);
+    ctx.font="800 27px system-ui, sans-serif";ctx.textAlign="right";ctx.fillText(money(row.v),width-pad,y);ctx.textAlign="left";
+    y+=42;
+  }
+  ctx.strokeStyle="#2d5a6b";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,y+4);ctx.lineTo(width-pad,y+4);ctx.stroke();
+  y+=58;
+  ctx.font="800 28px system-ui, sans-serif";ctx.fillStyle="#d8eef5";ctx.fillText("Valor total",pad,y);
+  ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#ffffff";ctx.textAlign="right";ctx.fillText(money(d.x.final_value),width-pad,y+4);ctx.textAlign="left";
+  y+=88;
+
+  canvasRoundRect(ctx,pad,y,width-pad*2,260,28,"#f5fbfd");
+  ctx.font="900 25px system-ui, sans-serif";ctx.fillStyle="#0b3547";ctx.fillText("PAGAMENTO VIA PIX",pad+28,y+43);
+  ctx.font="900 34px system-ui, sans-serif";ctx.fillStyle="#0789b8";ctx.fillText(d.bank.pix_key,pad+28,y+88);
+  ctx.font="600 23px system-ui, sans-serif";ctx.fillStyle="#335563";
+  ctx.fillText(d.bank.bank_name+"  •  Ag. "+d.bank.branch+"  •  C/C "+d.bank.account_number,pad+28,y+135);
+  ctx.fillText("Favorecido: "+d.bank.account_holder,pad+28,y+174);
+  ctx.font="700 22px system-ui, sans-serif";ctx.fillStyle="#55717c";
+  ctx.fillText("Após o pagamento, você pode enviar o comprovante para a Vaporeasy.",pad+28,y+220);
+  y+=292;
+
+  canvasRoundRect(ctx,pad,y,width-pad*2,260,28,"#0c4a40","#1c7465");
+  ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#8ef0d4";ctx.fillText("VOCÊ TAMBÉM CUIDOU DA ÁGUA",pad+28,y+48);
+  ctx.font="900 60px system-ui, sans-serif";ctx.fillStyle="#ffffff";ctx.fillText("190 L",pad+28,y+122);
+  ctx.font="600 26px system-ui, sans-serif";ctx.fillStyle="#d5f6ec";
+  ctx.fillText("economizados neste atendimento",pad+230,y+112);
+  ctx.font="600 23px system-ui, sans-serif";ctx.fillStyle="#b7e7d9";
+  ctx.fillText("Economia acumulada estimada da Vaporeasy:",pad+28,y+174);
+  ctx.font="900 31px system-ui, sans-serif";ctx.fillStyle="#ffffff";
+  ctx.fillText(new Intl.NumberFormat("pt-BR").format(d.totalWater)+" litros",pad+28,y+216);
+
+  ctx.font="600 22px system-ui, sans-serif";ctx.fillStyle="#8fb2c0";
+  ctx.fillText("Obrigado por escolher a Vaporeasy. 💧",pad,height-88);
+  return cv
+}
+function paidReceiptCanvas(d){
+  const width=1080,height=1350,cv=document.createElement("canvas");cv.width=width;cv.height=height;
+  const ctx=cv.getContext("2d"),pad=82;ctx.fillStyle="#ffffff";ctx.fillRect(0,0,width,height);
+  ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Vaporeasy",pad,110);
+  ctx.font="700 22px system-ui, sans-serif";ctx.fillStyle="#697d88";ctx.fillText("RECIBO DE PAGAMENTO",pad,154);
+  ctx.strokeStyle="#d7e1e6";ctx.beginPath();ctx.moveTo(pad,190);ctx.lineTo(width-pad,190);ctx.stroke();
+
+  let y=258;ctx.font="900 34px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Pagamento recebido",pad,y);
+  y+=58;ctx.font="600 26px system-ui, sans-serif";ctx.fillStyle="#405965";
+  const lines=[
+    ["Cliente",d.client?.name||"Cliente"],
+    ["Veículo",d.vehicle?d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:""):"Veículo"],
+    ["Serviço",d.service?.name||"Serviço"],
+    ["Data",receiptDate(d.payment?.paid_at||d.x.completed_at||d.x.starts_at)],
+    ["Forma de pagamento",d.payment?.payment_method||"—"]
+  ];
+  for(const [k,v] of lines){ctx.font="700 22px system-ui, sans-serif";ctx.fillStyle="#7b8d96";ctx.fillText(k.toUpperCase(),pad,y);ctx.font="700 28px system-ui, sans-serif";ctx.fillStyle="#172f3b";ctx.fillText(v,pad,y+35);y+=92}
+  ctx.strokeStyle="#d7e1e6";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(width-pad,y);ctx.stroke();y+=65;
+  ctx.font="700 28px system-ui, sans-serif";ctx.fillStyle="#536b76";ctx.fillText("VALOR RECEBIDO",pad,y);
+  ctx.font="900 58px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.textAlign="right";ctx.fillText(money(d.x.final_value),width-pad,y+8);ctx.textAlign="left";
+  y+=100;ctx.font="600 24px system-ui, sans-serif";ctx.fillStyle="#536b76";
+  ctx.fillText("Vaporeasy • Estética automotiva ecológica",pad,y);
+  ctx.fillText("Favorecido: "+d.bank.account_holder,pad,y+42);
+  ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#8a9aa2";
+  ctx.fillText("Documento gerado pelo sistema Vaporeasy.",pad,height-80);
+  return cv
+}
+function canvasBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error("Não foi possível gerar a imagem.")),"image/png",0.96))}
+async function shareReceiptVisual(){
+  if(!currentReceipt)return;
+  try{
+    const cv=receiptVisualCanvas(currentReceipt),blob=await canvasBlob(cv);
+    const paid=currentReceipt.payment?.status==="paid",name=cleanFileName(currentReceipt.client?.name);
+    const file=new File([blob],(paid?"recibo":"comprovante")+"-vaporeasy-"+name+".png",{type:"image/png"});
+    if(navigator.share&&navigator.canShare?.({files:[file]})){
+      await navigator.share({title:paid?"Recibo Vaporeasy":"Comprovante Vaporeasy",text:paid?"Segue seu recibo de pagamento Vaporeasy.":"Obrigado por escolher a Vaporeasy. Segue seu comprovante do serviço realizado.",files:[file]});
+      return
+    }
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+    show("msg","A imagem do comprovante foi gerada. Você pode enviá-la pelo WhatsApp.","ok")
+  }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error")}
+}
+function chargeText(d){
+  return "Olá, "+(d.client?.name||"")+"! Tudo bem?\n\nSegue o valor do seu atendimento Vaporeasy:\n"+(d.service?.name||"Serviço")+" — *"+money(d.x.final_value)+"*\n\n*Pix:* "+d.bank.pix_key+"\n*Banco:* "+d.bank.bank_name+" • Ag. "+d.bank.branch+" • C/C "+d.bank.account_number+"\n*Favorecido:* "+d.bank.account_holder+"\n\nObrigado por escolher a Vaporeasy. 💧"
+}
+async function shareChargePix(){
+  if(!currentReceipt||currentReceipt.payment?.status==="paid")return;
+  const txt=chargeText(currentReceipt);
+  if(navigator.share){try{await navigator.share({title:"Pagamento Vaporeasy",text:txt});return}catch(e){if(e?.name==="AbortError")return}}
+  try{await navigator.clipboard.writeText(txt);show("msg","Mensagem de cobrança/Pix copiada.","ok")}catch(e){show("msg",fail(e),"error")}
+}
+async function generateReceiptPdf(){
+  if(!currentReceipt)return;
+  try{
+    const {jsPDF}=window.jspdf||{};
+    if(!jsPDF)throw Error("Gerador de PDF indisponível.");
+    const paid=currentReceipt.payment?.status==="paid";
+    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    if(paid){
+      const d=currentReceipt;let y=20;
+      doc.setFont("helvetica","bold");doc.setFontSize(19);doc.text("Vaporeasy",20,y);
+      doc.setFontSize(10);doc.setTextColor(100);doc.text("RECIBO DE PAGAMENTO",20,y+7);
+      doc.setDrawColor(210);doc.line(20,y+12,190,y+12);y+=25;
+      doc.setTextColor(30);doc.setFontSize(13);doc.setFont("helvetica","bold");doc.text("Pagamento recebido",20,y);y+=12;
+      doc.setFontSize(10);doc.setFont("helvetica","normal");
+      const veh=d.vehicle?d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:""):"Veículo";
+      const fields=[
+        ["Cliente",d.client?.name||"Cliente"],["Veículo",veh],["Serviço",d.service?.name||"Serviço"],
+        ["Data do recebimento",receiptDate(d.payment?.paid_at||new Date())],["Forma de pagamento",d.payment?.payment_method||"—"]
+      ];
+      for(const [k,v] of fields){doc.setFont("helvetica","bold");doc.text(k+":",20,y);doc.setFont("helvetica","normal");doc.text(String(v),58,y);y+=8}
+      y+=4;doc.line(20,y,190,y);y+=13;doc.setFont("helvetica","bold");doc.setFontSize(12);doc.text("Valor recebido",20,y);doc.setFontSize(18);doc.text(money(d.x.final_value),190,y,{align:"right"});y+=22;
+      doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text("Favorecido: "+d.bank.account_holder,20,y);y+=7;doc.text("Vaporeasy • Estética automotiva ecológica",20,y)
+    }else{
+      const cv=receiptVisualCanvas(currentReceipt),img=cv.toDataURL("image/jpeg",0.92);
+      doc.addImage(img,"JPEG",15,12,180,250)
+    }
+    const file=(paid?"recibo":"comprovante")+"-vaporeasy-"+cleanFileName(currentReceipt.client?.name)+".pdf";
+    const blob=doc.output("blob"),pdfFile=new File([blob],file,{type:"application/pdf"});
+    if(navigator.share&&navigator.canShare?.({files:[pdfFile]})){
+      await navigator.share({title:paid?"Recibo Vaporeasy":"Comprovante Vaporeasy",files:[pdfFile]});
+      return
+    }
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+    show("msg","PDF gerado com sucesso.","ok")
+  }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error")}
+}
 async function loadApps(){const d=$("date").value||today(),a=new Date(d+"T00:00:00").toISOString(),z=new Date(d+"T23:59:59").toISOString();let r=await sb.from("appointments").select("*").gte("starts_at",a).lte("starts_at",z).is("deleted_at",null).order("starts_at");if(r.error)return show("msg",fail(r.error),"error");currentApps=r.data||[];const addonMap=new Map(),paymentMap=new Map(),ids=currentApps.map(x=>x.id);if(ids.length){const [ax,py]=await Promise.all([sb.from("appointment_addons").select("appointment_id,addon_name,unit_price,duration_minutes").in("appointment_id",ids).order("created_at"),sb.from("appointment_payments").select("*").in("appointment_id",ids)]);if(!ax.error)(ax.data||[]).forEach(a=>{const list=addonMap.get(a.appointment_id)||[];list.push(a);addonMap.set(a.appointment_id,list)});if(!py.error)(py.data||[]).forEach(p=>paymentMap.set(p.appointment_id,p))}let allv=[];for(const c of clients){if(!vehicles.has(c.id)){let v=await sb.from("vehicles").select("*").eq("client_id",c.id).is("archived_at",null);if(!v.error)vehicles.set(c.id,v.data||[])}allv=allv.concat(vehicles.get(c.id)||[])}{const rows=r.data||[],activeRows=rows.filter(x=>x.status!=="cancelled"),cancelledRows=rows.filter(x=>x.status==="cancelled");const card=x=>{const c=clients.find(q=>q.id===x.client_id),v=allv.find(q=>q.id===x.vehicle_id),s=services.find(q=>q.id===x.service_id),co=collabs.find(q=>q.id===x.collaborator_id);let nx=x.status==="requested"?"confirmed":x.status==="scheduled"?"confirmed":x.status==="confirmed"?"in_progress":x.status==="in_progress"?"completed":null,team=co?.name||(x.source==="public"?"1 equipe reservada • colaborador a definir":"Equipe reservada • colaborador a definir"),adds=addonMap.get(x.id)||[],extraText=adds.length?'<br><b>Extras:</b> '+adds.map(a=>esc(a.addon_name)).join(" • "):"";return '<div class="item"><div class="time">'+esc(apRange(x))+'</div><h3>'+esc(c?.name||"Cliente")+'</h3><div class="meta"><b>'+esc(v?v.brand+" "+v.model:"Veículo")+'</b><br>'+esc(s?.name||"Serviço")+' • '+esc(team)+' • '+money(x.final_value)+extraText+'</div><div class="actions" style="margin-top:9px">'+(x.status!=="completed"&&x.status!=="cancelled"?'<button class="ghost" data-edit="'+x.id+'">Editar</button>':"")+(nx?'<button class="success" data-st="'+nx+'" data-id="'+x.id+'">'+(nx==="confirmed"?"Confirmar":nx==="in_progress"?"Iniciar":"Concluir")+'</button>':"")+(x.status!=="completed"&&x.status!=="cancelled"?'<button class="danger" data-st="cancelled" data-id="'+x.id+'">Cancelar</button>':"")+(x.status==="completed"&&financeAllowed()?'<button class="ghost" data-receipt="'+x.id+'">'+(paymentMap.get(x.id)?.status==="paid"?"Recibo":"Comprovante")+'</button>':"")+(x.status==="completed"&&financeAllowed()&&paymentMap.get(x.id)?.status!=="paid"?'<button class="success" data-pay="'+x.id+'">Confirmar pagamento</button>':"")+'</div><span class="pill">'+esc(statusLabel(x.status))+'</span></div>'};let html=activeRows.length?activeRows.map(card).join(""):'<div class="empty">Nenhum atendimento ativo.</div>';if(cancelledRows.length)html+='<details style="margin-top:12px"><summary class="meta" style="cursor:pointer;font-weight:900">Cancelados ('+cancelledRows.length+')</summary><div style="margin-top:9px">'+cancelledRows.map(card).join("")+'</div></details>';$("apps").innerHTML=html;}document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEditAppt(b.dataset.edit));document.querySelectorAll("[data-receipt]").forEach(b=>b.onclick=()=>openReceipt(b.dataset.receipt));document.querySelectorAll("[data-pay]").forEach(b=>b.onclick=()=>openPayment(b.dataset.pay));document.querySelectorAll("[data-st]").forEach(b=>b.onclick=async()=>{let p={status:b.dataset.st};if(b.dataset.st==="completed")p.completed_at=new Date().toISOString();if(b.dataset.st==="cancelled")p.cancelled_at=new Date().toISOString();let u=await sb.from("appointments").update(p).eq("id",b.dataset.id);if(u.error)return show("msg",fail(u.error),"error");await loadApps()})}
 boot();
 </script>
