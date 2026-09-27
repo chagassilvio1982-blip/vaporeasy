@@ -595,7 +595,7 @@ async function saveScheduleSettings(e){
   const start=$("setstart").value,end=$("setend").value,interval=Number($("setinterval").value||0);if(!start||!end||start>=end||interval<5)return show("msg","Revise início, fim e intervalo da agenda.","error");
   try{
     const s=await sb.from("schedule_settings").update({workday_start:start,workday_end:end,slot_interval_minutes:interval,updated_at:new Date().toISOString()}).eq("id",1);if(s.error)throw s.error;
-    for(const w of settingWeek){const enabled=$('[data-week-enabled="'+w.weekday+'"]').checked,raw=$('[data-week-max="'+w.weekday+'"]').value,max=raw===""?null:Number(raw);const u=await sb.from("schedule_week_rules").update({enabled,max_teams:enabled?max:0,updated_at:new Date().toISOString()}).eq("weekday",w.weekday);if(u.error)throw u.error}
+    for(const w of settingWeek){const enabled=document.querySelector('[data-week-enabled="'+w.weekday+'"]').checked,raw=document.querySelector('[data-week-max="'+w.weekday+'"]').value,max=raw===""?null:Number(raw);const u=await sb.from("schedule_week_rules").update({enabled,max_teams:enabled?max:0,updated_at:new Date().toISOString()}).eq("weekday",w.weekday);if(u.error)throw u.error}
     await loadOperationalSettings();show("msg","Horários e capacidade atualizados.","ok")
   }catch(err){show("msg",fail(err),"error")}
 }
