@@ -320,9 +320,34 @@ async function loadCompletionPhotoImage(d){
   }
 }
 function drawImageCover(ctx,img,x,y,w,h,r=14){
-  if(!img)return;
-  const s=Math.max(w/img.width,h/img.height),sw=w/s,sh=h/s,sx=(img.width-sw)/2,sy=(img.height-sh)/2;
-  ctx.save();ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.clip();ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);ctx.restore()
+  if(!img)return false;
+  const iw=Number(img.width||img.naturalWidth||0),ih=Number(img.height||img.naturalHeight||0);
+  if(!iw||!ih)return false;
+  const s=Math.max(w/iw,h/ih),sw=w/s,sh=h/s,sx=(iw-sw)/2,sy=(ih-sh)/2;
+  ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
+  if(r){ctx.strokeStyle="#d9d5ce";ctx.lineWidth=2;ctx.strokeRect(x,y,w,h)}
+  return true
+}
+function verifyCanvasPhoto(cv){
+  const raw=cv.dataset.completionPhotoRect;
+  if(!raw)return false;
+  const [sx,sy,sw,sh]=raw.split(",").map(Number);
+  if(![sx,sy,sw,sh].every(Number.isFinite))return false;
+  const tc=document.createElement("canvas");tc.width=48;tc.height=32;
+  const tctx=tc.getContext("2d",{willReadFrequently:true});
+  tctx.drawImage(cv,sx,sy,sw,sh,0,0,48,32);
+  const d=tctx.getImageData(0,0,48,32).data;
+  let min=255,max=0,sum=0,n=0;
+  for(let i=0;i<d.length;i+=4){
+    const lum=(d[i]+d[i+1]+d[i+2])/3;
+    min=Math.min(min,lum);max=Math.max(max,lum);sum+=lum;n++
+  }
+  const avg=sum/Math.max(1,n);
+  return (max-min)>8 || avg<235
+}
+async function settleCanvas(cv){
+  try{cv.getContext("2d").getImageData(0,0,1,1)}catch{}
+  await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,40)))
 }
 const financeAllowed=()=>["owner","admin"].includes(currentRole);
 const receiptDate=i=>new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeStyle:"short"}).format(new Date(i));
@@ -430,7 +455,9 @@ async function receiptVisualCanvas(d){
   }
   if(photoImg){
     y+=6;ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("REGISTRO FINAL DO VEÍCULO",pad,y);y+=24;
-    drawImageCover(ctx,photoImg,pad,y,width-pad*2,370,18);cv.dataset.completionPhoto="included";y+=398;
+    const px=pad,py=y,pw=width-pad*2,ph=370;
+    if(!drawImageCover(ctx,photoImg,px,py,pw,ph,0))throw Error("Não foi possível desenhar a foto final no comprovante.");
+    cv.dataset.completionPhoto="included";cv.dataset.completionPhotoRect=[px,py,pw,ph].join(",");y+=398;
     const finisher=d.photo?.collaborator_id?(collabs.find(x=>x.id===d.photo.collaborator_id)?.name||d.photo.uploaded_by_name||"Equipe Vaporeasy"):(d.photo?.uploaded_by_name||"Equipe Vaporeasy");
     ctx.font="500 16px system-ui, sans-serif";ctx.fillStyle="#8a9499";ctx.fillText(finisher+" · "+receiptDate(d.photo?.captured_at||d.x.completed_at||d.x.starts_at),pad,y);y+=28
   }
@@ -495,7 +522,9 @@ async function paidReceiptCanvas(d){
   ctx.fillText("Favorecido: "+d.bank.account_holder,pad,y+42);y+=92;
   if(photoImg){
     ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b8d96";ctx.fillText("REGISTRO FINAL DO VEÍCULO",pad,y);y+=28;
-    drawImageCover(ctx,photoImg,pad,y,width-pad*2,300,14);cv.dataset.completionPhoto="included";y+=325
+    const px=pad,py=y,pw=width-pad*2,ph=300;
+    if(!drawImageCover(ctx,photoImg,px,py,pw,ph,0))throw Error("Não foi possível desenhar a foto final no recibo.");
+    cv.dataset.completionPhoto="included";cv.dataset.completionPhotoRect=[px,py,pw,ph].join(",");y+=325
   }
   ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#8a9aa2";
   ctx.fillText("Documento gerado pelo sistema Vaporeasy.",pad,height-80);
@@ -506,7 +535,10 @@ async function shareReceiptVisual(){
   if(!currentReceipt)return;
   try{
     const cv=await receiptVisualCanvas(currentReceipt);
-    if(currentReceipt.photo?.storage_path&&cv.dataset.completionPhoto!=="included")throw Error("A foto final não entrou no arquivo. O compartilhamento foi cancelado.");
+    if(currentReceipt.photo?.storage_path){
+      if(cv.dataset.completionPhoto!=="included"||!verifyCanvasPhoto(cv))throw Error("A foto final não apareceu no arquivo gerado. O compartilhamento foi cancelado.");
+    }
+    await settleCanvas(cv);
     const blob=await canvasBlob(cv);
     const paid=currentReceipt.payment?.status==="paid",name=cleanFileName(currentReceipt.client?.name);
     const file=new File([blob],(paid?"recibo":"comprovante")+"-vaporeasy-"+name+".png",{type:"image/png"});
@@ -551,7 +583,10 @@ async function generateReceiptPdf(){
       doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text("Favorecido: "+d.bank.account_holder,20,y);y+=7;doc.text("Vaporeasy • Estética automotiva ecológica",20,y);y+=12;if(d.photo?.storage_path||d.photo_url){const pi=await loadCompletionPhotoImage(d);if(pi){const pc=document.createElement("canvas");pc.width=1000;pc.height=560;const pctx=pc.getContext("2d");pctx.fillStyle="#fff";pctx.fillRect(0,0,pc.width,pc.height);drawImageCover(pctx,pi,0,0,pc.width,pc.height,0);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(110);doc.text("REGISTRO FINAL DO VEÍCULO",20,y);y+=4;doc.addImage(pc.toDataURL("image/jpeg",0.9),"JPEG",20,y,170,95)}}
     }else{
       const cv=await receiptVisualCanvas(currentReceipt);
-      if(currentReceipt.photo?.storage_path&&cv.dataset.completionPhoto!=="included")throw Error("A foto final não entrou no PDF. O compartilhamento foi cancelado.");
+      if(currentReceipt.photo?.storage_path){
+        if(cv.dataset.completionPhoto!=="included"||!verifyCanvasPhoto(cv))throw Error("A foto final não apareceu no PDF gerado. O compartilhamento foi cancelado.");
+      }
+      await settleCanvas(cv);
       const img=cv.toDataURL("image/jpeg",0.92);
       let pw=180,ph=pw*(cv.height/cv.width);if(ph>270){ph=270;pw=ph*(cv.width/cv.height)}
       doc.addImage(img,"JPEG",(210-pw)/2,12,pw,ph)
