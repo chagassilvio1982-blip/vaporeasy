@@ -1,0 +1,25 @@
+{
+  "name": "Vaporeasy V2 Staging",
+  "short_name": "Vaporeasy V2",
+  "description": "Sistema operacional da Vaporeasy",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07131c",
+  "theme_color": "#07131c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vaporeasy-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/vaporeasy-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
