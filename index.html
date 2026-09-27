@@ -89,6 +89,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/+esm";
 const URL="https://asuppjeomaymzromgcrp.supabase.co", KEY="sb_publishable_LfmsuPyDMKnyKHGh0x7Akw_yJfQ15bI", FN=URL+"/functions/v1/vaporeasy-v2-staging";
 const sb=createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const BRAND_LOGO="/vaporeasy-logo.svg",brandLogoImg=new Image();brandLogoImg.src=BRAND_LOGO;
 const $=id=>document.getElementById(id); let mode="login", clients=[], services=[], collabs=[], vehicleBrands=[], vehicleModels=[], currentApps=[], vehicles=new Map(), currentUserId=null, currentRole="", currentReceipt=null, notifTimer=null, notifChannel=null, knownUnread=new Set(), soundCtx=null, publicCfg=null, publicToken=new URLSearchParams(location.search).get("share")||"", publicRequestId=crypto.randomUUID(), generatedLinkClientName="", generatedLinkClientId="", publicDates=[], publicDateLimit=6, publicAddonIds=[];
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const plate=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,7);
@@ -179,7 +180,7 @@ function receiptHtml(d){
   const paid=d.payment?.status==="paid",veh=d.vehicle?(d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:"")):"Veículo",when=d.x.completed_at||d.x.starts_at,base=Number(d.x.base_value||0),extras=d.addons.map(a=>'<div class="receipt-line"><span>'+esc(a.addon_name)+'</span><b>'+esc(money(a.unit_price))+'</b></div>').join("");
   if(!paid){
     return '<div style="background:#f3f1ec;border:1px solid #dedbd4;border-radius:18px;padding:20px;color:#172832">'+
-      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #d7d3cb;padding-bottom:14px"><div><div style="font-size:25px;font-weight:950;letter-spacing:-.5px">Vapor<span style="color:#5c8194">easy</span></div><div style="font-size:10px;color:#7b878d;letter-spacing:1.1px;font-weight:800;margin-top:2px">ESTÉTICA AUTOMOTIVA ECOLÓGICA</div></div><div style="font-size:10px;color:#7b878d;text-align:right;line-height:1.5">ATENDIMENTO CONCLUÍDO<br>'+esc(receiptDate(when))+'</div></div>'+
+      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #d7d3cb;padding-bottom:14px"><div><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:190px;max-width:48vw;height:auto;display:block"></div><div style="font-size:10px;color:#7b878d;text-align:right;line-height:1.5">ATENDIMENTO CONCLUÍDO<br>'+esc(receiptDate(when))+'</div></div>'+
       '<div style="margin-top:22px;font-family:Georgia,serif;font-size:24px;line-height:1.25;color:#172832">Cuidado concluído.<br>Obrigado pela confiança.</div>'+
       '<div style="margin-top:20px;padding:15px 0;border-top:1px solid #d7d3cb;border-bottom:1px solid #d7d3cb"><div style="font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">CLIENTE</div><div style="font-size:16px;font-weight:850;margin-top:4px">'+esc(d.client?.name||"Cliente")+'</div><div style="margin-top:13px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">VEÍCULO</div><div style="font-size:16px;font-weight:850;margin-top:4px">'+esc(veh)+'</div><div style="margin-top:13px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">SERVIÇO</div><div style="font-size:15px;margin-top:4px">'+esc(d.service?.name||"Serviço")+'</div></div>'+
       '<div class="receipt-lines" style="border:0;margin:14px 0 0;padding:0"><div class="receipt-line"><span>'+esc(d.service?.name||"Serviço")+'</span><b>'+esc(money(base))+'</b></div>'+extras+'</div>'+
@@ -188,7 +189,7 @@ function receiptHtml(d){
       '<div style="margin-top:18px;padding-top:15px;border-top:1px solid #d7d3cb"><div style="font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">IMPACTO POSITIVO</div><div style="margin-top:6px;color:#3f5159;line-height:1.55">Este atendimento representa uma economia estimada de <b>190 litros de água</b>.<br><span style="font-size:11px;color:#7b878d">Economia acumulada estimada da Vaporeasy: '+esc(new Intl.NumberFormat("pt-BR").format(d.totalWater))+' litros.</span></div></div>'+
       '<div style="margin-top:20px;font-size:10px;color:#90999d">Vaporeasy · cuidado automotivo com discrição, conveniência e responsabilidade.</div></div>'
   }
-  return '<div class="receipt-sheet"><div class="receipt-head"><div><div class="receipt-brand">Vapor<span>easy</span></div><div class="receipt-muted">Estética automotiva ecológica</div></div><div style="text-align:right"><div class="receipt-title">Recibo de pagamento</div><div class="receipt-muted">'+esc(receiptDate(d.payment.paid_at||when))+'</div></div></div><div class="receipt-grid"><div class="receipt-box"><b>Cliente</b>'+esc(d.client?.name||"Cliente")+'</div><div class="receipt-box"><b>Veículo</b>'+esc(veh)+'</div><div class="receipt-box"><b>Serviço</b>'+esc(d.service?.name||"Serviço")+'</div><div class="receipt-box"><b>Forma de pagamento</b>'+esc(d.payment.payment_method||"—")+'</div></div><div class="receipt-lines"><div class="receipt-line"><span>'+esc(d.service?.name||"Serviço")+'</span><b>'+esc(money(base))+'</b></div>'+extras+'</div><div class="receipt-total"><span>Valor recebido</span><span>'+esc(money(d.x.final_value))+'</span></div><div class="receipt-pay"><span class="paid-pill">PAGAMENTO RECEBIDO</span><div style="margin-top:8px"><b>Recebido em:</b> '+esc(receiptDate(d.payment.paid_at||new Date()))+'<br><b>Favorecido:</b> '+esc(d.bank.account_holder)+'</div></div><p class="receipt-muted" style="margin-top:14px">Documento gerado pelo sistema Vaporeasy.</p></div>'
+  return '<div class="receipt-sheet"><div class="receipt-head"><div><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:180px;height:auto;display:block"></div><div style="text-align:right"><div class="receipt-title">Recibo de pagamento</div><div class="receipt-muted">'+esc(receiptDate(d.payment.paid_at||when))+'</div></div></div><div class="receipt-grid"><div class="receipt-box"><b>Cliente</b>'+esc(d.client?.name||"Cliente")+'</div><div class="receipt-box"><b>Veículo</b>'+esc(veh)+'</div><div class="receipt-box"><b>Serviço</b>'+esc(d.service?.name||"Serviço")+'</div><div class="receipt-box"><b>Forma de pagamento</b>'+esc(d.payment.payment_method||"—")+'</div></div><div class="receipt-lines"><div class="receipt-line"><span>'+esc(d.service?.name||"Serviço")+'</span><b>'+esc(money(base))+'</b></div>'+extras+'</div><div class="receipt-total"><span>Valor recebido</span><span>'+esc(money(d.x.final_value))+'</span></div><div class="receipt-pay"><span class="paid-pill">PAGAMENTO RECEBIDO</span><div style="margin-top:8px"><b>Recebido em:</b> '+esc(receiptDate(d.payment.paid_at||new Date()))+'<br><b>Favorecido:</b> '+esc(d.bank.account_holder)+'</div></div><p class="receipt-muted" style="margin-top:14px">Documento gerado pelo sistema Vaporeasy.</p></div>'
 }
 
 async function openReceipt(id){
@@ -248,9 +249,8 @@ function receiptVisualCanvas(d){
   const ctx=cv.getContext("2d"),pad=86,right=width-pad;
   ctx.fillStyle="#f3f1ec";ctx.fillRect(0,0,width,height);
 
-  ctx.font="900 50px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Vapor",pad,105);
-  const vw=ctx.measureText("Vapor").width;ctx.fillStyle="#5c8194";ctx.fillText("easy",pad+vw,105);
-  ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("ESTÉTICA AUTOMOTIVA ECOLÓGICA",pad,139);
+  if(brandLogoImg.complete&&brandLogoImg.naturalWidth){ctx.drawImage(brandLogoImg,pad,48,300,120)}
+  else{ctx.font="900 50px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Vaporeasy",pad,105)}
 
   ctx.textAlign="right";ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";
   ctx.fillText("ATENDIMENTO CONCLUÍDO",right,96);
@@ -309,11 +309,12 @@ function receiptVisualCanvas(d){
 function paidReceiptCanvas(d){
   const width=1080,height=1350,cv=document.createElement("canvas");cv.width=width;cv.height=height;
   const ctx=cv.getContext("2d"),pad=82;ctx.fillStyle="#ffffff";ctx.fillRect(0,0,width,height);
-  ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Vaporeasy",pad,110);
-  ctx.font="700 22px system-ui, sans-serif";ctx.fillStyle="#697d88";ctx.fillText("RECIBO DE PAGAMENTO",pad,154);
-  ctx.strokeStyle="#d7e1e6";ctx.beginPath();ctx.moveTo(pad,190);ctx.lineTo(width-pad,190);ctx.stroke();
+  if(brandLogoImg.complete&&brandLogoImg.naturalWidth){ctx.drawImage(brandLogoImg,pad,48,300,120)}
+  else{ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Vaporeasy",pad,110)}
+  ctx.font="700 22px system-ui, sans-serif";ctx.fillStyle="#697d88";ctx.fillText("RECIBO DE PAGAMENTO",pad,178);
+  ctx.strokeStyle="#d7e1e6";ctx.beginPath();ctx.moveTo(pad,205);ctx.lineTo(width-pad,205);ctx.stroke();
 
-  let y=258;ctx.font="900 34px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Pagamento recebido",pad,y);
+  let y=273;ctx.font="900 34px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Pagamento recebido",pad,y);
   y+=58;ctx.font="600 26px system-ui, sans-serif";ctx.fillStyle="#405965";
   const lines=[
     ["Cliente",d.client?.name||"Cliente"],
@@ -367,8 +368,7 @@ async function generateReceiptPdf(){
     const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
     if(paid){
       const d=currentReceipt;let y=20;
-      doc.setFont("helvetica","bold");doc.setFontSize(19);doc.text("Vaporeasy",20,y);
-      doc.setFontSize(10);doc.setTextColor(100);doc.text("RECIBO DE PAGAMENTO",20,y+7);
+      if(brandLogoImg.complete&&brandLogoImg.naturalWidth){const lc=document.createElement("canvas");lc.width=400;lc.height=160;const lctx=lc.getContext("2d");lctx.fillStyle="#ffffff";lctx.fillRect(0,0,400,160);lctx.drawImage(brandLogoImg,0,0,400,160);doc.addImage(lc.toDataURL("image/jpeg",0.94),"JPEG",20,10,50,20);doc.setFontSize(10);doc.setTextColor(100);doc.text("RECIBO DE PAGAMENTO",78,22)}else{doc.setFont("helvetica","bold");doc.setFontSize(19);doc.text("Vaporeasy",20,y);doc.setFontSize(10);doc.setTextColor(100);doc.text("RECIBO DE PAGAMENTO",20,y+7)}
       doc.setDrawColor(210);doc.line(20,y+12,190,y+12);y+=25;
       doc.setTextColor(30);doc.setFontSize(13);doc.setFont("helvetica","bold");doc.text("Pagamento recebido",20,y);y+=12;
       doc.setFontSize(10);doc.setFont("helvetica","normal");
