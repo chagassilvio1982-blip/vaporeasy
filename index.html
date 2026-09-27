@@ -306,12 +306,17 @@ async function loadCompletionPhotoImage(d){
   try{
     const dl=await sb.storage.from("completion-photos").download(path);
     if(dl.error||!dl.data)throw dl.error||Error("Foto indisponível");
+    if("createImageBitmap" in window){
+      return await createImageBitmap(dl.data)
+    }
     const obj=URL.createObjectURL(dl.data);
-    const im=await new Promise((resolve,reject)=>{const x=new Image();x.onload=()=>resolve(x);x.onerror=reject;x.src=obj});
-    setTimeout(()=>URL.revokeObjectURL(obj),1500);
+    const im=await new Promise((resolve,reject)=>{const x=new Image();x.onload=()=>resolve(x);x.onerror=()=>reject(Error("Não foi possível decodificar a foto final."));x.src=obj});
+    setTimeout(()=>URL.revokeObjectURL(obj),2000);
     return im
-  }catch{
-    return d?.photo_url?await loadRemoteImage(d.photo_url):null
+  }catch(e){
+    const fallback=d?.photo_url?await loadRemoteImage(d.photo_url):null;
+    if(fallback)return fallback;
+    throw Error("A foto final está salva, mas não pôde ser incorporada ao comprovante. Tente novamente.")
   }
 }
 function drawImageCover(ctx,img,x,y,w,h,r=14){
@@ -393,6 +398,7 @@ async function receiptVisualCanvas(d){
   const paid=d.payment?.status==="paid";
   if(paid)return await paidReceiptCanvas(d);
   const photoImg=await loadCompletionPhotoImage(d);
+  if(d.photo?.storage_path&&!photoImg)throw Error("A foto final não foi carregada no comprovante.");
   const rows=[{n:d.service?.name||"Serviço",v:Number(d.x.base_value||0)},...d.addons.map(a=>({n:a.addon_name,v:Number(a.unit_price||0)}))];
   const width=1080,height=1350+Math.max(0,rows.length-2)*46+(photoImg?470:0),cv=document.createElement("canvas");cv.width=width;cv.height=height;
   const ctx=cv.getContext("2d"),pad=86,right=width-pad;
@@ -424,7 +430,7 @@ async function receiptVisualCanvas(d){
   }
   if(photoImg){
     y+=6;ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("REGISTRO FINAL DO VEÍCULO",pad,y);y+=24;
-    drawImageCover(ctx,photoImg,pad,y,width-pad*2,370,18);y+=398;
+    drawImageCover(ctx,photoImg,pad,y,width-pad*2,370,18);cv.dataset.completionPhoto="included";y+=398;
     const finisher=d.photo?.collaborator_id?(collabs.find(x=>x.id===d.photo.collaborator_id)?.name||d.photo.uploaded_by_name||"Equipe Vaporeasy"):(d.photo?.uploaded_by_name||"Equipe Vaporeasy");
     ctx.font="500 16px system-ui, sans-serif";ctx.fillStyle="#8a9499";ctx.fillText(finisher+" · "+receiptDate(d.photo?.captured_at||d.x.completed_at||d.x.starts_at),pad,y);y+=28
   }
@@ -463,6 +469,7 @@ async function receiptVisualCanvas(d){
 }
 async function paidReceiptCanvas(d){
   const photoImg=await loadCompletionPhotoImage(d);
+  if(d.photo?.storage_path&&!photoImg)throw Error("A foto final não foi carregada no recibo.");
   const width=1080,height=1350+(photoImg?390:0),cv=document.createElement("canvas");cv.width=width;cv.height=height;
   const ctx=cv.getContext("2d"),pad=82;ctx.fillStyle="#ffffff";ctx.fillRect(0,0,width,height);
   if(brandLogoImg.complete&&brandLogoImg.naturalWidth){ctx.drawImage(brandLogoImg,pad,48,300,120)}
@@ -488,7 +495,7 @@ async function paidReceiptCanvas(d){
   ctx.fillText("Favorecido: "+d.bank.account_holder,pad,y+42);y+=92;
   if(photoImg){
     ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b8d96";ctx.fillText("REGISTRO FINAL DO VEÍCULO",pad,y);y+=28;
-    drawImageCover(ctx,photoImg,pad,y,width-pad*2,300,14);y+=325
+    drawImageCover(ctx,photoImg,pad,y,width-pad*2,300,14);cv.dataset.completionPhoto="included";y+=325
   }
   ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#8a9aa2";
   ctx.fillText("Documento gerado pelo sistema Vaporeasy.",pad,height-80);
@@ -498,7 +505,9 @@ function canvasBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(b
 async function shareReceiptVisual(){
   if(!currentReceipt)return;
   try{
-    const cv=await receiptVisualCanvas(currentReceipt),blob=await canvasBlob(cv);
+    const cv=await receiptVisualCanvas(currentReceipt);
+    if(currentReceipt.photo?.storage_path&&cv.dataset.completionPhoto!=="included")throw Error("A foto final não entrou no arquivo. O compartilhamento foi cancelado.");
+    const blob=await canvasBlob(cv);
     const paid=currentReceipt.payment?.status==="paid",name=cleanFileName(currentReceipt.client?.name);
     const file=new File([blob],(paid?"recibo":"comprovante")+"-vaporeasy-"+name+".png",{type:"image/png"});
     if(navigator.share&&navigator.canShare?.({files:[file]})){
@@ -541,7 +550,9 @@ async function generateReceiptPdf(){
       y+=4;doc.line(20,y,190,y);y+=13;doc.setFont("helvetica","bold");doc.setFontSize(12);doc.text("Valor recebido",20,y);doc.setFontSize(18);doc.text(money(d.x.final_value),190,y,{align:"right"});y+=22;
       doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text("Favorecido: "+d.bank.account_holder,20,y);y+=7;doc.text("Vaporeasy • Estética automotiva ecológica",20,y);y+=12;if(d.photo?.storage_path||d.photo_url){const pi=await loadCompletionPhotoImage(d);if(pi){const pc=document.createElement("canvas");pc.width=1000;pc.height=560;const pctx=pc.getContext("2d");pctx.fillStyle="#fff";pctx.fillRect(0,0,pc.width,pc.height);drawImageCover(pctx,pi,0,0,pc.width,pc.height,0);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(110);doc.text("REGISTRO FINAL DO VEÍCULO",20,y);y+=4;doc.addImage(pc.toDataURL("image/jpeg",0.9),"JPEG",20,y,170,95)}}
     }else{
-      const cv=await receiptVisualCanvas(currentReceipt),img=cv.toDataURL("image/jpeg",0.92);
+      const cv=await receiptVisualCanvas(currentReceipt);
+      if(currentReceipt.photo?.storage_path&&cv.dataset.completionPhoto!=="included")throw Error("A foto final não entrou no PDF. O compartilhamento foi cancelado.");
+      const img=cv.toDataURL("image/jpeg",0.92);
       let pw=180,ph=pw*(cv.height/cv.width);if(ph>270){ph=270;pw=ph*(cv.width/cv.height)}
       doc.addImage(img,"JPEG",(210-pw)/2,12,pw,ph)
     }
