@@ -269,7 +269,7 @@ async function openCollaboratorsManager(){
     allCollabs=r.data||[];
     collabAccess=new Map((a.accounts||[]).filter(x=>x.collaborator_id).map(x=>[x.collaborator_id,x]));
     renderCollaboratorsManager();
-    $("collabsd").showModal()
+    if(!$("collabsd").open)$("collabsd").showModal()
   }catch(e){show("msg",fail(e),"error")}
 }
 function accessRoleLabel(role){return role==="admin"?"Administrador":role==="owner"?"Proprietário":"Operacional"}
