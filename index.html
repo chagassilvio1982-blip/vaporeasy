@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#07131c">
 <meta name="application-name" content="Vaporeasy V2">
 <meta name="mobile-web-app-capable" content="yes">
@@ -55,17 +55,18 @@
 .credential-value code{font-size:16px;font-weight:900;letter-spacing:.7px;overflow-wrap:anywhere}
 .collab-editor-footer{position:sticky;bottom:-14px;background:#0b1d29;padding:10px 0 0;margin-top:3px}
 dialog::backdrop{background:rgba(0,0,0,.72)}@media(max-width:470px){.receipt-grid{grid-template-columns:1fr}}@media(max-width:470px){.row{grid-template-columns:1fr}.actions{display:grid;grid-template-columns:1fr 1fr}}
+#email:-webkit-autofill{animation-name:vaporeasyAutofill;animation-duration:.01s}@keyframes vaporeasyAutofill{from{opacity:.99}to{opacity:1}}
 </style>
-<!-- VAPOREASY_BUILD: staging-v2-login-logo-fix-2026-09-28 -->
+<!-- VAPOREASY_BUILD: staging-v2-login-stable-2026-09-28-04 -->
 <!-- VAPOREASY_BUILD: android-contact-import-v1-2026-09-28 -->
 </head>
 <body>
 <div class="app">
-<header id="hdr" class="hidden"><div><img data-brand-logo class="brand-logo brand-logo-header" src="/vaporeasy-og.jpg?v=20260928-2" alt="Vaporeasy"><div class="tag">STAGING V2</div></div><div class="headright"><button id="bell" class="bell" type="button" aria-label="Notificações">🔔<span id="nbadge" class="badge hidden">0</span></button><div class="profile"><b id="pname">—</b><div id="prole">—</div></div></div></header>
+<header id="hdr" class="hidden"><div><img data-brand-logo class="brand-logo brand-logo-header" src="/vaporeasy-og.jpg?v=20260928-4" loading="eager" decoding="sync" alt="Vaporeasy"><div class="tag">STAGING V2</div></div><div class="headright"><button id="bell" class="bell" type="button" aria-label="Notificações">🔔<span id="nbadge" class="badge hidden">0</span></button><div class="profile"><b id="pname">—</b><div id="prole">—</div></div></div></header>
 <main>
 <section id="public" class="hidden">
   <div class="card">
-    <img data-brand-logo class="brand-logo brand-logo-public" src="/vaporeasy-og.jpg?v=20260928-2" alt="Vaporeasy">
+    <img data-brand-logo class="brand-logo brand-logo-public" src="/vaporeasy-og.jpg?v=20260928-4" loading="eager" decoding="sync" alt="Vaporeasy">
     <div class="tag">AGENDAMENTO</div>
     <div id="pfwelcome" class="notice hidden"></div>
     <h2 style="margin-bottom:5px">Agende seu atendimento</h2>
@@ -117,9 +118,9 @@ dialog::backdrop{background:rgba(0,0,0,.72)}@media(max-width:470px){.receipt-gri
   </div>
 </section>
 <section id="auth" class="login">
-<div class="card"><img data-brand-logo class="brand-logo brand-logo-login" src="/vaporeasy-og.jpg?v=20260928-2" alt="Vaporeasy"><p class="sub">Ambiente de homologação separado da produção.</p><div id="amsg" class="notice hidden"></div>
-<div class="tabs"><button id="lin" class="ghost active">Entrar</button><button id="sup" class="ghost">Primeiro acesso</button><span></span></div>
-<form id="af" class="stack" autocomplete="on"><label>E-mail<input id="email" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<input id="pass" name="password" type="password" minlength="8" autocomplete="current-password" required></label><button id="ab" class="primary">Entrar</button></form>
+<div class="card"><img data-brand-logo class="brand-logo brand-logo-login" src="/vaporeasy-og.jpg?v=20260928-4" loading="eager" decoding="sync" alt="Vaporeasy"><p class="sub">Ambiente de homologação separado da produção.</p><div id="amsg" class="notice hidden"></div>
+<div class="tabs" style="grid-template-columns:1fr"><button id="lin" class="ghost active" type="button">Entrar</button><button id="sup" class="ghost hidden" type="button">Primeiro acesso</button></div>
+<form id="af" class="stack" autocomplete="on"><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<input id="pass" name="password" type="password" minlength="8" autocomplete="current-password" required></label><button id="ab" class="primary">Entrar</button></form><div class="meta" style="text-align:center;margin-top:10px">V2 STAGING · build 2026.09.28-04</div>
 </div></section>
 <section id="main" class="hidden">
 <div class="tabs"><button id="tc" class="ghost active">Cadastro</button><button id="ta" class="ghost">Agenda</button><button id="tf" class="ghost hidden">Financeiro</button><button id="tr" class="ghost hidden">Relatórios</button><button id="tset" class="ghost hidden">Configurações</button><button id="out" class="ghost">Sair</button></div>
@@ -285,9 +286,9 @@ async function loadWaterCounter(){
 }
 const fail=e=>{const m=String(e?.message||e||"Erro");if(/Failed to fetch|NetworkError|Load failed|fetch failed/i.test(m))return"Não foi possível conectar ao servidor. Verifique a conexão e tente novamente.";if(e?.code==="23P01")return"Conflito de horário: colaborador ou veículo já ocupado.";if(e?.code==="23505"){if(m.includes("appointments_active_vehicle_start_uq"))return"Este veículo já possui esse serviço agendado nesse horário. Escolha outro horário ou cancele o agendamento existente.";if(m.includes("appointments_active_collaborator_start_uq"))return"Este colaborador já está ocupado nesse horário. Escolha outro horário ou outro colaborador.";return"Já existe um agendamento igual ou conflitante.";}if(e?.code==="23503")return"Cliente e veículo não correspondem.";return m};
 function show(id,text,type=""){const e=$(id);e.textContent=text;e.className="notice "+type;e.classList.toggle("hidden",!text)}
-async function boot(){wire();configureAndroidContactImport();document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo.svg?v=20260928-2"}});restoreLoginEmail();requestAnimationFrame(()=>restoreLoginEmail());setTimeout(()=>restoreLoginEmail(),350);if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}$("date").value=today();$("adt").value=today();const {data}=await sb.auth.getSession();if(data.session)await enter(data.session)}
+async function boot(){wire();configureAndroidContactImport();document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo.svg?v=20260928-4"}});restoreLoginEmail();startLoginEmailGuard();if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}$("date").value=today();$("adt").value=today();const {data}=await sb.auth.getSession();if(data.session)await enter(data.session)}
 function wire(){
- $("lin").onclick=()=>authMode("login");$("sup").onclick=()=>authMode("signup");$("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
+ $("lin").onclick=()=>authMode("login");$("sup").onclick=()=>authMode("signup");$("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("email").addEventListener("animationstart",e=>{if(e.animationName==="vaporeasyAutofill"){rememberLoginEmail();startLoginEmailGuard()}});$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
  $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("ac").onchange=async()=>{await fillVehicles($("ac").value);await loadAvailableSlots()};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=renderClients;
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
@@ -325,13 +326,37 @@ async function loadPublicSlots(date=$("pfd").value){const s=$("pfs").value,d=dat
 async function submitPublicBooking(e){e.preventDefault();show("pmsg","");const b=$("pfsubmit"),vehicleId=publicVehicleId(),brand=vehicleId?"":pbrand(),model=vehicleId?"":pmodel();if(!vehicleId&&(!brand||!model)){show("pmsg","Selecione um veículo ou informe montadora e modelo.","error");return}if(!$("pfd").value){show("pmsg","Escolha uma data disponível.","error");return}if(!$("pft").value){show("pmsg","Escolha um horário disponível.","error");return}b.disabled=true;b.textContent="Enviando...";try{const j=await edgeCall("public-submit",{token:publicToken,request_id:publicRequestId,vehicle_id:vehicleId,name:$("pfn").value,phone:$("pfp").value,condominium:$("pfc").value,address:$("pfa").value,brand,model,plate:plate($("pfpl").value),year:$("pfy").value,color:$("pfco").value,service_id:$("pfs").value,addon_ids:publicAddonIds,date:$("pfd").value,local_time:$("pft").value,notes:$("pfo").value});$("pf").classList.add("hidden");$("pdone").classList.remove("hidden");const who=publicCfg?.client?.name||$("pfn").value.trim()||"cliente";$("pdoneText").textContent=j.requires_confirmation?"Solicitação recebida. Aguarde a confirmação da Vaporeasy.":"Agendamento registrado com sucesso.";const totals=publicTotals(),dateLabel=fmtPublicDate($("pfd").value),extras=totals.adds.map(a=>a.name).join(", ");$("pbookingSummary").innerHTML='<div class="choice-title">Resumo do atendimento</div><div class="meta" style="margin-top:7px"><b>'+esc(totals.svc?.name||"Serviço")+'</b>'+(extras?'<br>Extras: '+esc(extras):'')+'<br>'+esc(dateLabel)+' às '+esc($("pft").value)+'<br>Duração estimada: '+esc(durationLabel(totals.mins))+'</div><div class="time" style="margin-top:8px">'+esc(money(totals.price))+'</div>';$("pthanks").textContent="Obrigado, "+who+"! Sua escolha ajuda a reduzir o consumo de água em cada atendimento.";const w=publicCfg?.water_savings||{};$("pwaterTotal").textContent=new Intl.NumberFormat("pt-BR").format(Number(w.total_liters||0))+" L economizados";$("pwaterText").textContent="Estimativa Vaporeasy: "+new Intl.NumberFormat("pt-BR").format(Number(w.conventional_liters_per_car||200))+" L em uma lavagem convencional versus cerca de "+new Intl.NumberFormat("pt-BR").format(Number(w.vaporeasy_liters_per_car||10))+" L por atendimento Vaporeasy." ;publicRequestId=crypto.randomUUID()}catch(e){show("pmsg",fail(e),"error");await loadPublicSlots()}finally{b.disabled=false;b.textContent="Reservar horário"}}
 function resetPublicBooking(){$("pdone").classList.add("hidden");$("pf").classList.remove("hidden");const keepName=$("pfn").value,keepPhone=$("pfp").value,keepCondo=$("pfc").value,keepAddr=$("pfa").value,keepVehicle=$("pfvsel")?.value||"";$("pfs").value="";publicAddonIds=[];renderPublicAddons();$("pfd").value="";$("pft").value="";publicDates=[];publicDateLimit=6;$("pfdates").innerHTML='<div class="choice-hint">Escolha o serviço para ver as datas.</div>';$("pftimes").innerHTML='<div class="choice-hint">Depois de escolher a data, os horários aparecerão aqui.</div>';$("pfmore").classList.add("hidden");$("pfo").value="";$("pfsh").classList.add("hidden");if(publicCfg?.personalized){$("pfvsel").value=keepVehicle||((publicCfg.vehicles||[])[0]?.id||"__new__");publicVehicleChanged()}else{$("pfn").value=keepName;$("pfp").value=keepPhone;$("pfc").value=keepCondo;$("pfa").value=keepAddr}show("pmsg","");publicRequestId=crypto.randomUUID()}
 const LOGIN_EMAIL_KEY="vaporeasy_v2_login_email";
+let loginEmailGuardTimer=null;
 function rememberLoginEmail(){
-  const v=$("email").value.trim();
+  const input=$("email");if(!input)return;
+  const v=input.value.trim();
   if(v)try{localStorage.setItem(LOGIN_EMAIL_KEY,v)}catch{}
 }
-function restoreLoginEmail(){
-  let v="";try{v=localStorage.getItem(LOGIN_EMAIL_KEY)||""}catch{}
-  if(v&&!$("email").value)$("email").value=v
+function savedLoginEmail(){
+  try{return localStorage.getItem(LOGIN_EMAIL_KEY)||""}catch{return""}
+}
+function restoreLoginEmail(force=false){
+  const input=$("email");if(!input)return;
+  const v=savedLoginEmail();
+  if(v&&(force||!input.value))input.value=v
+}
+function startLoginEmailGuard(){
+  const input=$("email");if(!input)return;
+  let last=input.value.trim()||savedLoginEmail();
+  if(last&&!input.value)input.value=last;
+  if(loginEmailGuardTimer)clearInterval(loginEmailGuardTimer);
+  let ticks=0;
+  loginEmailGuardTimer=setInterval(()=>{
+    ticks++;
+    const now=input.value.trim();
+    if(now){
+      last=now;
+      try{localStorage.setItem(LOGIN_EMAIL_KEY,now)}catch{}
+    }else if(last){
+      input.value=last
+    }
+    if(ticks>=30){clearInterval(loginEmailGuardTimer);loginEmailGuardTimer=null}
+  },100)
 }
 function authMode(m){
   mode=m;
