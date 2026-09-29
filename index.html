@@ -929,6 +929,25 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .operator-cal-day{min-height:39px}
 }
 </style>
+
+<style id="vaporeasy-monthly-finance-report-20260929">
+.finance-toolbar-report{
+  grid-template-columns:minmax(0,1fr) auto auto;
+}
+.finance-toolbar-report #fmonthreport{
+  min-height:42px;
+  white-space:nowrap;
+}
+@media(max-width:520px){
+  .finance-toolbar-report{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+  .finance-toolbar-report #fmonthreport{
+    grid-column:1/-1;
+    width:100%;
+  }
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1063,7 +1082,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div><div class="title">Financeiro</div><p class="sub">Visão mensal de caixa, recebimentos e pendências.</p></div>
   <button id="fnewexp" type="button" class="primary section-primary">+ Despesa</button>
 </div>
-<div class="finance-toolbar"><label>Mês<input id="fmonth" type="month"></label><button id="frefresh" type="button" class="ghost">Atualizar</button></div>
+<div class="finance-toolbar finance-toolbar-report"><label>Mês<input id="fmonth" type="month"></label><button id="frefresh" type="button" class="ghost">Atualizar</button><button id="fmonthreport" type="button" class="primary">Relatório do mês</button></div>
 <div id="fsummary" class="kpi-grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0">
   <div class="item"><div class="meta">Faturado no mês</div><div id="ffaturado" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">Recebido no mês</div><div id="frecebido" class="time">R$ 0,00</div></div>
@@ -1274,7 +1293,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=()=>loadOperatorJobs(operatorSelectedDate,true);$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -2161,6 +2180,7 @@ async function generateManagementReportPdf(){
     const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);show("msg","Relatório de gestão gerado em PDF.","ok")
   }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error")}
 }
+let currentFinanceMonthReport=null;
 function financeMonthKeys(){
   const m=$("fmonth").value||today().slice(0,7),p=m.split("-").map(Number),y=p[0],mo=p[1],next=mo===12?(y+1)+"-01":y+"-"+String(mo+1).padStart(2,"0");
   return{month:m,startDate:m+"-01",nextDate:next+"-01",startIso:new Date(m+"-01T00:00:00-03:00").toISOString(),nextIso:new Date(next+"-01T00:00:00-03:00").toISOString()}
@@ -2197,6 +2217,31 @@ async function loadFinance(){
     if(cr.error)throw cr.error;if(vr.error)throw vr.error;if(sr.error)throw sr.error;
     const maps=financeEntityMaps({clients:cr.data||[],vehicles:vr.data||[],services:sr.data||[]}),payMap=new Map(monthPayments.map(p=>[p.appointment_id,p])),appMap=new Map(allApps.map(a=>[a.id,a]));
     const pendingApps=monthApps.filter(a=>payMap.get(a.id)?.status!=="paid"),faturado=monthApps.reduce((s,a)=>s+Number(a.final_value||0),0),recebido=paidRows.reduce((s,p)=>s+Number(p.amount||0),0),areceber=pendingApps.reduce((s,a)=>s+Number(payMap.get(a.id)?.amount??a.final_value??0),0),despesas=expenseRows.reduce((s,e)=>s+Number(e.amount||0),0);
+    const serviceGroups=new Map(),paymentGroups=new Map(),expenseGroups=new Map();
+    monthApps.forEach(a=>{
+      const name=maps.sm.get(a.service_id)?.name||"Serviço";
+      const g=serviceGroups.get(name)||{name,count:0,total:0};
+      g.count++;g.total+=Number(a.final_value||0);serviceGroups.set(name,g)
+    });
+    paidRows.forEach(p=>{
+      const name=p.payment_method||"Não informado";
+      const g=paymentGroups.get(name)||{name,count:0,total:0};
+      g.count++;g.total+=Number(p.amount||0);paymentGroups.set(name,g)
+    });
+    expenseRows.forEach(e=>{
+      const name=e.category||"Outros";
+      const g=expenseGroups.get(name)||{name,count:0,total:0};
+      g.count++;g.total+=Number(e.amount||0);expenseGroups.set(name,g)
+    });
+    const uniqueClients=new Set(monthApps.map(a=>a.client_id)).size,uniqueVehicles=new Set(monthApps.map(a=>a.vehicle_id)).size,ticket=monthApps.length?faturado/monthApps.length:0,competenceResult=faturado-despesas,cashResult=recebido-despesas,margin=faturado?competenceResult/faturado*100:0;
+    currentFinanceMonthReport={
+      keys:k,monthApps,paidRows,expenseRows,monthPayments,pendingApps,allApps,maps,payMap,appMap,
+      faturado,recebido,areceber,despesas,cashResult,competenceResult,margin,ticket,
+      uniqueClients,uniqueVehicles,
+      services:[...serviceGroups.values()].sort((a,b)=>b.total-a.total||b.count-a.count),
+      paymentMethods:[...paymentGroups.values()].sort((a,b)=>b.total-a.total||b.count-a.count),
+      expenseCategories:[...expenseGroups.values()].sort((a,b)=>b.total-a.total||b.count-a.count)
+    };
     $("ffaturado").textContent=money(faturado);$("frecebido").textContent=money(recebido);$("fareceber").textContent=money(areceber);$("fdespesas").textContent=money(despesas);$("fsaldo").textContent=money(recebido-despesas);
     $("fpendingcount").textContent="("+pendingApps.length+")";$("fpaidcount").textContent="("+paidRows.length+")";$("fexpensecount").textContent="("+expenseRows.length+")";
     $("fpending").innerHTML=pendingApps.length?pendingApps.map(a=>financeApptCard(a,payMap.get(a.id),maps,false)).join(""):'<div class="empty">Nenhum valor pendente neste mês.</div>';
@@ -2207,6 +2252,203 @@ async function loadFinance(){
     document.querySelectorAll("[data-exp-edit]").forEach(b=>b.onclick=()=>openExpense(expenseRows.find(e=>e.id===b.dataset.expEdit)));
     document.querySelectorAll("[data-exp-del]").forEach(b=>b.onclick=()=>deleteExpense(b.dataset.expDel))
   }catch(e){show("msg",fail(e),"error")}
+}
+
+function financeMonthLabel(month){
+  const [y,m]=String(month||"").split("-").map(Number);
+  if(!y||!m)return month||"";
+  const s=new Intl.DateTimeFormat("pt-BR",{month:"long",year:"numeric"}).format(new Date(y,m-1,1));
+  return s.charAt(0).toUpperCase()+s.slice(1)
+}
+function financeReportDate(iso){
+  if(!iso)return "—";
+  return new Intl.DateTimeFormat("pt-BR").format(new Date(iso.includes("T")?iso:iso+"T12:00:00"))
+}
+function financeReportText(doc,text,x,y,maxWidth,opts={}){
+  const lines=doc.splitTextToSize(String(text??""),maxWidth);
+  doc.text(lines,x,y,opts);
+  return lines.length
+}
+async function generateMonthlyFinanceReportPdf(){
+  if(!financeAllowed())return;
+  const btn=$("fmonthreport");
+  const original=btn.textContent;
+  btn.disabled=true;btn.textContent="Preparando...";
+  try{
+    await loadFinance();
+    const d=currentFinanceMonthReport;
+    if(!d)throw Error("Não foi possível preparar os dados do mês.");
+    const {jsPDF}=window.jspdf||{};
+    if(!jsPDF)throw Error("Gerador de PDF indisponível.");
+
+    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    const left=16,right=194,width=178;
+    let y=16,pageNo=1;
+
+    const newPage=()=>{
+      doc.addPage();pageNo++;y=16;
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(125);
+      doc.text("Vaporeasy • Relatório financeiro mensal",left,287);
+      doc.text(String(pageNo),right,287,{align:"right"})
+    };
+    const ensure=need=>{if(y+need>276)newPage()};
+    const section=title=>{
+      ensure(16);y+=4;
+      doc.setFont("helvetica","bold");doc.setFontSize(12);doc.setTextColor(19,58,77);
+      doc.text(title,left,y);y+=5;
+      doc.setDrawColor(200);doc.line(left,y,right,y);y+=6;
+      doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(42)
+    };
+    const metric=(label,value,x,w)=>{
+      doc.setDrawColor(224);doc.setFillColor(248,250,251);doc.roundedRect(x,y,w,18,2,2,"FD");
+      doc.setFont("helvetica","normal");doc.setFontSize(7.8);doc.setTextColor(100);doc.text(label,x+4,y+5.5);
+      doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(24,57,72);doc.text(String(value),x+4,y+13)
+    };
+    const row=(label,value,{bold=false}={})=>{
+      ensure(7);
+      doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(9);doc.setTextColor(45);
+      doc.text(String(label),left,y);
+      doc.setFont("helvetica",bold?"bold":"normal");doc.text(String(value),right,y,{align:"right"});
+      y+=6
+    };
+    const tableHeader=cols=>{
+      ensure(8);doc.setFillColor(239,245,247);doc.rect(left,y-4,width,7,"F");
+      doc.setFont("helvetica","bold");doc.setFontSize(7.8);doc.setTextColor(68);
+      cols.forEach(c=>doc.text(c.label,c.x,y,{align:c.align||"left"}));y+=5
+    };
+    const footer=()=>{
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(125);
+      doc.text("Vaporeasy • Relatório financeiro mensal",left,287);
+      doc.text(String(pageNo),right,287,{align:"right"})
+    };
+
+    // Header
+    if(typeof brandLogoImg!=="undefined"&&brandLogoImg.complete&&brandLogoImg.naturalWidth){
+      const lc=document.createElement("canvas");lc.width=500;lc.height=180;
+      const lctx=lc.getContext("2d");lctx.fillStyle="#fff";lctx.fillRect(0,0,500,180);lctx.drawImage(brandLogoImg,0,0,500,180);
+      doc.addImage(lc.toDataURL("image/jpeg",0.92),"JPEG",left,8,49,18)
+    }else{
+      doc.setFont("helvetica","bold");doc.setFontSize(19);doc.setTextColor(23,83,108);doc.text("VAPOREASY",left,19)
+    }
+    doc.setFont("helvetica","bold");doc.setFontSize(14);doc.setTextColor(25,48,60);doc.text("Relatório financeiro mensal",right,15,{align:"right"});
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(95);doc.text(financeMonthLabel(d.keys.month),right,21,{align:"right"});
+    doc.setDrawColor(205);doc.line(left,29,right,29);y=38;
+
+    // Executive metrics
+    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(24,57,72);doc.text("Resumo executivo",left,y);y+=7;
+    const gap=4,w=(width-gap)/2;
+    metric("Faturado no mês",money(d.faturado),left,w);
+    metric("Recebido no mês",money(d.recebido),left+w+gap,w);y+=22;
+    metric("A receber",money(d.areceber),left,w);
+    metric("Despesas",money(d.despesas),left+w+gap,w);y+=22;
+    metric("Saldo de caixa",money(d.cashResult),left,w);
+    metric("Resultado por competência",money(d.competenceResult),left+w+gap,w);y+=25;
+
+    row("Serviços concluídos",d.monthApps.length);
+    row("Clientes atendidos",d.uniqueClients);
+    row("Veículos atendidos",d.uniqueVehicles);
+    row("Ticket médio",money(d.ticket));
+    row("Margem operacional aproximada",d.margin.toLocaleString("pt-BR",{maximumFractionDigits:1,minimumFractionDigits:1})+"%");
+    y+=3;
+    doc.setFont("helvetica","normal");doc.setFontSize(7.8);doc.setTextColor(105);
+    const note="Saldo de caixa = recebimentos confirmados no mês menos despesas registradas. Resultado por competência = faturamento dos serviços concluídos no mês menos despesas registradas no mês.";
+    y+=financeReportText(doc,note,left,y,width)*4+2;
+
+    // Revenue by service
+    section("Faturamento por serviço");
+    if(!d.services.length){doc.text("Nenhum serviço concluído no mês.",left,y);y+=6}
+    else{
+      tableHeader([{label:"Serviço",x:left},{label:"Qtd.",x:151,align:"right"},{label:"Faturamento",x:right,align:"right"}]);
+      for(const x of d.services){
+        ensure(8);doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(45);
+        const lines=doc.splitTextToSize(x.name,105);doc.text(lines,left,y);
+        doc.text(String(x.count),151,y,{align:"right"});doc.text(money(x.total),right,y,{align:"right"});
+        y+=Math.max(6,lines.length*4.3)
+      }
+    }
+
+    // Payment methods
+    section("Recebimentos por forma de pagamento");
+    if(!d.paymentMethods.length){doc.text("Nenhum recebimento confirmado no mês.",left,y);y+=6}
+    else d.paymentMethods.forEach(x=>row(x.name,x.count+" receb. • "+money(x.total)));
+
+    // Expense categories
+    section("Despesas por categoria");
+    if(!d.expenseCategories.length){doc.text("Nenhuma despesa registrada no mês.",left,y);y+=6}
+    else d.expenseCategories.forEach(x=>row(x.name,x.count+" lançamento(s) • "+money(x.total)));
+
+    // Pending receivables
+    section("Valores a receber");
+    if(!d.pendingApps.length){doc.text("Nenhuma pendência de serviços concluídos neste mês.",left,y);y+=6}
+    else{
+      tableHeader([{label:"Cliente / serviço",x:left},{label:"Data",x:158,align:"right"},{label:"Valor",x:right,align:"right"}]);
+      for(const a of d.pendingApps){
+        const cl=d.maps.cm.get(a.client_id),sv=d.maps.sm.get(a.service_id),p=d.payMap.get(a.id);
+        const label=(cl?.name||"Cliente")+" • "+(sv?.name||"Serviço");
+        ensure(10);doc.setFont("helvetica","normal");doc.setFontSize(8.2);doc.setTextColor(45);
+        const lines=doc.splitTextToSize(label,112);doc.text(lines,left,y);
+        doc.text(financeReportDate(a.completed_at),158,y,{align:"right"});
+        doc.text(money(p?.amount??a.final_value??0),right,y,{align:"right"});
+        y+=Math.max(6,lines.length*4.2)
+      }
+      row("Total a receber",money(d.areceber),{bold:true})
+    }
+
+    // Cash receipts detail
+    section("Recebimentos do mês");
+    if(!d.paidRows.length){doc.text("Nenhum recebimento confirmado no mês.",left,y);y+=6}
+    else{
+      tableHeader([{label:"Cliente / serviço",x:left},{label:"Forma",x:151,align:"right"},{label:"Valor",x:right,align:"right"}]);
+      for(const p of d.paidRows){
+        const a=d.appMap.get(p.appointment_id),cl=a?d.maps.cm.get(a.client_id):null,sv=a?d.maps.sm.get(a.service_id):null;
+        const label=(cl?.name||"Cliente")+" • "+(sv?.name||"Serviço")+" • "+financeReportDate(p.paid_at);
+        ensure(10);doc.setFont("helvetica","normal");doc.setFontSize(8.1);doc.setTextColor(45);
+        const lines=doc.splitTextToSize(label,108);doc.text(lines,left,y);
+        doc.text(String(p.payment_method||"—"),151,y,{align:"right"});
+        doc.text(money(p.amount||0),right,y,{align:"right"});
+        y+=Math.max(6,lines.length*4.2)
+      }
+      row("Total recebido",money(d.recebido),{bold:true})
+    }
+
+    // Expense details
+    section("Detalhamento de despesas");
+    if(!d.expenseRows.length){doc.text("Nenhuma despesa registrada no mês.",left,y);y+=6}
+    else{
+      tableHeader([{label:"Descrição",x:left},{label:"Categoria",x:151,align:"right"},{label:"Valor",x:right,align:"right"}]);
+      for(const e of d.expenseRows){
+        const label=financeReportDate(e.expense_date)+" • "+(e.description||"Despesa");
+        ensure(10);doc.setFont("helvetica","normal");doc.setFontSize(8.1);doc.setTextColor(45);
+        const lines=doc.splitTextToSize(label,104);doc.text(lines,left,y);
+        doc.text(String(e.category||"Outros"),151,y,{align:"right"});
+        doc.text(money(e.amount||0),right,y,{align:"right"});
+        y+=Math.max(6,lines.length*4.2)
+      }
+      row("Total de despesas",money(d.despesas),{bold:true})
+    }
+
+    // Closing
+    ensure(28);y+=6;doc.setDrawColor(205);doc.line(left,y,right,y);y+=8;
+    doc.setFont("helvetica","bold");doc.setFontSize(9.5);doc.setTextColor(30,58,72);doc.text("Observação",left,y);y+=5;
+    doc.setFont("helvetica","normal");doc.setFontSize(7.8);doc.setTextColor(95);
+    const closing="Relatório interno gerencial. Os valores refletem os lançamentos registrados no Vaporeasy até a data de geração e não substituem demonstrações contábeis ou fiscais oficiais.";
+    y+=financeReportText(doc,closing,left,y,width)*4+3;
+    doc.text("Gerado em "+new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeStyle:"short"}).format(new Date())+" por "+($("pname").textContent||"Vaporeasy")+".",left,y);
+    footer();
+
+    const file="relatorio-financeiro-vaporeasy-"+d.keys.month+".pdf";
+    const blob=doc.output("blob"),pdfFile=new File([blob],file,{type:"application/pdf"});
+    if(navigator.share&&navigator.canShare?.({files:[pdfFile]})){
+      await navigator.share({title:"Relatório financeiro Vaporeasy • "+financeMonthLabel(d.keys.month),files:[pdfFile]});
+      return
+    }
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+    show("msg","Relatório financeiro mensal gerado em PDF.","ok")
+  }catch(e){
+    if(e?.name!=="AbortError")show("msg",fail(e),"error")
+  }finally{
+    btn.disabled=false;btn.textContent=original
+  }
 }
 function openExpense(e=null){
   if(!financeAllowed())return;$("exf").reset();show("exmsg","");$("exid").value=e?.id||"";$("extitle").textContent=e?"Editar despesa":"Nova despesa";$("exdate").value=e?.expense_date||today();$("excat").value=e?.category||"Outros";$("exdesc").value=e?.description||"";$("examount").value=e?.amount??"";$("exnotes").value=e?.notes||"";$("exd").showModal()
