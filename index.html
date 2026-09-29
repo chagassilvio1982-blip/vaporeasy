@@ -949,6 +949,42 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 </style>
 <style id="vaporeasy-performance-20260929"></style>
+
+<style id="vaporeasy-photo-exception-20260929">
+.finish-exception-wrap{
+  padding:10px;
+  border:1px solid #294b5b;
+  border-radius:12px;
+  background:#0a202b;
+}
+.finish-exception-toggle{
+  display:flex;
+  grid-template-columns:auto 1fr;
+  align-items:center;
+  gap:9px;
+  font-weight:800;
+  cursor:pointer;
+}
+.finish-exception-toggle input{
+  width:21px;
+  min-height:21px;
+}
+.finish-exception-box{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid #294b5b;
+}
+.finish-exception-box textarea{
+  min-height:96px;
+}
+.finish-photo-disabled{
+  opacity:.48;
+}
+.finish-exception-history{
+  border-color:#826b2f;
+  background:#2a2414;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1125,12 +1161,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </main>
 <dialog id="ld"><div class="stack"><h3 style="margin:4px 0">Gerar link de agendamento</h3><div class="notice">O cliente nunca verá nem escolherá colaborador.</div><label>Cliente destinatário<select id="lclient"><option value="">Novo cliente</option></select></label><div id="lpreview" class="meta">Link para um novo cliente preencher o próprio cadastro.</div><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="lat" type="checkbox" checked style="width:22px;min-height:22px">Permitir que o cliente agende para hoje</label><button id="mklink" class="primary" type="button">Gerar link</button><label>Link<input id="linkout" readonly placeholder="O link aparecerá aqui"></label><label id="sharemsgwrap" class="hidden">Mensagem para o cliente<textarea id="sharemsg" readonly></textarea></label><div class="actions"><button id="copylink" class="ghost" type="button" disabled>Copiar mensagem</button><button id="sharelink" class="ghost" type="button" disabled>Compartilhar</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
 <dialog id="rd"><div class="stack"><div id="rcontent"></div><div class="actions"><button id="rshare" class="primary" type="button">Compartilhar comprovante</button><button id="rcharge" class="ghost" type="button">Cobrança / Pix</button><button id="rprint" class="ghost" type="button">Compartilhar PDF</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
-<dialog id="fd"><form id="finishf" class="stack"><input id="finishid" type="hidden"><h3 id="finishtitle">Finalizar atendimento</h3><div class="notice">A foto final do veículo é obrigatória e será usada somente para controle interno da Vaporeasy. Ela não será enviada ao cliente.</div><div id="finishsummary" class="meta"></div><div>
+<dialog id="fd"><form id="finishf" class="stack"><input id="finishid" type="hidden"><h3 id="finishtitle">Finalizar atendimento</h3><div class="notice">A foto final é o registro padrão da conclusão e é usada somente para controle interno da Vaporeasy. Se realmente não for possível fotografar, use a exceção com justificativa obrigatória.</div><div id="finishsummary" class="meta"></div><div id="finishphotowrap">
   <div style="font-weight:800;margin-bottom:8px">Foto final do veículo</div>
   <input id="finishphoto" type="file" accept="image/*" capture="environment" class="hidden">
   <button id="takefinishphoto" type="button" class="primary" style="width:100%">📷 Tirar foto do veículo</button>
   <div class="meta" style="margin-top:7px">Enquadre o veículo inteiro, preferencialmente em ângulo 3/4.</div>
-</div><div id="finishexisting" class="notice ok hidden"></div><img id="finishpreview" class="hidden" alt="Prévia da foto final" style="width:100%;max-height:340px;object-fit:cover;border-radius:14px;border:1px solid #31576a"><div id="finishmsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="finishsave" class="success">Salvar foto e concluir</button></div></form></dialog>
+</div><div id="finishexisting" class="notice ok hidden"></div><img id="finishpreview" class="hidden" alt="Prévia da foto final" style="width:100%;max-height:340px;object-fit:cover;border-radius:14px;border:1px solid #31576a">
+<div id="finishexceptionwrap" class="finish-exception-wrap">
+  <label class="finish-exception-toggle"><input id="finishexception" type="checkbox"><span>Não foi possível tirar a foto</span></label>
+  <div id="finishexceptionbox" class="finish-exception-box hidden">
+    <label>Justificativa obrigatória<textarea id="finishreason" minlength="10" maxlength="1000" placeholder="Explique objetivamente por que a foto final não pôde ser realizada."></textarea></label>
+    <div class="meta">A justificativa ficará registrada com seu nome, data e horário no histórico interno do atendimento.</div>
+  </div>
+</div>
+<div id="finishmsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="finishsave" class="success">Salvar foto e concluir</button></div></form></dialog>
 <dialog id="dd"><div class="stack">
   <div class="actions"><h3 style="margin:8px 0;flex:3">Detalhes do atendimento</h3><button type="button" class="ghost" data-close>Fechar</button></div>
   <div id="ddcontent"></div>
@@ -1296,7 +1340,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=async()=>{operatorMonthCache.clear();await Promise.all([loadOperatorMonth(true),loadOperatorJobs(operatorSelectedDate,false)])};$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -2801,9 +2845,12 @@ async function openAppointmentDetail(id){
     const a=currentApps.find(x=>x.id===id);
     if(!a)throw Error("Atendimento não encontrado.");
     const client=clients.find(x=>x.id===a.client_id),vehicle=findVehicleLocal(a.vehicle_id),service=services.find(x=>x.id===a.service_id),responsible=collabs.find(x=>x.id===a.collaborator_id),assignedTeam=teams.find(x=>x.id===a.team_id),responsibleLabel=assignedTeam?teamDisplay(assignedTeam.id):(responsible?.name||"Não definido");
-    const ph=await sb.from("appointment_completion_photos").select("*").eq("appointment_id",id).maybeSingle();
-    if(ph.error)throw ph.error;
-    const photo=ph.data||null;
+    const [ph,exr]=await Promise.all([
+      sb.from("appointment_completion_photos").select("*").eq("appointment_id",id).maybeSingle(),
+      sb.from("appointment_completion_exceptions").select("*").eq("appointment_id",id).maybeSingle()
+    ]);
+    if(ph.error)throw ph.error;if(exr.error)throw exr.error;
+    const photo=ph.data||null,completionException=exr.data||null;
     let photoUrl="";
     if(photo?.storage_path){
       const su=await sb.storage.from("completion-photos").createSignedUrl(photo.storage_path,900);
@@ -2812,6 +2859,7 @@ async function openAppointmentDetail(id){
     const scheduled=spDateTime(a.starts_at);
     const completed=a.completed_at?spDateTime(a.completed_at):null;
     const captured=photo?.captured_at?spDateTime(photo.captured_at):null;
+    const exceptionAt=completionException?.recorded_at?spDateTime(completionException.recorded_at):null;
     const finisher=photo?.collaborator_id?(collabs.find(x=>x.id===photo.collaborator_id)?.name||responsibleLabel||"Equipe Vaporeasy"):(assignedTeam?teamDisplay(assignedTeam.id):(responsible?.name||photo?.uploaded_by_name||"Equipe Vaporeasy"));
     const status=statusLabel(a.status);
     $("ddcontent").innerHTML=
@@ -2831,9 +2879,10 @@ async function openAppointmentDetail(id){
           '<h3 style="margin-top:0">Finalização interna</h3>'+
           '<div class="meta"><b>Horário da conclusão</b><br>'+esc(completed?(completed.date+" • "+completed.time):"Não registrado")+'</div>'+
           '<div class="meta" style="margin-top:10px"><b>Responsável pela finalização</b><br>'+esc(finisher)+'</div>'+
-          (photo?'<div class="meta" style="margin-top:10px"><b>Foto interna registrada</b><br>'+esc(captured?(captured.date+" • "+captured.time):"Registrada")+'</div>':'<div class="notice" style="margin-top:10px">Sem foto final — registro anterior à regra obrigatória.</div>')+
+          (completionException?'<div class="notice finish-exception-history" style="margin-top:10px"><b>Concluído sem foto — com justificativa</b><br><span>'+esc(completionException.reason)+'</span><div class="meta" style="margin-top:7px">Registrado por '+esc(completionException.recorded_by_name||"Equipe Vaporeasy")+(exceptionAt?' • '+esc(exceptionAt.date+" • "+exceptionAt.time):'')+'</div></div>':'')+
+          (photo?'<div class="meta" style="margin-top:10px"><b>Foto interna registrada</b><br>'+esc(captured?(captured.date+" • "+captured.time):"Registrada")+'</div>':(!completionException?'<div class="notice" style="margin-top:10px">Sem foto final — registro anterior à regra obrigatória.</div>':''))+
           (photoUrl?'<img src="'+esc(photoUrl)+'" alt="Foto final interna do veículo" style="width:100%;max-height:420px;object-fit:cover;border-radius:14px;border:1px solid #31576a;margin-top:12px;display:block">':'')+
-          '<div class="meta" style="margin-top:8px">Uso interno da Vaporeasy. Esta foto não é enviada ao cliente.</div>'+
+          '<div class="meta" style="margin-top:8px">Uso interno da Vaporeasy. Fotos e justificativas de exceção não são enviadas ao cliente.</div>'+
         '</div>':'')+
       '<div class="actions" style="margin-top:12px">'+
         (a.status!=="completed"&&a.status!=="cancelled"?'<button class="ghost" type="button" data-detail-edit="'+esc(a.id)+'">Editar agendamento</button>':'')+
@@ -2904,9 +2953,15 @@ async function openCompletion(id){
   $("finishf").reset();$("finishid").value=id;$("finishpreview").src="";$("finishpreview").classList.add("hidden");show("finishmsg","");
   $("finishtitle").textContent=legacyCompleted?"Adicionar foto final":"Finalizar atendimento";
   $("finishsave").textContent=legacyCompleted?"Salvar foto":"Salvar foto e concluir";
-  $("finishsummary").innerHTML='<b>'+esc(clientLabel)+'</b><br>'+esc(vehicleLabel)+(legacyCompleted?'<br><span class="meta">Registro anterior à regra de foto obrigatória.</span>':'');
+  $("finishsummary").innerHTML='<b>'+esc(clientLabel)+'</b><br>'+esc(vehicleLabel)+(legacyCompleted?'<br><span class="meta">Atendimento já concluído. Aqui você pode complementar o registro com uma foto final.</span>':'');
   currentFinishExistingPhoto=null;
   $("finishexisting").classList.add("hidden");
+  $("finishexception").checked=false;
+  $("finishexceptionbox").classList.add("hidden");
+  $("finishreason").value="";
+  $("finishexceptionwrap").classList.toggle("hidden",legacyCompleted);
+  $("finishphotowrap").classList.remove("finish-photo-disabled");
+  $("takefinishphoto").disabled=false;
   if(!operator){
     const ex=await sb.from("appointment_completion_photos").select("*").eq("appointment_id",id).maybeSingle();
     if(!ex.error&&ex.data){
@@ -2917,19 +2972,51 @@ async function openCompletion(id){
   }
   $("fd").showModal()
 }
+function toggleFinishException(){
+  const on=$("finishexception").checked;
+  $("finishexceptionbox").classList.toggle("hidden",!on);
+  $("finishphotowrap").classList.toggle("finish-photo-disabled",on);
+  $("takefinishphoto").disabled=on;
+  $("finishreason").required=on;
+  if(on){
+    $("finishphoto").value="";
+    $("finishpreview").src="";
+    $("finishpreview").classList.add("hidden");
+    $("finishsave").textContent="Concluir com justificativa";
+    setTimeout(()=>$("finishreason").focus(),50)
+  }else{
+    $("finishreason").required=false;
+    $("finishsave").textContent="Salvar foto e concluir"
+  }
+}
 function previewCompletionPhoto(){
   const file=$("finishphoto").files?.[0];
+  if(file&&$("finishexception").checked){
+    $("finishexception").checked=false;
+    toggleFinishException()
+  }
   if(!file){if(!currentFinishExistingPhoto){$("finishpreview").src="";$("finishpreview").classList.add("hidden")}return}
   const url=URL.createObjectURL(file);$("finishpreview").src=url;$("finishpreview").classList.remove("hidden");
   $("finishpreview").onload=()=>setTimeout(()=>URL.revokeObjectURL(url),500)
 }
 async function saveCompletionPhoto(e){
   e.preventDefault();
-  const id=$("finishid").value,a=currentApps.find(x=>x.id===id),file=$("finishphoto").files?.[0],b=$("finishsave");
+  const id=$("finishid").value,a=currentApps.find(x=>x.id===id),file=$("finishphoto").files?.[0],b=$("finishsave"),legacyCompleted=a?.status==="completed";
   if(!a)return;
-  if(!file&&!currentFinishExistingPhoto)return show("finishmsg","A foto final do veículo é obrigatória.","error");
-  b.disabled=true;b.textContent=file?"Salvando foto...":"Concluindo...";
+  const exception=!legacyCompleted&&$("finishexception").checked,reason=$("finishreason").value.trim();
+  if(exception&&reason.length<10)return show("finishmsg","Explique o motivo em pelo menos 10 caracteres.","error");
+  if(!exception&&!file&&!currentFinishExistingPhoto)return show("finishmsg","Tire a foto final ou marque a exceção e informe a justificativa.","error");
+  b.disabled=true;b.textContent=exception?"Registrando justificativa...":file?"Salvando foto...":"Concluindo...";
   try{
+    if(exception){
+      const u=await sb.rpc("complete_job_without_photo",{p_appointment_id:id,p_reason:reason});
+      if(u.error)throw u.error;
+      $("fd").close();
+      agendaMonthCache.clear();operatorMonthCache.clear();waterCounterLoadedAt=0;
+      show("msg","Atendimento concluído sem foto. A justificativa foi registrada no histórico interno.","ok");
+      if(currentRole==="operator")await Promise.all([loadOperatorJobs(operatorSelectedDate,false),loadOperatorMonth(true)]);else await loadApps();
+      return
+    }
     if(file){
       const blob=await fileToCompressedJpeg(file),path=id+"/"+currentUserId+"/final.jpg";
       const up=await sb.storage.from("completion-photos").upload(path,blob,{contentType:"image/jpeg",upsert:true,cacheControl:"3600"});
@@ -2954,10 +3041,16 @@ async function saveCompletionPhoto(e){
       }
     }
     $("fd").close();
+    agendaMonthCache.clear();operatorMonthCache.clear();waterCounterLoadedAt=0;
     show("msg",a.status==="completed"?"Foto final adicionada ao atendimento.":"Atendimento concluído com foto final registrada.","ok");
-    if(currentRole==="operator")await loadOperatorJobs();else await loadApps()
+    if(currentRole==="operator")await Promise.all([loadOperatorJobs(operatorSelectedDate,false),loadOperatorMonth(true)]);else await loadApps()
   }catch(e){show("finishmsg",fail(e),"error")}
-  finally{b.disabled=false;b.textContent=a?.status==="completed"?"Salvar foto":"Salvar foto e concluir"}
+  finally{
+    b.disabled=false;
+    if(a?.status==="completed")b.textContent="Salvar foto";
+    else if($("finishexception").checked)b.textContent="Concluir com justificativa";
+    else b.textContent="Salvar foto e concluir"
+  }
 }
 async function loadRemoteImage(url){
   if(!url)return null;
