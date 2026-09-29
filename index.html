@@ -57,7 +57,7 @@
 dialog::backdrop{background:rgba(0,0,0,.72)}@media(max-width:470px){.receipt-grid{grid-template-columns:1fr}}@media(max-width:470px){.row{grid-template-columns:1fr}.actions{display:grid;grid-template-columns:1fr 1fr}}
 #email:-webkit-autofill{animation-name:vaporeasyAutofill;animation-duration:.01s}@keyframes vaporeasyAutofill{from{opacity:.99}to{opacity:1}}
 </style>
-<!-- VAPOREASY_BUILD: staging-v2-logo-loginlink-2026-09-28-05 -->
+<!-- VAPOREASY_BUILD: staging-v2-classic-login-bootstrap-2026-09-28-06 -->
 <!-- VAPOREASY_BUILD: android-contact-import-v1-2026-09-28 -->
 </head>
 <body>
@@ -120,7 +120,7 @@ dialog::backdrop{background:rgba(0,0,0,.72)}@media(max-width:470px){.receipt-gri
 <section id="auth" class="login">
 <div class="card"><img data-brand-logo class="brand-logo brand-logo-login" src="/vaporeasy-logo-original.svg?v=20260928-05" loading="eager" decoding="sync" alt="Vaporeasy"><p class="sub">Ambiente de homologação separado da produção.</p><div id="amsg" class="notice hidden"></div>
 <div class="tabs" style="grid-template-columns:1fr"><button id="lin" class="ghost active" type="button">Entrar</button><button id="sup" class="ghost hidden" type="button">Primeiro acesso</button></div>
-<form id="af" class="stack" autocomplete="on"><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<input id="pass" name="password" type="password" minlength="8" autocomplete="current-password" required></label><button id="ab" class="primary">Entrar</button></form><div class="meta" style="text-align:center;margin-top:10px">V2 STAGING · build 2026.09.28-05</div>
+<form id="af" class="stack" autocomplete="on"><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<input id="pass" name="password" type="password" minlength="8" autocomplete="current-password" required></label><button id="ab" class="primary">Entrar</button></form><div class="meta" style="text-align:center;margin-top:10px">V2 STAGING · build 2026.09.28-06</div>
 </div></section>
 <section id="main" class="hidden">
 <div class="tabs"><button id="tc" class="ghost active">Cadastro</button><button id="ta" class="ghost">Agenda</button><button id="tf" class="ghost hidden">Financeiro</button><button id="tr" class="ghost hidden">Relatórios</button><button id="tset" class="ghost hidden">Configurações</button><button id="out" class="ghost">Sair</button></div>
@@ -260,6 +260,43 @@ dialog::backdrop{background:rgba(0,0,0,.72)}@media(max-width:470px){.receipt-gri
 <dialog id="rgid"><form id="rgif" class="stack"><input id="rgissueid" type="hidden"><div class="actions"><h3 id="rgissuetitle" style="margin:8px 0;flex:3">Registrar necessidade</h3><button type="button" class="ghost" data-close>Fechar</button></div><label>Categoria<select id="rgicategory" required><option value="">Selecione</option><option>Funilaria / Pintura</option><option>Interior</option><option>Vidros</option><option>Proteção / Acabamento</option><option>Rodas / Pneus</option><option>Outro</option></select></label><label>Local / peça<input id="rgiarea" required placeholder="Ex.: banco do motorista, porta traseira direita"></label><label>Descrição da necessidade<textarea id="rgidesc" required placeholder="Descreva o que foi identificado"></textarea></label><label>Prioridade<select id="rgipriority" required><option value="immediate">Atenção imediata</option><option value="recommended" selected>Recomendado</option><option value="preventive">Preventivo</option></select></label><label>Recomendação<textarea id="rgirecommendation" placeholder="O que a Vaporeasy recomenda fazer"></textarea></label><label>Serviço sugerido<select id="rgiservice"><option value="">Sem serviço definido</option></select></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgiinclude" type="checkbox" checked style="width:22px;min-height:22px">Incluir esta necessidade no relatório do cliente</label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgishowvalue" type="checkbox" style="width:22px;min-height:22px">Mostrar valor do serviço sugerido no relatório</label><div id="rgimsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar necessidade</button></div></form></dialog>
 <dialog id="ad"><form id="apf" class="stack" novalidate><input id="aid" type="hidden"><h3 id="aptitle">Novo agendamento</h3><div id="apmsg" class="notice hidden"></div><label>Cliente<select id="ac" required></select></label><label>Veículo<select id="av" required></select></label><label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
 </div>
+<script>
+(function(){
+  const KEY="vaporeasy_v2_login_email";
+  const read=()=>{try{return localStorage.getItem(KEY)||""}catch{return""}};
+  const save=v=>{if(!v)return;try{localStorage.setItem(KEY,v)}catch{}};
+  let fromUrl="";
+  try{
+    const u=new URL(location.href);
+    fromUrl=(u.searchParams.get("login")||"").trim();
+    if(fromUrl){
+      save(fromUrl);
+      u.searchParams.delete("login");
+      history.replaceState(null,"",u.pathname+(u.search?u.search:"")+u.hash);
+    }
+  }catch{}
+  const apply=()=>{
+    const e=document.getElementById("email");
+    if(!e)return;
+    const v=fromUrl||read();
+    if(v&&!e.value)e.value=v;
+    e.addEventListener("input",()=>save(e.value.trim()));
+    e.addEventListener("change",()=>save(e.value.trim()));
+  };
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",apply,{once:true});
+  else apply();
+  window.__vaporeasyClassicBootstrap=true;
+  setTimeout(()=>{
+    if(window.__vaporeasyAppBooted)return;
+    const msg=document.getElementById("amsg");
+    if(msg){
+      msg.textContent="O aplicativo não terminou de iniciar. Atualize esta página; se continuar, envie este print para a Vaporeasy.";
+      msg.className="notice error";
+      msg.classList.remove("hidden");
+    }
+  },5000);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/+esm";
@@ -286,7 +323,7 @@ async function loadWaterCounter(){
 }
 const fail=e=>{const m=String(e?.message||e||"Erro");if(/Failed to fetch|NetworkError|Load failed|fetch failed/i.test(m))return"Não foi possível conectar ao servidor. Verifique a conexão e tente novamente.";if(e?.code==="23P01")return"Conflito de horário: colaborador ou veículo já ocupado.";if(e?.code==="23505"){if(m.includes("appointments_active_vehicle_start_uq"))return"Este veículo já possui esse serviço agendado nesse horário. Escolha outro horário ou cancele o agendamento existente.";if(m.includes("appointments_active_collaborator_start_uq"))return"Este colaborador já está ocupado nesse horário. Escolha outro horário ou outro colaborador.";return"Já existe um agendamento igual ou conflitante.";}if(e?.code==="23503")return"Cliente e veículo não correspondem.";return m};
 function show(id,text,type=""){const e=$(id);e.textContent=text;e.className="notice "+type;e.classList.toggle("hidden",!text)}
-async function boot(){wire();configureAndroidContactImport();document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo-original.svg?v=20260928-05"}});prefillLoginEmailFromUrl();restoreLoginEmail();startLoginEmailGuard();if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}$("date").value=today();$("adt").value=today();const {data}=await sb.auth.getSession();if(data.session)await enter(data.session)}
+async function boot(){window.__vaporeasyAppBooted=true;wire();configureAndroidContactImport();document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo-original.svg?v=20260928-05"}});prefillLoginEmailFromUrl();restoreLoginEmail();startLoginEmailGuard();if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}$("date").value=today();$("adt").value=today();const {data}=await sb.auth.getSession();if(data.session)await enter(data.session)}
 function wire(){
  $("lin").onclick=()=>authMode("login");$("sup").onclick=()=>authMode("signup");$("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("email").addEventListener("animationstart",e=>{if(e.animationName==="vaporeasyAutofill"){rememberLoginEmail();startLoginEmailGuard()}});$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
