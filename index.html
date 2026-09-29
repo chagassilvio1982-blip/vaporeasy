@@ -3029,7 +3029,7 @@ function updateMultiVehicleSelection(refreshSlots=true){
   let parts=[n?n+" veículo"+(n===1?" selecionado":"s selecionados"):"Nenhum veículo selecionado."];
   if(total)parts.push("bloco de "+durationLabel(total));
   if(weekly)parts.push(weekly+" semanal"+(weekly===1?"":"is"));
-  if(biweekly)parts.push(biweekly+" quinzenal"+(biweekly===1?"":"is"));
+  if(biweekly)parts.push(biweekly+(biweekly===1?" quinzenal":" quinzenais"));
   $("avmultisummary").textContent=parts.join(" • ");
   $("apsave").textContent=appointmentSubmitLabel();
   if(refreshSlots)loadAvailableSlots()
@@ -3209,7 +3209,7 @@ async function saveAppt(e){
       let msg=vehicleIds.length>1?vehicleIds.length+" veículos agendados em sequência.":"Agendamento salvo com sucesso.";
       const rp=[];
       if(weekly)rp.push(weekly+" semanal"+(weekly===1?"":"is"));
-      if(biweekly)rp.push(biweekly+" quinzenal"+(biweekly===1?"":"is"));
+      if(biweekly)rp.push(biweekly+(biweekly===1?" quinzenal":" quinzenais"));
       if(rp.length)msg+=" Recorrência ativa: "+rp.join(" e ")+" — até você alterar.";
       window.__lastAppointmentSaveMessage=msg
     }
