@@ -631,6 +631,96 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .operator-head .section-primary{min-width:auto}
 }
 </style>
+
+<style id="vaporeasy-client-autocomplete-20260929">
+.client-search-idle{
+  display:grid;
+  justify-items:center;
+  gap:5px;
+  padding:24px 16px;
+  border:1px dashed #214557;
+  border-radius:13px;
+  background:#071923;
+  text-align:center;
+  color:#91a8b4;
+}
+.client-search-idle b{font-size:13px;color:#c9d9e0}
+.client-search-idle span{font-size:11px;line-height:1.4}
+.client-search-icon{
+  display:grid;
+  place-items:center;
+  width:34px;height:34px;
+  border-radius:50%;
+  background:#0d2937;
+  color:#78cbea;
+  font-size:22px;
+  margin-bottom:2px;
+}
+.client-suggestions{
+  display:grid;
+  border:1px solid #1a3d4f;
+  border-radius:13px;
+  overflow:hidden;
+  background:#071923;
+}
+.client-suggestion{
+  width:100%;
+  min-height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border:0;
+  border-bottom:1px solid #123242;
+  border-radius:0;
+  background:#071923;
+  color:#eef7fa;
+  text-align:left;
+}
+.client-suggestion:last-child{border-bottom:0}
+.client-suggestion:active{background:#0d2b3a}
+.client-suggestion-main{min-width:0;display:grid;gap:3px}
+.client-suggestion-main b{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:13.5px;
+}
+.client-suggestion-main small{font-size:10.5px;color:#819aa7}
+.client-suggestion-arrow{font-size:20px;color:#6f91a1}
+.selected-client-card{padding:12px!important}
+.selected-client-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.selected-client-head h3{font-size:17px;margin:2px 0 3px}
+.selected-client-kicker{
+  font-size:9.5px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:#70a9bf;
+}
+.selected-client-clear{
+  flex:0 0 auto;
+  min-height:34px;
+  padding:6px 10px;
+  font-size:10.5px;
+}
+.selected-client-actions{margin-top:11px}
+.section-search{
+  background:#061722;
+  font-size:15px;
+  min-height:48px;
+}
+@media(max-width:470px){
+  .client-suggestion{min-height:56px;padding:9px 10px}
+  .selected-client-head h3{font-size:16px}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -712,10 +802,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </section>
 <section id="cad">
   <div class="section-head">
-    <div><div class="title">Clientes</div><p class="sub">Clientes, veículos e histórico em um só lugar.</p></div>
+    <div><div class="title">Clientes</div><p class="sub">Digite o nome para localizar rapidamente um cadastro.</p></div>
     <button id="nc" class="primary section-primary">+ Cliente</button>
   </div>
-  <input id="q" class="section-search" placeholder="Buscar cliente ou telefone">
+  <input id="q" class="section-search" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="words" spellcheck="false">
   <details class="section-tools">
     <summary>Ferramentas de cadastro</summary>
     <div class="tool-grid">
@@ -957,7 +1047,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=loadOperatorJobs;$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("ac").onchange=async()=>{await fillVehicles($("ac").value);await loadAvailableSlots()};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=renderClients;
+ $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("ac").onchange=async()=>{await fillVehicles($("ac").value);await loadAvailableSlots()};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -1362,8 +1452,77 @@ async function saveAndroidContactsImport(){
   }catch(e){show("contactsimportmsg",fail(e),"error")}
   finally{btn.disabled=false;btn.textContent="Importar selecionados"}
 }
-async function loadClients(){const r=await sb.from("clients").select("*").is("archived_at",null).order("name");if(r.error)return show("msg",fail(r.error),"error");clients=r.data||[];renderClients()}
-function renderClients(){const q=($("q").value||"").toLowerCase(),canDelete=["owner","admin"].includes(currentRole);const rows=clients.filter(x=>(x.name+" "+x.phone+" "+x.whatsapp).toLowerCase().includes(q));$("clients").innerHTML=rows.length?rows.map(c=>'<details class="item client-card"><summary class="client-card-summary"><span class="client-card-main"><h3>'+esc(c.name)+'</h3><span class="meta">'+esc(c.phone||c.whatsapp||"Sem telefone")+'</span></span><span class="client-open-label">Abrir</span></summary><div class="client-card-body"><div class="client-action-grid"><button class="primary" data-v="'+c.id+'">Ver veículos</button><button class="ghost" data-n="'+c.id+'">+ Veículo</button><button class="ghost" data-e="'+c.id+'">Editar cliente</button>'+(canDelete?'<button class="danger subtle-danger" data-cx="'+c.id+'">Excluir cliente</button>':"")+'</div><div id="v-'+c.id+'" class="hidden vehicle-list"></div></div></details>').join(""):'<div class="empty">Nenhum cliente.</div>';document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>openClient(clients.find(x=>x.id===b.dataset.e)));document.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>openVehicle(b.dataset.n));document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>showVehicles(b.dataset.v));document.querySelectorAll("[data-cx]").forEach(b=>b.onclick=()=>archiveClient(b.dataset.cx))}
+let selectedClientId="";
+const normalizeClientSearch=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+async function loadClients(){
+  const r=await sb.from("clients").select("*").is("archived_at",null).order("name");
+  if(r.error)return show("msg",fail(r.error),"error");
+  clients=r.data||[];
+  if(selectedClientId&&!clients.some(c=>c.id===selectedClientId))selectedClientId="";
+  renderClients()
+}
+function bindSelectedClientActions(scope){
+  scope.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>openClient(clients.find(x=>x.id===b.dataset.e)));
+  scope.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>openVehicle(b.dataset.n));
+  scope.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>showVehicles(b.dataset.v));
+  scope.querySelectorAll("[data-cx]").forEach(b=>b.onclick=()=>archiveClient(b.dataset.cx));
+  const clear=scope.querySelector("[data-client-clear]");
+  if(clear)clear.onclick=()=>{selectedClientId="";$("q").value="";$("q").focus();renderClients()}
+}
+function renderSelectedClient(c){
+  const canDelete=["owner","admin"].includes(currentRole),box=$("clients");
+  box.innerHTML='<div class="item selected-client-card">'+
+    '<div class="selected-client-head"><div><div class="selected-client-kicker">Cliente selecionado</div><h3>'+esc(c.name)+'</h3><div class="meta">'+esc(c.phone||c.whatsapp||"Sem telefone")+'</div></div>'+
+    '<button type="button" class="ghost selected-client-clear" data-client-clear>Trocar</button></div>'+
+    '<div class="client-action-grid selected-client-actions">'+
+      '<button class="primary" data-v="'+c.id+'">Ver veículos</button>'+
+      '<button class="ghost" data-n="'+c.id+'">+ Veículo</button>'+
+      '<button class="ghost" data-e="'+c.id+'">Editar cliente</button>'+
+      (canDelete?'<button class="danger subtle-danger" data-cx="'+c.id+'">Excluir cliente</button>':"")+
+    '</div>'+
+    '<div id="v-'+c.id+'" class="hidden vehicle-list"></div>'+
+  '</div>';
+  bindSelectedClientActions(box)
+}
+function renderClients(){
+  const box=$("clients"),input=$("q"),raw=input.value||"",q=normalizeClientSearch(raw);
+  if(selectedClientId){
+    const c=clients.find(x=>x.id===selectedClientId);
+    if(c)return renderSelectedClient(c);
+    selectedClientId=""
+  }
+  if(!q){
+    box.innerHTML='<div class="client-search-idle"><div class="client-search-icon">⌕</div><b>Procure um cliente</b><span>Comece a digitar o nome. As sugestões aparecem aqui.</span></div>';
+    return
+  }
+  const ranked=clients.map(c=>{
+    const name=normalizeClientSearch(c.name),words=name.split(/\s+/);
+    let rank=9;
+    if(name===q)rank=0;
+    else if(name.startsWith(q))rank=1;
+    else if(words.some(w=>w.startsWith(q)))rank=2;
+    else if(name.includes(q))rank=3;
+    return {c,rank}
+  }).filter(x=>x.rank<9).sort((a,b)=>a.rank-b.rank||a.c.name.localeCompare(b.c.name,"pt-BR")).slice(0,8);
+
+  if(!ranked.length){
+    box.innerHTML='<div class="empty">Nenhum cliente encontrado com esse nome.</div>';
+    return
+  }
+  box.innerHTML='<div class="client-suggestions">'+ranked.map(({c})=>
+    '<button type="button" class="client-suggestion" data-client-pick="'+c.id+'">'+
+      '<span class="client-suggestion-main"><b>'+esc(c.name)+'</b><small>'+esc(c.phone||c.whatsapp||"Sem telefone")+'</small></span>'+
+      '<span class="client-suggestion-arrow">›</span>'+
+    '</button>'
+  ).join("")+'</div>';
+  box.querySelectorAll("[data-client-pick]").forEach(b=>b.onclick=()=>{
+    const c=clients.find(x=>x.id===b.dataset.clientPick);
+    if(!c)return;
+    selectedClientId=c.id;
+    input.value=c.name;
+    renderClients()
+  })
+}
 async function hasFutureActiveAppointment(filters){
   let q=sb.from("appointments").select("id,starts_at,status",{count:"exact"}).gte("starts_at",new Date().toISOString()).is("deleted_at",null).not("status","in","(completed,cancelled,no_show)");
   if(filters.client_id)q=q.eq("client_id",filters.client_id);
