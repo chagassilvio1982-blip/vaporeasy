@@ -743,6 +743,83 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .operator-job-actions{grid-template-columns:1fr}
 }
 </style>
+
+<style id="vaporeasy-appt-client-search-20260929">
+.appt-client-picker{position:relative;display:grid;gap:7px}
+#acsearch{
+  min-height:46px;
+  font-size:14px;
+  background:#071923;
+}
+.appt-client-suggestions{
+  display:grid;
+  position:relative;
+  z-index:5;
+  border:1px solid #21485a;
+  border-radius:12px;
+  overflow:hidden;
+  background:#071923;
+  box-shadow:0 10px 28px rgba(0,0,0,.20);
+  max-height:330px;
+  overflow-y:auto;
+}
+.appt-client-suggestion{
+  width:100%;
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 11px;
+  border:0;
+  border-bottom:1px solid #123242;
+  border-radius:0;
+  background:#071923;
+  color:#eef7fa;
+  text-align:left;
+}
+.appt-client-suggestion:last-child{border-bottom:0}
+.appt-client-suggestion:active{background:#0d2a39}
+.appt-client-suggestion>span:first-child{min-width:0;display:grid;gap:2px}
+.appt-client-suggestion b{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:13px;
+}
+.appt-client-suggestion small{font-size:10.5px;color:#829ca9}
+.appt-client-chevron{font-size:19px;color:#7395a5}
+.appt-client-noresult{
+  padding:12px;
+  color:#8da7b4;
+  font-size:11px;
+  text-align:center;
+}
+.appt-client-selected{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 10px;
+  border:1px solid #1c4a5f;
+  border-radius:11px;
+  background:#0a2635;
+}
+.appt-client-selected>span{min-width:0;display:grid;gap:2px}
+.appt-client-selected b{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12.5px;
+}
+.appt-client-selected small{font-size:10px;color:#88a2af}
+.appt-client-selected button{
+  flex:0 0 auto;
+  min-height:32px;
+  padding:5px 9px;
+  font-size:10px;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -994,7 +1071,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <details><summary style="cursor:pointer;font-weight:900">Fotos gerais do RG</summary><div class="stack" style="margin-top:10px"><input id="rgphoto" type="file" accept="image/*" capture="environment" class="hidden"><button id="rgphotoadd" type="button" class="primary">📷 Tirar foto geral do veículo</button><div class="meta">Use esta área para fotos gerais. Fotos de problemas específicos devem ser adicionadas dentro da necessidade correspondente.</div><div id="rgphotos"><div class="empty">Nenhuma foto geral cadastrada.</div></div></div></details>
 <details><summary style="cursor:pointer;font-weight:900">Histórico de atendimentos</summary><div id="rghistory" style="margin-top:10px"><div class="empty">Carregando histórico...</div></div></details><div id="rgmsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar RG</button></div></form></dialog>
 <dialog id="rgid"><form id="rgif" class="stack"><input id="rgissueid" type="hidden"><div class="actions"><h3 id="rgissuetitle" style="margin:8px 0;flex:3">Registrar necessidade</h3><button type="button" class="ghost" data-close>Fechar</button></div><label>Categoria<select id="rgicategory" required><option value="">Selecione</option><option>Funilaria / Pintura</option><option>Interior</option><option>Vidros</option><option>Proteção / Acabamento</option><option>Rodas / Pneus</option><option>Outro</option></select></label><label>Local / peça<input id="rgiarea" required placeholder="Ex.: banco do motorista, porta traseira direita"></label><label>Descrição da necessidade<textarea id="rgidesc" required placeholder="Descreva o que foi identificado"></textarea></label><label>Prioridade<select id="rgipriority" required><option value="immediate">Atenção imediata</option><option value="recommended" selected>Recomendado</option><option value="preventive">Preventivo</option></select></label><label>Recomendação<textarea id="rgirecommendation" placeholder="O que a Vaporeasy recomenda fazer"></textarea></label><label>Serviço sugerido<select id="rgiservice"><option value="">Sem serviço definido</option></select></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgiinclude" type="checkbox" checked style="width:22px;min-height:22px">Incluir esta necessidade no relatório do cliente</label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgishowvalue" type="checkbox" style="width:22px;min-height:22px">Mostrar valor do serviço sugerido no relatório</label><div id="rgimsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar necessidade</button></div></form></dialog>
-<dialog id="ad"><form id="apf" class="stack" novalidate><input id="aid" type="hidden"><h3 id="aptitle">Novo agendamento</h3><div id="apmsg" class="notice hidden"></div><label>Cliente<select id="ac" required></select></label><label>Veículo<select id="av" required></select></label><label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
+<dialog id="ad"><form id="apf" class="stack" novalidate><input id="aid" type="hidden"><h3 id="aptitle">Novo agendamento</h3><div id="apmsg" class="notice hidden"></div><label>Cliente
+  <div class="appt-client-picker">
+    <input id="acsearch" type="text" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="words" spellcheck="false">
+    <select id="ac" class="hidden" aria-hidden="true" tabindex="-1"></select>
+    <div id="acsuggestions" class="appt-client-suggestions hidden"></div>
+    <div id="acselected" class="appt-client-selected hidden"></div>
+  </div>
+</label><label>Veículo<select id="av" required></select></label><label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
 </div>
 <script>
 (function(){
@@ -1069,7 +1153,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=loadOperatorJobs;$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("ac").onchange=async()=>{await fillVehicles($("ac").value);await loadAvailableSlots()};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -2159,8 +2243,80 @@ async function openOperatorVehicleRG(job){
     await Promise.all([renderRGIssues(),renderRGPhotos()])
   }catch(e){show("msg",fail(e),"error")}
 }
+function normalizeApptClientSearch(v){
+  return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()
+}
+function clearApptClientPicker(keepText=false){
+  $("ac").value="";
+  if(!keepText)$("acsearch").value="";
+  $("acselected").classList.add("hidden");
+  $("acselected").innerHTML="";
+  $("acsuggestions").classList.add("hidden");
+  $("acsuggestions").innerHTML="";
+  $("av").innerHTML='<option value="">Selecione o cliente primeiro</option>';
+  $("av").value="";
+  loadAvailableSlots()
+}
+function renderApptClientSuggestions(){
+  const q=normalizeApptClientSearch($("acsearch").value);
+  const box=$("acsuggestions");
+  if(!q){
+    box.innerHTML="";
+    box.classList.add("hidden");
+    return
+  }
+  const ranked=clients.map(c=>{
+    const name=normalizeApptClientSearch(c.name),words=name.split(/\s+/);
+    let rank=9;
+    if(name===q)rank=0;
+    else if(name.startsWith(q))rank=1;
+    else if(words.some(w=>w.startsWith(q)))rank=2;
+    else if(name.includes(q))rank=3;
+    return {c,rank}
+  }).filter(x=>x.rank<9).sort((a,b)=>a.rank-b.rank||a.c.name.localeCompare(b.c.name,"pt-BR")).slice(0,8);
+
+  if(!ranked.length){
+    box.innerHTML='<div class="appt-client-noresult">Nenhum cliente encontrado.</div>';
+    box.classList.remove("hidden");
+    return
+  }
+
+  box.innerHTML=ranked.map(({c})=>
+    '<button type="button" class="appt-client-suggestion" data-ac-pick="'+c.id+'">'+
+      '<span><b>'+esc(c.name)+'</b><small>'+esc(c.phone||c.whatsapp||"Sem telefone")+'</small></span>'+
+      '<span class="appt-client-chevron">›</span>'+
+    '</button>'
+  ).join("");
+  box.classList.remove("hidden");
+  box.querySelectorAll("[data-ac-pick]").forEach(b=>b.onclick=()=>selectApptClient(b.dataset.acPick))
+}
+async function selectApptClient(id){
+  const c=clients.find(x=>x.id===id);if(!c)return;
+  $("ac").value=c.id;
+  $("acsearch").value=c.name;
+  $("acsuggestions").classList.add("hidden");
+  $("acsuggestions").innerHTML="";
+  $("acselected").innerHTML='<span><b>'+esc(c.name)+'</b><small>'+esc(c.phone||c.whatsapp||"")+'</small></span><button type="button" class="ghost" data-ac-clear>Trocar</button>';
+  $("acselected").classList.remove("hidden");
+  const clear=$("acselected").querySelector("[data-ac-clear]");
+  if(clear)clear.onclick=()=>{clearApptClientPicker();$("acsearch").focus()};
+  await fillVehicles(c.id);
+  await loadAvailableSlots()
+}
+function syncApptClientPicker(id){
+  const c=clients.find(x=>x.id===id);
+  if(!c){clearApptClientPicker();return}
+  $("ac").value=c.id;
+  $("acsearch").value=c.name;
+  $("acsuggestions").classList.add("hidden");
+  $("acsuggestions").innerHTML="";
+  $("acselected").innerHTML='<span><b>'+esc(c.name)+'</b><small>'+esc(c.phone||c.whatsapp||"")+'</small></span><button type="button" class="ghost" data-ac-clear>Trocar</button>';
+  $("acselected").classList.remove("hidden");
+  const clear=$("acselected").querySelector("[data-ac-clear]");
+  if(clear)clear.onclick=()=>{clearApptClientPicker();$("acsearch").focus()}
+}
 function fillSelects(){
-  $("ac").innerHTML='<option value="">Selecione</option>'+clients.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
+  $("ac").innerHTML='<option value=""></option>'+clients.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
   $("as").innerHTML='<option value="">Selecione</option>'+services.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(financeAllowed()?' • '+money(s.price):'')+'</option>').join("");
   const activeTeams=teams.filter(t=>t.active);
   let html='<option value="">Equipe não definida</option>';
@@ -2190,7 +2346,7 @@ async function loadAvailableSlots(preferred=""){
 }
 async function fillVehicles(cid){let r=await sb.from("vehicles").select("*").eq("client_id",cid).is("archived_at",null).order("brand");if(r.error)return show("msg",fail(r.error),"error");vehicles.set(cid,r.data||[]);$("av").innerHTML='<option value="">Selecione</option>'+(r.data||[]).map(v=>'<option value="'+v.id+'">'+esc(v.brand+" "+v.model+(v.plate?" • "+v.plate:""))+'</option>').join("")}
 function spDateTime(iso){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(iso)),g=t=>p.find(x=>x.type===t)?.value||"";return{date:g("year")+"-"+g("month")+"-"+g("day"),time:g("hour")+":"+g("minute")}}
-async function openAppt(){try{$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";show("apmsg","");await refs();fillSelects();$("av").innerHTML='<option value="">Selecione o cliente primeiro</option>';$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículo e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Escolha serviço, veículo e data para ver somente os horários realmente disponíveis.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
+async function openAppt(){try{$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";show("apmsg","");await refs();fillSelects();clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículo e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Escolha serviço, veículo e data para ver somente os horários realmente disponíveis.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
 async function openAppointmentDetail(id){
   try{
     const a=currentApps.find(x=>x.id===id);
@@ -2238,7 +2394,7 @@ async function openAppointmentDetail(id){
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)}
   }catch(e){show("msg",fail(e),"error")}
 }
-async function openEditAppt(id){try{const x=currentApps.find(a=>a.id===id);if(!x)throw Error("Agendamento não encontrado.");$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";$("ac").value=x.client_id;await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
+async function openEditAppt(id){try{const x=currentApps.find(a=>a.id===id);if(!x)throw Error("Agendamento não encontrado.");$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
 async function saveAppt(e){
   e.preventDefault();
   const b=$("apsave"),id=$("aid").value;
