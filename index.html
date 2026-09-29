@@ -1295,7 +1295,7 @@ function show(id,text,type=""){const e=$(id);e.textContent=text;e.className="not
 async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeasyAppBooted=true;const ready=$("loginready");if(ready){ready.textContent="Sistema pronto";ready.classList.add("is-ready")};configureAndroidContactImport();document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo-original.svg?v=20260928-05"}});prefillLoginEmailFromUrl();restoreLoginEmail();if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}$("date").value=today();$("adt").value=today();const {data}=await sb.auth.getSession();if(data.session)await enter(data.session)}
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
- $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=()=>loadOperatorJobs(operatorSelectedDate,true);$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
+ $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=async()=>{operatorMonthCache.clear();await Promise.all([loadOperatorMonth(true),loadOperatorJobs(operatorSelectedDate,false)])};$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
  $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
@@ -1413,8 +1413,7 @@ async function refs(force=false){
   if(!force&&refsLoadedAt&&Date.now()-refsLoadedAt<120000&&services.length&&collabs.length)return;
   let [s,c,t,tm]=await Promise.all([sb.from("services").select("*").eq("active",true).order("name"),sb.from("collaborators").select("*").eq("active",true).order("name"),sb.from("teams").select("*").order("name"),sb.from("team_members").select("*").order("position")]);
   if(s.error)throw s.error;if(c.error)throw c.error;if(t.error)throw t.error;if(tm.error)throw tm.error;
-  services=s.data||[];collabs=c.data||[];teams=t.data||[];teamMembers=tm.data||[];refsLoadedAt=Date.now();
-  await loadVehicleCatalog(force)
+  services=s.data||[];collabs=c.data||[];teams=t.data||[];teamMembers=tm.data||[];refsLoadedAt=Date.now()
 }
 async function openCollaboratorsManager(){
   if(!["owner","admin"].includes(currentRole))return;
@@ -2539,6 +2538,7 @@ function tab(x){
 let operatorSelectedDate=today();
 let operatorCalendarMonth=operatorSelectedDate.slice(0,7)+"-01";
 let operatorMonthCounts=new Map();
+let operatorMonthCache=new Map();
 
 function operatorDateLabel(iso){
   const [y,m,d]=iso.split("-").map(Number);
@@ -2556,13 +2556,21 @@ function shiftOperatorMonth(delta){
   loadOperatorMonth()
 }
 async function selectOperatorDate(iso){
+  const nextMonth=iso.slice(0,7)+"-01",monthChanged=nextMonth!==operatorCalendarMonth;
   operatorSelectedDate=iso;
-  operatorCalendarMonth=iso.slice(0,7)+"-01";
-  await Promise.all([loadOperatorMonth(),loadOperatorJobs(iso,false)])
+  operatorCalendarMonth=nextMonth;
+  if(monthChanged)await loadOperatorMonth(false);else renderOperatorCalendar();
+  await loadOperatorJobs(iso,false)
 }
-async function loadOperatorMonth(){
+async function loadOperatorMonth(force=false){
   if(currentRole!=="operator")return;
   $("opcaltitle").textContent=operatorMonthTitle(operatorCalendarMonth);
+  const cached=operatorMonthCache.get(operatorCalendarMonth);
+  if(!force&&cached&&Date.now()-cached.at<30000){
+    operatorMonthCounts=cached.counts;
+    renderOperatorCalendar();
+    return
+  }
   const r=await sb.rpc("operator_month_counts",{p_month:operatorCalendarMonth});
   if(r.error){
     operatorMonthCounts=new Map();
@@ -2570,6 +2578,7 @@ async function loadOperatorMonth(){
     return
   }
   operatorMonthCounts=new Map((r.data||[]).map(x=>[String(x.service_date),Number(x.job_count||0)]));
+  operatorMonthCache.set(operatorCalendarMonth,{at:Date.now(),counts:operatorMonthCounts});
   renderOperatorCalendar()
 }
 function renderOperatorCalendar(){
@@ -2594,7 +2603,7 @@ async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
   $("opday").textContent=operatorDateLabel(operatorSelectedDate);
   const box=$("opjobs");
   box.innerHTML='<div class="empty">Atualizando...</div>';
-  if(refreshMonth)await loadOperatorMonth();
+  if(refreshMonth)await loadOperatorMonth(true);
   const r=await sb.rpc("operator_jobs_for_date",{p_date:operatorSelectedDate});
   if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}
   const rows=r.data||[];
