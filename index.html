@@ -585,6 +585,52 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .vehicle-card-actions .danger:last-child{grid-column:auto}
 }
 </style>
+
+<style id="vaporeasy-operator-least-privilege-20260929">
+.operator-day{
+  margin:-2px 0 11px;
+  color:#8da7b4;
+  font-size:11px;
+  font-weight:800;
+  text-transform:capitalize;
+}
+.operator-job{padding:12px!important}
+.operator-job h3{font-size:17px;margin:2px 0 6px}
+.operator-job-core{display:grid;gap:3px}
+.operator-job-core b{font-size:13px;color:#e7f2f6}
+.operator-job-core span{font-size:12px;color:#8ea8b5}
+.operator-job-action{margin-top:11px}
+.operator-main-action{width:100%;min-height:46px;font-size:13px}
+.operator-notes{
+  margin-top:9px;
+  border-top:1px solid #123242;
+  padding-top:8px;
+  color:#8fa9b6;
+  font-size:11px;
+}
+.operator-notes>summary{cursor:pointer;font-weight:850}
+.operator-notes>div{padding-top:7px;line-height:1.5}
+.operator-completed{
+  margin-top:13px;
+  border:1px solid #173849;
+  border-radius:12px;
+  background:#071923;
+  overflow:hidden;
+}
+.operator-completed>summary{
+  padding:11px 12px;
+  cursor:pointer;
+  font-size:11px;
+  font-weight:850;
+  color:#9cb2bd;
+}
+.operator-completed>div{padding:0 9px 9px}
+.operator-completed .operator-job{margin-top:8px}
+@media(max-width:470px){
+  .operator-head{align-items:center}
+  .operator-head .section-primary{min-width:auto}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -649,13 +695,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <form id="af" class="stack" autocomplete="on" novalidate><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<div class="password-wrap"><input id="pass" name="password" type="password" autocomplete="current-password" required><button id="passtoggle" class="password-toggle" type="button" aria-label="Mostrar senha">Mostrar</button></div></label><button id="ab" class="primary" type="submit">Entrar no Vaporeasy</button></form><div id="loginready" class="login-ready">Carregando sistema...</div><div class="meta" style="text-align:center;margin-top:6px">V2 STAGING · build 2026.09.28-11</div>
 </div></section>
 <section id="main" class="hidden">
-<div class="tabs"><button id="tc" class="ghost active">Cadastro</button><button id="ta" class="ghost">Agenda</button><button id="tf" class="ghost hidden">Financeiro</button><button id="tr" class="ghost hidden">Relatórios</button><button id="tset" class="ghost hidden">Configurações</button><button id="out" class="ghost">Sair</button></div>
+<div class="tabs"><button id="top" class="ghost hidden">Operação</button><button id="tc" class="ghost active">Cadastro</button><button id="ta" class="ghost">Agenda</button><button id="tf" class="ghost hidden">Financeiro</button><button id="tr" class="ghost hidden">Relatórios</button><button id="tset" class="ghost hidden">Configurações</button><button id="out" class="ghost">Sair</button></div>
 <div id="msg" class="notice hidden"></div>
 <div id="watercard" class="card" style="margin-bottom:14px;background:linear-gradient(145deg,#0b3043,#10465e);border-color:#1d607c">
   <div class="meta" style="font-weight:900;letter-spacing:.4px">ECONOMIA ESTIMADA DE ÁGUA</div>
   <div id="watertotal" style="font-size:28px;font-weight:950;color:#73d6fb;margin-top:4px">—</div>
   <div id="waterdetail" class="meta" style="margin-top:5px">Atualizando contador...</div>
 </div>
+<section id="ops" class="hidden">
+  <div class="section-head operator-head">
+    <div><div class="title">Meus atendimentos</div><p class="sub">Somente os serviços atribuídos a você hoje.</p></div>
+    <button id="oprefresh" type="button" class="ghost section-primary">Atualizar</button>
+  </div>
+  <div id="opday" class="operator-day"></div>
+  <div id="opjobs"><div class="empty">Carregando atendimentos...</div></div>
+</section>
 <section id="cad">
   <div class="section-head">
     <div><div class="title">Clientes</div><p class="sub">Clientes, veículos e histórico em um só lugar.</p></div>
@@ -902,7 +956,7 @@ function show(id,text,type=""){const e=$(id);e.textContent=text;e.className="not
 async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeasyAppBooted=true;const ready=$("loginready");if(ready){ready.textContent="Sistema pronto";ready.classList.add("is-ready")};configureAndroidContactImport();document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo-original.svg?v=20260928-05"}});prefillLoginEmailFromUrl();restoreLoginEmail();if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}$("date").value=today();$("adt").value=today();const {data}=await sb.auth.getSession();if(data.session)await enter(data.session)}
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
- $("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
+ $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=loadOperatorJobs;$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
  $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("ac").onchange=async()=>{await fillVehicles($("ac").value);await loadAvailableSlots()};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=renderClients;
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
@@ -962,7 +1016,48 @@ function prefillLoginEmailFromUrl(){
   history.replaceState(null,"",u.pathname+(u.search?u.search:"")+u.hash)
 }
 async function authSubmit(e){e.preventDefault();rememberLoginEmail();const email=$("email").value.trim(),password=$("pass").value;if(!email)return show("amsg","Informe o e-mail.","error");if(!password)return show("amsg","Informe a senha.","error");const b=$("ab");b.disabled=true;b.textContent="Entrando...";show("amsg","");try{const r=await sb.auth.signInWithPassword({email,password});if(r.error)throw r.error;await enter(r.data.session)}catch(e){show("amsg",fail(e),"error")}finally{b.disabled=false;b.textContent="Entrar no Vaporeasy"}}
-async function enter(session){try{const br=await fetch("https://asuppjeomaymzromgcrp.supabase.co/functions/v1/vaporeasy-v2-staging?action=bootstrap",{method:"POST",headers:{authorization:"Bearer "+session.access_token}});const bj=await br.json();if(!br.ok&&br.status!==403)throw Error(bj.error||"Falha no acesso");const u=await sb.auth.getUser();if(u.error)throw u.error;const p=await sb.from("app_profiles").select("name,role,active").eq("user_id",u.data.user.id).maybeSingle();if(p.error)throw p.error;if(!p.data)throw Error("Este usuário ainda não possui acesso ao staging.");currentUserId=u.data.user.id;currentRole=p.data.role;$("pname").textContent=p.data.name||u.data.user.email.split("@")[0];$("prole").textContent=p.data.role;$("tf").classList.toggle("hidden",!["owner","admin"].includes(currentRole));$("tr").classList.toggle("hidden",!["owner","admin"].includes(currentRole));$("teamsbtn").classList.toggle("hidden",!["owner","admin"].includes(currentRole));$("collabsbtn").classList.toggle("hidden",!["owner","admin"].includes(currentRole));$("tset").classList.toggle("hidden",!["owner","admin"].includes(currentRole));show("amsg","");$("auth").classList.add("hidden");$("main").classList.remove("hidden");$("hdr").classList.remove("hidden");$("auth").style.display="none";$("main").style.display="block";$("hdr").style.display="flex";window.scrollTo(0,0);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await refs();await loadClients();await loadApps();await startNotifications()}catch(e){show("amsg",fail(e),"error")}}
+async function enter(session){
+  try{
+    const br=await fetch("https://asuppjeomaymzromgcrp.supabase.co/functions/v1/vaporeasy-v2-staging?action=bootstrap",{method:"POST",headers:{authorization:"Bearer "+session.access_token}});
+    const bj=await br.json();if(!br.ok&&br.status!==403)throw Error(bj.error||"Falha no acesso");
+    const u=await sb.auth.getUser();if(u.error)throw u.error;
+    const p=await sb.from("app_profiles").select("name,role,active").eq("user_id",u.data.user.id).maybeSingle();
+    if(p.error)throw p.error;if(!p.data||!p.data.active)throw Error("Este usuário ainda não possui acesso ao staging.");
+    currentUserId=u.data.user.id;currentRole=p.data.role;
+    const operator=currentRole==="operator",manager=["owner","admin"].includes(currentRole);
+    $("pname").textContent=p.data.name||u.data.user.email.split("@")[0];
+    $("prole").textContent=operator?"Operador":currentRole==="admin"?"Administrador":"Proprietário";
+
+    $("top").classList.toggle("hidden",!operator);
+    $("tc").classList.toggle("hidden",operator);
+    $("ta").classList.toggle("hidden",operator);
+    $("tf").classList.toggle("hidden",!manager);
+    $("tr").classList.toggle("hidden",!manager);
+    $("tset").classList.toggle("hidden",!manager);
+    $("teamsbtn").classList.toggle("hidden",!manager);
+    $("collabsbtn").classList.toggle("hidden",!manager);
+    $("importcontacts").classList.toggle("hidden",!manager);
+    $("bell").classList.toggle("hidden",operator);
+    $("watercard").classList.toggle("hidden",operator);
+
+    show("amsg","");
+    $("auth").classList.add("hidden");$("main").classList.remove("hidden");$("hdr").classList.remove("hidden");
+    $("auth").style.display="none";$("main").style.display="block";$("hdr").style.display="flex";
+    window.scrollTo(0,0);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+    if(operator){
+      await loadOperatorJobs();
+      tab("ops");
+    }else{
+      await refs();
+      await loadClients();
+      await loadApps();
+      await startNotifications();
+      tab("cad");
+    }
+  }catch(e){show("amsg",fail(e),"error")}
+}
 function prepareSound(){try{soundCtx=soundCtx||new (window.AudioContext||window.webkitAudioContext)();if(soundCtx.state==="suspended")soundCtx.resume()}catch{}}
 function playAlert(){try{prepareSound();if(!soundCtx)return;const now=soundCtx.currentTime;[0,0.18].forEach((d,i)=>{const o=soundCtx.createOscillator(),g=soundCtx.createGain();o.type="sine";o.frequency.value=i?740:880;g.gain.setValueAtTime(0.0001,now+d);g.gain.exponentialRampToValueAtTime(0.16,now+d+0.015);g.gain.exponentialRampToValueAtTime(0.0001,now+d+0.14);o.connect(g);g.connect(soundCtx.destination);o.start(now+d);o.stop(now+d+0.16)})}catch{}}
 const notifDate=x=>new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeStyle:"short"}).format(new Date(x));
@@ -1736,7 +1831,73 @@ async function loadMonthCalendar(){
   $("calgrid").innerHTML=html;
   $("calgrid").querySelectorAll("[data-calday]").forEach(b=>b.onclick=()=>{$("date").value=b.dataset.calday;agendaCalendarMonth=calendarMonthFromDate(b.dataset.calday);loadApps()})
 }
-function tab(x){if((x==="fin"||x==="rep"||x==="set")&&!financeAllowed())x="cad";$("cad").classList.toggle("hidden",x!=="cad");$("age").classList.toggle("hidden",x!=="age");$("fin").classList.toggle("hidden",x!=="fin");$("rep").classList.toggle("hidden",x!=="rep");$("set").classList.toggle("hidden",x!=="set");$("tc").classList.toggle("active",x==="cad");$("ta").classList.toggle("active",x==="age");$("tf").classList.toggle("active",x==="fin");$("tr").classList.toggle("active",x==="rep");$("tset").classList.toggle("active",x==="set");if(x==="age"){agendaCalendarMonth=calendarMonthFromDate($("date").value||today());loadApps()}if(x==="fin"){if(!$("fmonth").value)$("fmonth").value=today().slice(0,7);loadFinance()}if(x==="rep"){setDefaultReportDates();loadManagementReport()}if(x==="set")loadOperationalSettings()}
+function tab(x){
+  const operator=currentRole==="operator";
+  if(operator)x="ops";
+  else if(x==="ops")x="cad";
+  if((x==="fin"||x==="rep"||x==="set")&&!financeAllowed())x=operator?"ops":"cad";
+  $("ops").classList.toggle("hidden",x!=="ops");
+  $("cad").classList.toggle("hidden",x!=="cad");
+  $("age").classList.toggle("hidden",x!=="age");
+  $("fin").classList.toggle("hidden",x!=="fin");
+  $("rep").classList.toggle("hidden",x!=="rep");
+  $("set").classList.toggle("hidden",x!=="set");
+  $("top").classList.toggle("active",x==="ops");
+  $("tc").classList.toggle("active",x==="cad");
+  $("ta").classList.toggle("active",x==="age");
+  $("tf").classList.toggle("active",x==="fin");
+  $("tr").classList.toggle("active",x==="rep");
+  $("tset").classList.toggle("active",x==="set");
+  if(x==="ops")loadOperatorJobs();
+  if(x==="age"){agendaCalendarMonth=calendarMonthFromDate($("date").value||today());loadApps()}
+  if(x==="fin"){if(!$("fmonth").value)$("fmonth").value=today().slice(0,7);loadFinance()}
+  if(x==="rep"){setDefaultReportDates();loadManagementReport()}
+  if(x==="set")loadOperationalSettings()
+}
+async function loadOperatorJobs(){
+  if(currentRole!=="operator")return;
+  const box=$("opjobs");
+  const now=new Date();
+  $("opday").textContent=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"long"}).format(now);
+  box.innerHTML='<div class="empty">Atualizando...</div>';
+  const r=await sb.rpc("operator_today_jobs");
+  if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}
+  const rows=r.data||[];
+  currentApps=rows.map(x=>({
+    id:x.appointment_id,
+    starts_at:x.starts_at,
+    duration_minutes:x.duration_minutes,
+    status:x.status,
+    notes:x.notes||"",
+    collaborator_id:x.collaborator_id,
+    team_id:x.team_id,
+    actor_collaborator_id:x.actor_collaborator_id,
+    client_name:x.client_name||"Cliente",
+    vehicle_label:[x.vehicle_brand,x.vehicle_model].filter(Boolean).join(" ")+(x.vehicle_plate?" • "+x.vehicle_plate:""),
+    service_name:x.service_name||"Serviço",
+    has_completion_photo:!!x.has_completion_photo
+  }));
+  const active=currentApps.filter(x=>x.status!=="completed"),done=currentApps.filter(x=>x.status==="completed");
+  const card=x=>{
+    const action=x.status==="in_progress"
+      ?'<button class="success operator-main-action" type="button" data-op-finish="'+x.id+'">Concluir serviço</button>'
+      :'<button class="primary operator-main-action" type="button" data-op-start="'+x.id+'">Iniciar serviço</button>';
+    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+(x.status!=="completed"?'<div class="operator-job-action">'+action+'</div>':'')+'</div>'
+  };
+  let out=active.length?active.map(card).join(""):'<div class="empty">Nenhum atendimento atribuído a você neste momento.</div>';
+  if(done.length)out+='<details class="operator-completed"><summary>Concluídos hoje ('+done.length+')</summary><div>'+done.map(card).join("")+'</div></details>';
+  box.innerHTML=out;
+  box.querySelectorAll("[data-op-start]").forEach(b=>b.onclick=()=>operatorStartJob(b.dataset.opStart));
+  box.querySelectorAll("[data-op-finish]").forEach(b=>b.onclick=()=>openCompletion(b.dataset.opFinish))
+}
+async function operatorStartJob(id){
+  const b=document.querySelector('[data-op-start="'+id+'"]');
+  if(b){b.disabled=true;b.textContent="Iniciando..."}
+  const r=await sb.rpc("operator_start_job",{p_appointment_id:id});
+  if(r.error){show("msg",fail(r.error),"error");if(b){b.disabled=false;b.textContent="Iniciar serviço"};return}
+  show("msg","Atendimento iniciado.","ok");
+  await loadOperatorJobs()
+}
 function fillSelects(){
   $("ac").innerHTML='<option value="">Selecione</option>'+clients.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
   $("as").innerHTML='<option value="">Selecione</option>'+services.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(financeAllowed()?' • '+money(s.price):'')+'</option>').join("");
@@ -1870,21 +2031,23 @@ async function fileToCompressedJpeg(file){
 }
 async function openCompletion(id){
   const a=currentApps.find(x=>x.id===id);if(!a)return show("msg","Atendimento não encontrado.","error");
-  const legacyCompleted=a.status==="completed",client=clients.find(x=>x.id===a.client_id),vehicle=findVehicleLocal(a.vehicle_id);
+  const operator=currentRole==="operator",legacyCompleted=a.status==="completed";
+  if(operator&&a.status!=="in_progress")return show("msg","Inicie o atendimento antes de concluir.","error");
+  const clientLabel=operator?a.client_name:(clients.find(x=>x.id===a.client_id)?.name||"Cliente");
+  const vehicleLabel=operator?a.vehicle_label:(()=>{const vehicle=findVehicleLocal(a.vehicle_id);return vehicle?(vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"")):"Veículo"})();
   $("finishf").reset();$("finishid").value=id;$("finishpreview").src="";$("finishpreview").classList.add("hidden");show("finishmsg","");
   $("finishtitle").textContent=legacyCompleted?"Adicionar foto final":"Finalizar atendimento";
   $("finishsave").textContent=legacyCompleted?"Salvar foto":"Salvar foto e concluir";
-  $("finishsummary").innerHTML='<b>'+esc(client?.name||"Cliente")+'</b><br>'+esc(vehicle?(vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"")):"Veículo")+(legacyCompleted?'<br><span class="meta">Registro anterior à regra de foto obrigatória.</span>':'');
+  $("finishsummary").innerHTML='<b>'+esc(clientLabel)+'</b><br>'+esc(vehicleLabel)+(legacyCompleted?'<br><span class="meta">Registro anterior à regra de foto obrigatória.</span>':'');
   currentFinishExistingPhoto=null;
-  const ex=await sb.from("appointment_completion_photos").select("*").eq("appointment_id",id).maybeSingle();
-  if(!ex.error&&ex.data){
-    currentFinishExistingPhoto=ex.data;
-    $("finishexisting").textContent="Já existe uma foto final registrada. Você pode concluir com ela ou tirar uma nova.";
-    $("finishexisting").classList.remove("hidden");
-    const su=await sb.storage.from("completion-photos").createSignedUrl(ex.data.storage_path,900);
-    if(!su.error&&su.data?.signedUrl){$("finishpreview").src=su.data.signedUrl;$("finishpreview").classList.remove("hidden")}
-  }else{
-    $("finishexisting").classList.add("hidden")
+  $("finishexisting").classList.add("hidden");
+  if(!operator){
+    const ex=await sb.from("appointment_completion_photos").select("*").eq("appointment_id",id).maybeSingle();
+    if(!ex.error&&ex.data){
+      currentFinishExistingPhoto=ex.data;
+      $("finishexisting").textContent="Já existe uma foto final registrada para este atendimento.";
+      $("finishexisting").classList.remove("hidden")
+    }
   }
   $("fd").showModal()
 }
@@ -1902,23 +2065,31 @@ async function saveCompletionPhoto(e){
   b.disabled=true;b.textContent=file?"Salvando foto...":"Concluindo...";
   try{
     if(file){
-      const blob=await fileToCompressedJpeg(file),path=id+"/final.jpg";
+      const blob=await fileToCompressedJpeg(file),path=id+"/"+currentUserId+"/final.jpg";
       const up=await sb.storage.from("completion-photos").upload(path,blob,{contentType:"image/jpeg",upsert:true,cacheControl:"3600"});
       if(up.error)throw up.error;
       const row={
         appointment_id:id,storage_path:path,uploaded_by:currentUserId,
         uploaded_by_name:$("pname").textContent||"",
-        collaborator_id:a.collaborator_id||null,captured_at:new Date().toISOString(),updated_at:new Date().toISOString()
+        collaborator_id:currentRole==="operator"?(a.actor_collaborator_id||a.collaborator_id||null):(a.collaborator_id||null),
+        captured_at:new Date().toISOString(),updated_at:new Date().toISOString()
       };
       const pr=await sb.from("appointment_completion_photos").upsert(row,{onConflict:"appointment_id"});
       if(pr.error)throw pr.error;
       currentFinishExistingPhoto=row
     }
     if(a.status!=="completed"){
-      const u=await sb.from("appointments").update({status:"completed",completed_at:new Date().toISOString()}).eq("id",id);
-      if(u.error)throw u.error
+      if(currentRole==="operator"){
+        const u=await sb.rpc("operator_complete_job",{p_appointment_id:id});
+        if(u.error)throw u.error
+      }else{
+        const u=await sb.from("appointments").update({status:"completed",completed_at:new Date().toISOString()}).eq("id",id);
+        if(u.error)throw u.error
+      }
     }
-    $("fd").close();show("msg",a.status==="completed"?"Foto final adicionada ao atendimento.":"Atendimento concluído com foto final registrada.","ok");await loadApps()
+    $("fd").close();
+    show("msg",a.status==="completed"?"Foto final adicionada ao atendimento.":"Atendimento concluído com foto final registrada.","ok");
+    if(currentRole==="operator")await loadOperatorJobs();else await loadApps()
   }catch(e){show("finishmsg",fail(e),"error")}
   finally{b.disabled=false;b.textContent=a?.status==="completed"?"Salvar foto":"Salvar foto e concluir"}
 }
