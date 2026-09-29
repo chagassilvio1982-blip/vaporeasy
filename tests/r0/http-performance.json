@@ -1,0 +1,23 @@
+{
+  "measurement": "HTTP HTML download from execution environment; not browser rendering, Android, login or calendar",
+  "samples": [
+    {
+      "sample": 1,
+      "status": 200,
+      "bytes": 308881,
+      "elapsed_ms": 8894.9
+    },
+    {
+      "sample": 2,
+      "status": 200,
+      "bytes": 308881,
+      "elapsed_ms": 8613.62
+    },
+    {
+      "sample": 3,
+      "status": 200,
+      "bytes": 308881,
+      "elapsed_ms": 6547.4
+    }
+  ]
+}
