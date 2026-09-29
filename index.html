@@ -2888,7 +2888,7 @@ async function openAppointmentDetail(id){
         (a.status!=="completed"&&a.status!=="cancelled"?'<button class="ghost" type="button" data-detail-edit="'+esc(a.id)+'">Editar agendamento</button>':'')+
       '</div>';
     $("dd").showModal();
-    const eb=$("[data-detail-edit]");
+    const eb=$("dd").querySelector("[data-detail-edit]");
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)}
   }catch(e){show("msg",fail(e),"error")}
 }
