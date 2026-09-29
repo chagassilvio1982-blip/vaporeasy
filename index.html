@@ -820,6 +820,115 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   font-size:10px;
 }
 </style>
+
+<style id="vaporeasy-operator-calendar-20260929">
+.operator-calendar-shell{
+  margin:4px 0 12px;
+  padding:10px;
+  border:1px solid #173c4f;
+  border-radius:14px;
+  background:#071923;
+}
+.operator-calendar-head{
+  display:grid;
+  grid-template-columns:40px 1fr 40px;
+  align-items:center;
+  gap:8px;
+}
+.operator-calendar-head button{min-height:38px;padding:5px}
+#opcaltitle{
+  text-align:center;
+  font-size:14px;
+  font-weight:900;
+  color:#e8f2f6;
+}
+.operator-calendar-week{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:4px;
+  margin:9px 0 5px;
+  text-align:center;
+  font-size:9px;
+  font-weight:850;
+  color:#6f8e9d;
+}
+.operator-calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:4px;
+}
+.operator-cal-empty{min-height:42px}
+.operator-cal-day{
+  position:relative;
+  min-height:42px;
+  padding:5px 2px;
+  border:1px solid #153746;
+  border-radius:9px;
+  background:#0a2230;
+  color:#b9ccd5;
+  font-size:11px;
+}
+.operator-cal-day.today{border-color:#3b7189}
+.operator-cal-day.selected{
+  background:#12445a;
+  border-color:#2db9e8;
+  color:#fff;
+}
+.operator-cal-day.has-jobs{color:#eef8fb}
+.operator-cal-day b{
+  position:absolute;
+  right:4px;
+  bottom:3px;
+  display:grid;
+  place-items:center;
+  min-width:16px;height:16px;
+  padding:0 4px;
+  border-radius:999px;
+  background:#159fcf;
+  color:#fff;
+  font-size:8.5px;
+}
+.operator-selected-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:0 0 10px;
+  padding:9px 10px;
+  border:1px solid #153746;
+  border-radius:11px;
+  background:#071923;
+}
+.operator-selected-row>div{display:grid;gap:2px;min-width:0}
+.operator-selected-row span{
+  font-size:9.5px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:#6f8d9c;
+}
+.operator-selected-row b{
+  font-size:12px;
+  text-transform:capitalize;
+}
+.operator-selected-row button{
+  flex:0 0 auto;
+  min-height:32px;
+  padding:5px 9px;
+  font-size:10px;
+}
+.operator-future-note{
+  margin-top:9px;
+  padding:7px 8px;
+  border-radius:9px;
+  background:#0a2230;
+  color:#819eac;
+  font-size:10.5px;
+}
+@media(max-width:390px){
+  .operator-cal-day{min-height:39px}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -893,10 +1002,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 <section id="ops" class="hidden">
   <div class="section-head operator-head">
-    <div><div class="title">Meus atendimentos</div><p class="sub">Somente os serviços atribuídos a você hoje.</p></div>
+    <div><div class="title">Meus atendimentos</div><p class="sub">Somente os serviços atribuídos a você.</p></div>
     <button id="oprefresh" type="button" class="ghost section-primary">Atualizar</button>
   </div>
-  <div id="opday" class="operator-day"></div>
+  <div class="operator-calendar-shell">
+    <div class="operator-calendar-head">
+      <button id="opcalprev" type="button" class="ghost">‹</button>
+      <div id="opcaltitle"></div>
+      <button id="opcalnext" type="button" class="ghost">›</button>
+    </div>
+    <div class="operator-calendar-week"><div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div></div>
+    <div id="opcalgrid" class="operator-calendar-grid"></div>
+  </div>
+  <div class="operator-selected-row">
+    <div><span>Data selecionada</span><b id="opday"></b></div>
+    <button id="optoday" type="button" class="ghost">Hoje</button>
+  </div>
   <div id="opjobs"><div class="empty">Carregando atendimentos...</div></div>
 </section>
 <section id="cad">
@@ -1152,7 +1273,7 @@ function show(id,text,type=""){const e=$(id);e.textContent=text;e.className="not
 async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeasyAppBooted=true;const ready=$("loginready");if(ready){ready.textContent="Sistema pronto";ready.classList.add("is-ready")};configureAndroidContactImport();document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo-original.svg?v=20260928-05"}});prefillLoginEmailFromUrl();restoreLoginEmail();if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}$("date").value=today();$("adt").value=today();const {data}=await sb.auth.getSession();if(data.session)await enter(data.session)}
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
- $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=loadOperatorJobs;$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
+ $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=()=>loadOperatorJobs(operatorSelectedDate,true);$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
  $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("payf").onsubmit=savePayment;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
@@ -1243,7 +1364,9 @@ async function enter(session){
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
     if(operator){
-      await loadOperatorJobs();
+      operatorSelectedDate=today();
+      operatorCalendarMonth=operatorSelectedDate.slice(0,7)+"-01";
+      await Promise.all([loadOperatorMonth(),loadOperatorJobs(operatorSelectedDate,false)]);
       tab("ops");
     }else{
       await refs();
@@ -2147,19 +2270,72 @@ function tab(x){
   $("tf").classList.toggle("active",x==="fin");
   $("tr").classList.toggle("active",x==="rep");
   $("tset").classList.toggle("active",x==="set");
-  if(x==="ops")loadOperatorJobs();
+  if(x==="ops"){loadOperatorMonth();loadOperatorJobs(operatorSelectedDate,false)}
   if(x==="age"){agendaCalendarMonth=calendarMonthFromDate($("date").value||today());loadApps()}
   if(x==="fin"){if(!$("fmonth").value)$("fmonth").value=today().slice(0,7);loadFinance()}
   if(x==="rep"){setDefaultReportDates();loadManagementReport()}
   if(x==="set")loadOperationalSettings()
 }
-async function loadOperatorJobs(){
+let operatorSelectedDate=today();
+let operatorCalendarMonth=operatorSelectedDate.slice(0,7)+"-01";
+let operatorMonthCounts=new Map();
+
+function operatorDateLabel(iso){
+  const [y,m,d]=iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"long"}).format(new Date(y,m-1,d))
+}
+function operatorMonthTitle(iso){
+  const [y,m]=iso.split("-").map(Number);
+  const s=new Intl.DateTimeFormat("pt-BR",{month:"long",year:"numeric"}).format(new Date(y,m-1,1));
+  return s.charAt(0).toUpperCase()+s.slice(1)
+}
+function shiftOperatorMonth(delta){
+  const [y,m]=operatorCalendarMonth.split("-").map(Number);
+  const d=new Date(y,m-1+delta,1);
+  operatorCalendarMonth=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-01";
+  loadOperatorMonth()
+}
+async function selectOperatorDate(iso){
+  operatorSelectedDate=iso;
+  operatorCalendarMonth=iso.slice(0,7)+"-01";
+  await Promise.all([loadOperatorMonth(),loadOperatorJobs(iso,false)])
+}
+async function loadOperatorMonth(){
   if(currentRole!=="operator")return;
+  $("opcaltitle").textContent=operatorMonthTitle(operatorCalendarMonth);
+  const r=await sb.rpc("operator_month_counts",{p_month:operatorCalendarMonth});
+  if(r.error){
+    operatorMonthCounts=new Map();
+    renderOperatorCalendar();
+    return
+  }
+  operatorMonthCounts=new Map((r.data||[]).map(x=>[String(x.service_date),Number(x.job_count||0)]));
+  renderOperatorCalendar()
+}
+function renderOperatorCalendar(){
+  const grid=$("opcalgrid");
+  const [y,m]=operatorCalendarMonth.split("-").map(Number);
+  const first=new Date(y,m-1,1),days=new Date(y,m,0).getDate(),offset=first.getDay(),cells=[];
+  for(let i=0;i<offset;i++)cells.push('<div class="operator-cal-empty"></div>');
+  for(let d=1;d<=days;d++){
+    const iso=y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0"),count=operatorMonthCounts.get(iso)||0;
+    const cls=["operator-cal-day"];
+    if(iso===operatorSelectedDate)cls.push("selected");
+    if(iso===today())cls.push("today");
+    if(count>0)cls.push("has-jobs");
+    cells.push('<button type="button" class="'+cls.join(" ")+'" data-op-date="'+iso+'"><span>'+d+'</span>'+(count?'<b>'+count+'</b>':'')+'</button>')
+  }
+  grid.innerHTML=cells.join("");
+  grid.querySelectorAll("[data-op-date]").forEach(b=>b.onclick=()=>selectOperatorDate(b.dataset.opDate))
+}
+async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
+  if(currentRole!=="operator")return;
+  operatorSelectedDate=date||today();
+  $("opday").textContent=operatorDateLabel(operatorSelectedDate);
   const box=$("opjobs");
-  const now=new Date();
-  $("opday").textContent=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"long"}).format(now);
   box.innerHTML='<div class="empty">Atualizando...</div>';
-  const r=await sb.rpc("operator_today_jobs");
+  if(refreshMonth)await loadOperatorMonth();
+  const r=await sb.rpc("operator_jobs_for_date",{p_date:operatorSelectedDate});
   if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}
   const rows=r.data||[];
   currentApps=rows.map(x=>({
@@ -2182,16 +2358,20 @@ async function loadOperatorJobs(){
     service_name:x.service_name||"Serviço",
     has_completion_photo:!!x.has_completion_photo
   }));
+  const isToday=operatorSelectedDate===today();
   const active=currentApps.filter(x=>x.status!=="completed"),done=currentApps.filter(x=>x.status==="completed");
   const card=x=>{
-    const action=x.status==="in_progress"
-      ?'<button class="success operator-main-action" type="button" data-op-finish="'+x.id+'">Concluir serviço</button>'
-      :'<button class="primary operator-main-action" type="button" data-op-start="'+x.id+'">Iniciar serviço</button>';
-    const rg='<button class="ghost operator-rg-action" type="button" data-op-rg="'+x.id+'">📷 RG do veículo</button>';
-    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+'<div class="operator-job-actions">'+rg+(x.status!=="completed"?action:"")+'</div></div>'
+    const action=isToday
+      ?(x.status==="in_progress"
+        ?'<button class="success operator-main-action" type="button" data-op-finish="'+x.id+'">Concluir serviço</button>'
+        :'<button class="primary operator-main-action" type="button" data-op-start="'+x.id+'">Iniciar serviço</button>')
+      :"";
+    const rg=isToday?'<button class="ghost operator-rg-action" type="button" data-op-rg="'+x.id+'">📷 RG do veículo</button>':"";
+    const info=!isToday?'<div class="operator-future-note">Atendimento programado para esta data.</div>':"";
+    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
   };
-  let out=active.length?active.map(card).join(""):'<div class="empty">Nenhum atendimento atribuído a você neste momento.</div>';
-  if(done.length)out+='<details class="operator-completed"><summary>Concluídos hoje ('+done.length+')</summary><div>'+done.map(card).join("")+'</div></details>';
+  let out=active.length?active.map(card).join(""):'<div class="empty">Nenhum atendimento atribuído a você nesta data.</div>';
+  if(done.length)out+='<details class="operator-completed"><summary>Concluídos ('+done.length+')</summary><div>'+done.map(card).join("")+'</div></details>';
   box.innerHTML=out;
   box.querySelectorAll("[data-op-start]").forEach(b=>b.onclick=()=>operatorStartJob(b.dataset.opStart));
   box.querySelectorAll("[data-op-finish]").forEach(b=>b.onclick=()=>openCompletion(b.dataset.opFinish));
