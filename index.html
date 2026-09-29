@@ -127,7 +127,7 @@ dialog::backdrop{background:rgba(0,0,0,.72)}@media(max-width:470px){.receipt-gri
 <section id="auth" class="login">
 <div class="card"><img data-brand-logo class="brand-logo brand-logo-login" src="/vaporeasy-logo-original.svg?v=20260928-05" loading="eager" decoding="sync" alt="Vaporeasy"><p class="sub">Ambiente de homologação separado da produção.</p><div id="amsg" class="notice hidden"></div>
 <h3 style="margin:2px 0 4px">Acesso Vaporeasy</h3>
-<form id="af" class="stack" autocomplete="on" novalidate><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<div class="password-wrap"><input id="pass" name="password" type="password" autocomplete="current-password" required><button id="passtoggle" class="password-toggle" type="button" aria-label="Mostrar senha">Mostrar</button></div></label><button id="ab" class="primary" type="submit">Entrar no Vaporeasy</button></form><div id="loginready" class="login-ready">Carregando sistema...</div><div class="meta" style="text-align:center;margin-top:6px">V2 STAGING · build 2026.09.28-09</div>
+<form id="af" class="stack" autocomplete="on" novalidate><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<div class="password-wrap"><input id="pass" name="password" type="password" autocomplete="current-password" required><button id="passtoggle" class="password-toggle" type="button" aria-label="Mostrar senha">Mostrar</button></div></label><button id="ab" class="primary" type="submit">Entrar no Vaporeasy</button></form><div id="loginready" class="login-ready">Carregando sistema...</div><div class="meta" style="text-align:center;margin-top:6px">V2 STAGING · build 2026.09.28-10</div>
 </div></section>
 <section id="main" class="hidden">
 <div class="tabs"><button id="tc" class="ghost active">Cadastro</button><button id="ta" class="ghost">Agenda</button><button id="tf" class="ghost hidden">Financeiro</button><button id="tr" class="ghost hidden">Relatórios</button><button id="tset" class="ghost hidden">Configurações</button><button id="out" class="ghost">Sair</button></div>
@@ -304,13 +304,8 @@ dialog::backdrop{background:rgba(0,0,0,.72)}@media(max-width:470px){.receipt-gri
   },5000);
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2.109.0/dist/umd/supabase.js"></script>
-<script>
-if(!window.supabase){
-  document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.109.0/dist/umd/supabase.js"><\\/script>');
-}
-</script>
+<script src="/api/vendor?lib=jspdf&v=20260928-10"></script>
+<script src="/api/vendor?lib=supabase&v=20260928-10"></script>
 <script>
 if(!window.supabase){
   const m=document.getElementById("amsg");
