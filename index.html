@@ -353,6 +353,117 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   #calgrid button{min-height:38px}
 }
 </style>
+
+<style id="vaporeasy-ux-level2-20260929">
+.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:11px}
+.section-head>div{min-width:0;flex:1}
+.section-head .sub{margin-bottom:0}
+.section-primary{flex:0 0 auto;min-width:116px}
+.section-search{margin-bottom:9px}
+.section-tools,.compact-tools,.settings-group{
+  border:1px solid #173849;
+  border-radius:12px;
+  background:#071923;
+}
+.section-tools{margin-bottom:11px}
+.section-tools>summary,.compact-tools>summary,.settings-group>summary{
+  list-style:none;
+  cursor:pointer;
+  user-select:none;
+}
+.section-tools>summary::-webkit-details-marker,.compact-tools>summary::-webkit-details-marker,.settings-group>summary::-webkit-details-marker{display:none}
+.section-tools>summary{
+  padding:9px 11px;
+  color:#a9bec9;
+  font-size:11px;
+  font-weight:850;
+}
+.section-tools>summary::after,.compact-tools>summary::after,.settings-group>summary::after{
+  content:"›";
+  float:right;
+  transform:rotate(90deg);
+  transition:transform .16s ease;
+  color:#7595a5;
+  font-size:18px;
+  line-height:.7;
+}
+.section-tools[open]>summary::after,.compact-tools[open]>summary::after,.settings-group[open]>summary::after{transform:rotate(-90deg)}
+.tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0 9px 9px}
+.tool-hint{padding:0 10px 10px}
+.agenda-toolbar,.finance-toolbar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:end;
+  margin-bottom:10px;
+}
+.compact-tools{position:relative}
+.compact-tools>summary{
+  min-width:110px;
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:9px 10px;
+  color:#d8e8ef;
+  font-size:11px;
+  font-weight:850;
+}
+.compact-tools[open]>button{margin:0 8px 8px;width:calc(100% - 16px)}
+.calendar-shell{overflow:hidden}
+.calendar-head{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:8px}
+#caltitle{text-align:center;font-weight:900;font-size:16px}
+.calendar-week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:9px;text-align:center;font-size:9.5px;font-weight:850;color:#7693a2;letter-spacing:.03em}
+.list-caption{margin:1px 0 8px;color:#9db2bd;font-size:10.5px;font-weight:850;text-transform:uppercase;letter-spacing:.06em}
+.finance-toolbar button{min-height:42px}
+.kpi-grid .item{margin:0;padding:11px}
+.kpi-grid .time{font-size:17px;line-height:1.25;margin-top:3px}
+#fin>details{
+  border:1px solid #173849;
+  border-radius:12px;
+  background:#071923;
+  padding:0;
+  overflow:hidden;
+}
+#fin>details+details{margin-top:8px!important}
+#fin>details>summary{
+  padding:10px 11px;
+  cursor:pointer;
+  font-size:11.5px;
+  font-weight:850!important;
+}
+#fin>details>div{padding:0 9px 9px;margin-top:0!important}
+.settings-list{display:grid;gap:8px}
+.settings-group{overflow:hidden}
+.settings-group>summary{padding:11px 12px}
+.settings-group>summary span{display:inline-grid;gap:2px}
+.settings-group>summary b{font-size:13px;color:#eaf4f8}
+.settings-group>summary small{font-size:10.5px;font-weight:600;color:#7f9aa8}
+.settings-body{
+  margin-top:0!important;
+  padding:0 10px 11px;
+  border-top:1px solid #102f3e;
+  padding-top:10px;
+}
+.settings-body>.primary:first-child{justify-self:start}
+@media(max-width:470px){
+  .section-head{align-items:center}
+  .section-primary{min-width:auto;white-space:nowrap}
+  .tool-grid{grid-template-columns:1fr 1fr}
+  .agenda-toolbar,.finance-toolbar{grid-template-columns:minmax(0,1fr) auto}
+  .compact-tools>summary{min-width:104px}
+  .kpi-grid{gap:7px!important}
+  .kpi-grid .item{padding:9px}
+  .kpi-grid .time{font-size:15.5px}
+}
+@media(max-width:360px){
+  .section-head{display:grid;grid-template-columns:1fr}
+  .section-primary{width:100%}
+  .agenda-toolbar,.finance-toolbar{grid-template-columns:1fr}
+  .compact-tools,.finance-toolbar button{width:100%}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -424,11 +535,51 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div id="watertotal" style="font-size:28px;font-weight:950;color:#73d6fb;margin-top:4px">—</div>
   <div id="waterdetail" class="meta" style="margin-top:5px">Atualizando contador...</div>
 </div>
-<section id="cad"><div class="title">Cadastro</div><p class="sub">Cliente e veículo usando o novo banco do staging.</p><div class="actions" style="margin-bottom:10px"><button id="nc" class="primary">+ Cliente</button><button id="importcontacts" class="ghost hidden" type="button">📱 Importar contatos</button><button id="collabsbtn" class="ghost hidden">Colaboradores</button><button id="teamsbtn" class="ghost hidden">Equipes</button><button id="rc" class="ghost">Atualizar</button></div><div id="contactimporthint" class="meta hidden" style="margin:-2px 0 10px">Android: selecione contatos do telefone, revise e importe somente os clientes desejados.</div><input id="q" placeholder="Buscar cliente"><div id="clients"></div></section>
-<section id="age" class="hidden"><div class="title">Agenda</div><p class="sub">Duplicidade e sobreposição bloqueadas no banco.</p><div class="row"><label>Data<input id="date" type="date"></label><div class="stack"><label>&nbsp;<button id="na" class="primary">+ Agendamento</button></label><button id="gl" class="ghost" type="button">Gerar link público</button></div></div><div id="monthcal" style="margin:14px 0 18px;padding:12px;border:1px solid #20495d;border-radius:16px;background:#0d2632"><div style="display:grid;grid-template-columns:46px 1fr 46px;align-items:center;gap:8px"><button id="calprev" type="button" class="ghost" style="padding:9px 0">‹</button><div id="caltitle" style="text-align:center;font-weight:900;font-size:18px"></div><button id="calnext" type="button" class="ghost" style="padding:9px 0">›</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px;text-align:center;font-size:11px;font-weight:800;color:#8fa9b6"><div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div></div><div id="calgrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:5px"></div><div class="meta" style="margin-top:9px">O número em cada dia mostra os atendimentos do dia. Cancelados não entram na contagem.</div></div><div id="apps"></div></section>
-<section id="fin" class="hidden"><div class="title">Financeiro</div><p class="sub">Valores calculados diretamente dos serviços concluídos, recebimentos confirmados e despesas registradas.</p>
-<div class="row"><label>Mês<input id="fmonth" type="month"></label><div class="stack"><label>&nbsp;<button id="fnewexp" type="button" class="primary">+ Despesa</button></label><button id="frefresh" type="button" class="ghost">Atualizar</button></div></div>
-<div id="fsummary" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0">
+<section id="cad">
+  <div class="section-head">
+    <div><div class="title">Clientes</div><p class="sub">Clientes, veículos e histórico em um só lugar.</p></div>
+    <button id="nc" class="primary section-primary">+ Cliente</button>
+  </div>
+  <input id="q" class="section-search" placeholder="Buscar por cliente, veículo ou placa">
+  <details class="section-tools">
+    <summary>Ferramentas de cadastro</summary>
+    <div class="tool-grid">
+      <button id="importcontacts" class="ghost hidden" type="button">📱 Importar contatos</button>
+      <button id="collabsbtn" class="ghost hidden">Colaboradores</button>
+      <button id="teamsbtn" class="ghost hidden">Equipes</button>
+      <button id="rc" class="ghost">Atualizar lista</button>
+    </div>
+    <div id="contactimporthint" class="meta hidden tool-hint">Android: selecione contatos do telefone, revise e importe somente os clientes desejados.</div>
+  </details>
+  <div id="clients"></div>
+</section>
+<section id="age" class="hidden">
+  <div class="section-head">
+    <div><div class="title">Agenda</div><p class="sub">Organize o dia e abra os detalhes somente quando precisar.</p></div>
+    <button id="na" class="primary section-primary">+ Agendamento</button>
+  </div>
+  <div class="agenda-toolbar">
+    <label>Dia selecionado<input id="date" type="date"></label>
+    <details class="compact-tools">
+      <summary>Mais opções</summary>
+      <button id="gl" class="ghost" type="button">Gerar link público</button>
+    </details>
+  </div>
+  <div id="monthcal" class="calendar-shell" style="margin:14px 0 18px;padding:12px;border:1px solid #20495d;border-radius:16px;background:#0d2632">
+    <div class="calendar-head"><button id="calprev" type="button" class="ghost" style="padding:9px 0">‹</button><div id="caltitle"></div><button id="calnext" type="button" class="ghost" style="padding:9px 0">›</button></div>
+    <div class="calendar-week"><div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div></div>
+    <div id="calgrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:5px"></div>
+  </div>
+  <div class="list-caption">Atendimentos do dia</div>
+  <div id="apps"></div>
+</section>
+<section id="fin" class="hidden">
+<div class="section-head">
+  <div><div class="title">Financeiro</div><p class="sub">Visão mensal de caixa, recebimentos e pendências.</p></div>
+  <button id="fnewexp" type="button" class="primary section-primary">+ Despesa</button>
+</div>
+<div class="finance-toolbar"><label>Mês<input id="fmonth" type="month"></label><button id="frefresh" type="button" class="ghost">Atualizar</button></div>
+<div id="fsummary" class="kpi-grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0">
   <div class="item"><div class="meta">Faturado no mês</div><div id="ffaturado" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">Recebido no mês</div><div id="frecebido" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">A receber</div><div id="fareceber" class="time">R$ 0,00</div></div>
@@ -455,11 +606,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Produtividade por equipe / responsável</summary><div id="rcollabs" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 <details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Recorrências ativas</summary><div id="rrecurrence" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 </section>
-<section id="set" class="hidden"><div class="title">Configurações</div><p class="sub">Parâmetros operacionais usados pela Agenda, agendamento público, financeiro e recibos.</p>
-<details open><summary style="cursor:pointer;font-weight:900">Serviços</summary><div class="stack" style="margin-top:10px"><button id="setnewservice" type="button" class="primary">+ Novo serviço</button><div id="setservices"><div class="empty">Carregando...</div></div></div></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Extras</summary><div class="stack" style="margin-top:10px"><button id="setnewaddon" type="button" class="primary">+ Novo extra</button><div id="setaddons"><div class="empty">Carregando...</div></div></div></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Horários e capacidade</summary><form id="setschedulef" class="stack" style="margin-top:10px"><div class="row"><label>Início do expediente<input id="setstart" type="time" required></label><label>Fim do expediente<input id="setend" type="time" required></label></div><label>Intervalo da grade (minutos)<input id="setinterval" type="number" min="5" step="5" required></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="setsameday" type="checkbox" style="width:22px;min-height:22px">Por padrão, permitir agendamento público para o mesmo dia</label><div id="setweek"></div><button class="primary">Salvar horários e dias</button></form></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Pagamento / Pix</summary><form id="setpayf" class="stack" style="margin-top:10px"><label>Nome da empresa<input id="setbiz"></label><label>Favorecido<input id="setholder" required></label><div class="row"><label>Banco<input id="setbank"></label><label>Agência<input id="setbranch"></label></div><label>Conta<input id="setaccount"></label><div class="row"><label>Chave Pix<input id="setpix"></label><label>Tipo da chave<input id="setpixtype" placeholder="E-mail, CPF, telefone..."></label></div><label>Rodapé dos recibos<textarea id="setfooter"></textarea></label><button class="primary">Salvar dados de pagamento</button></form></details>
+<section id="set" class="hidden">
+  <div class="title">Configurações</div>
+  <p class="sub">Abra somente o grupo que deseja alterar.</p>
+  <div class="settings-list">
+    <details class="settings-group"><summary><span><b>Serviços</b><small>Preços, duração e disponibilidade</small></span></summary><div class="stack settings-body"><button id="setnewservice" type="button" class="primary">+ Novo serviço</button><div id="setservices"><div class="empty">Carregando...</div></div></div></details>
+    <details class="settings-group"><summary><span><b>Extras</b><small>Adicionais oferecidos nos atendimentos</small></span></summary><div class="stack settings-body"><button id="setnewaddon" type="button" class="primary">+ Novo extra</button><div id="setaddons"><div class="empty">Carregando...</div></div></div></details>
+    <details class="settings-group"><summary><span><b>Horários e capacidade</b><small>Expediente, grade e dias disponíveis</small></span></summary><form id="setschedulef" class="stack settings-body"><div class="row"><label>Início do expediente<input id="setstart" type="time" required></label><label>Fim do expediente<input id="setend" type="time" required></label></div><label>Intervalo da grade (minutos)<input id="setinterval" type="number" min="5" step="5" required></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="setsameday" type="checkbox" style="width:22px;min-height:22px">Permitir agendamento público para o mesmo dia</label><div id="setweek"></div><button class="primary">Salvar horários e dias</button></form></details>
+    <details class="settings-group"><summary><span><b>Pagamento e Pix</b><small>Dados exibidos em cobranças e recibos</small></span></summary><form id="setpayf" class="stack settings-body"><label>Nome da empresa<input id="setbiz"></label><label>Favorecido<input id="setholder" required></label><div class="row"><label>Banco<input id="setbank"></label><label>Agência<input id="setbranch"></label></div><label>Conta<input id="setaccount"></label><div class="row"><label>Chave Pix<input id="setpix"></label><label>Tipo da chave<input id="setpixtype" placeholder="E-mail, CPF, telefone..."></label></div><label>Rodapé dos recibos<textarea id="setfooter"></textarea></label><button class="primary">Salvar dados de pagamento</button></form></details>
+  </div>
 </section>
 </section>
 </main>
