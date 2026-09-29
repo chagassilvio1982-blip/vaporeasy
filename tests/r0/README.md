@@ -52,9 +52,10 @@ Mede rede + resposta + transferência, não renderização, Android ou tempo de 
 
 O navegador abriu sem sessão; os testes autenticados dependem de login seguro. Nenhuma senha deve ser enviada no chat.
 
+Atualização: a solicitação segura de credenciais foi submetida. A UI retornou `Invalid login credentials` e permaneceu na tela de acesso. O teste de rejeição de credenciais foi observado; login válido e os fluxos autenticados permanecem bloqueados. Não foi inferida falha do formulário, nem feito reset de senha ou nova tentativa automática.
+
 ## Reprodução
 Executar payment-calculation.cjs com Node (sem dependências adicionais).
 Os arquivos SQL são testes de caracterização, NÃO migrações. Usar apenas execute_sql com project_id asuppjeomaymzromgcrp. Nunca executar em produção.
 Antes de repetir completion-payment.sql, verificar novamente os gatilhos e a segurança do rollback. Não retirar o bloco de exceção que desfaz a fixture.
 database-results.json conserva as respostas da execução bem-sucedida.
-
