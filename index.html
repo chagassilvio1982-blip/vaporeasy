@@ -2056,8 +2056,8 @@ async function archiveVehicle(cid,id){
   try{
     if(await hasFutureActiveAppointment({vehicle_id:id}))return show("msg","Este veículo possui agendamento futuro ativo. Cancele ou remaneje o agendamento antes de excluir o veículo.","error");
     if(!confirm('Excluir '+(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"este veículo")+'?\n\nO veículo sairá do cadastro e de novos agendamentos. O histórico de serviços, fotos e recibos será preservado.'))return;
-    const r=await sb.from("vehicles").update({archived_at:new Date().toISOString()}).eq("id",id);if(r.error)throw r.error;
-    vehicles.set(cid,list.filter(x=>x.id!==id));show("msg","Veículo excluído do cadastro. Histórico preservado.","ok");
+    const r=await sb.rpc("archive_vehicle_safe",{p_vehicle_id:id});if(r.error)throw r.error;
+    vehicles.set(cid,list.filter(x=>x.id!==id));show("msg","Veículo excluído do cadastro. Histórico preservado e recorrência encerrada.","ok");
     const box=$("v-"+cid);if(box){box.classList.add("hidden");await showVehicles(cid)}
   }catch(e){show("msg",fail(e),"error")}
 }
