@@ -1,0 +1,149 @@
+/* V2 UX readability pass — staging only.
+   Objective: make actions visible, readable and touch-friendly without changing permissions or business rules. */
+
+body{
+  font-size:16px;
+  line-height:1.45;
+}
+.title{
+  font-size:28px;
+  line-height:1.15;
+}
+.sub{
+  font-size:14px;
+  line-height:1.5;
+  color:#b3c8d3;
+}
+.meta{
+  font-size:13.5px;
+  line-height:1.55;
+}
+.item h3{
+  font-size:17px;
+  line-height:1.35;
+}
+label{
+  gap:7px;
+  font-size:13px;
+  line-height:1.35;
+  color:#c2d2da;
+}
+input,select,textarea{
+  min-height:50px;
+  padding:11px 12px;
+  font-size:16px;
+}
+textarea{min-height:84px}
+button{
+  min-height:48px;
+  padding:10px 14px;
+  font-size:15px;
+  line-height:1.25;
+}
+.section-primary{
+  min-height:50px;
+  font-size:15px;
+}
+.list-caption{
+  font-size:13px;
+  letter-spacing:.045em;
+  color:#b2c6d0;
+}
+.pill{
+  padding:5px 9px;
+  font-size:12px;
+}
+
+/* Collapsed areas must look like real, discoverable controls. */
+details>summary{
+  min-height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px 13px!important;
+  font-size:15px!important;
+  line-height:1.35;
+  font-weight:850!important;
+  color:#eef7fb!important;
+  background:#0d2a39;
+  cursor:pointer;
+  user-select:none;
+}
+details[open]>summary{
+  background:#12394b;
+}
+.section-tools>summary,
+.compact-tools>summary{
+  color:#eef7fb!important;
+}
+.compact-tools>summary{
+  min-width:145px;
+}
+#fin>details>summary{
+  font-size:15px!important;
+}
+.settings-group>summary b{
+  font-size:15px;
+}
+.settings-group>summary small{
+  margin-top:2px;
+  font-size:12.5px;
+  line-height:1.35;
+  color:#adc0ca;
+}
+
+/* Make the main paths unmistakable. */
+#main-menu-current{
+  font-size:1.1rem;
+  font-weight:800;
+}
+#main-menu-dialog .tabs button{
+  min-height:58px;
+  padding:15px 16px;
+  font-size:1.08rem;
+}
+#main-menu-title{
+  font-size:1.35rem;
+}
+
+/* Calendar and agenda legibility. */
+.calendar-week,
+.operator-calendar-week{
+  font-size:11px;
+}
+#caltitle,
+#listtitle,
+#opcaltitle{
+  font-size:17px;
+}
+.time{
+  font-size:22px;
+}
+
+@media(max-width:470px){
+  body{font-size:16px}
+  .title{font-size:25px}
+  .sub{font-size:14px}
+  .section-head{
+    align-items:flex-start;
+  }
+  .section-primary{
+    min-height:48px;
+  }
+  .agenda-toolbar,
+  .finance-toolbar{
+    grid-template-columns:1fr;
+  }
+  .compact-tools,
+  .compact-tools>summary,
+  .finance-toolbar button{
+    width:100%;
+  }
+  .tool-grid{
+    grid-template-columns:1fr;
+  }
+  .kpi-grid .time{
+    font-size:18px;
+  }
+}
