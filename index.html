@@ -3781,11 +3781,49 @@ async function generateReceiptPdf(){
     show("msg","PDF salvo como arquivo. Envie-o pelo WhatsApp como documento.","ok")
   }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error")}
 }
+let cancelScopeResolver=null;
+function ensureCancelScopeDialog(){
+  if($("cancelScopeDialog"))return;
+  const d=document.createElement("dialog");
+  d.id="cancelScopeDialog";
+  d.innerHTML='<div class="stack" style="min-width:min(460px,86vw)"><h3 style="margin:4px 0">Cancelar agendamento recorrente</h3><div id="cancelScopeText" class="notice"></div><button id="cancelScopeSingle" type="button" class="danger">Cancelar só este agendamento</button><button id="cancelScopeSeries" type="button" class="danger">Cancelar recorrência a partir daqui</button><button id="cancelScopeBack" type="button" class="ghost">Voltar</button></div>';
+  document.body.appendChild(d);
+  $("cancelScopeSingle").onclick=()=>resolveCancelScope("single");
+  $("cancelScopeSeries").onclick=()=>resolveCancelScope("series");
+  $("cancelScopeBack").onclick=()=>resolveCancelScope(null);
+  d.addEventListener("cancel",e=>{e.preventDefault();resolveCancelScope(null)})
+}
+function resolveCancelScope(scope){
+  const d=$("cancelScopeDialog");
+  if(d?.open)d.close();
+  const r=cancelScopeResolver;
+  cancelScopeResolver=null;
+  if(r)r(scope)
+}
+function chooseCancelScope(x){
+  if(!x?.recurring_plan_id){
+    return Promise.resolve(confirm("Cancelar este agendamento?\n\nEle será mantido no histórico como Cancelado.")?"single":null)
+  }
+  ensureCancelScopeDialog();
+  $("cancelScopeText").textContent="Este atendimento faz parte de uma recorrência. Escolha se deseja cancelar apenas este dia ou encerrar a recorrência a partir desta ocorrência.";
+  $("cancelScopeDialog").showModal();
+  return new Promise(resolve=>{cancelScopeResolver=resolve})
+}
+async function cancelAppointmentAction(x){
+  const scope=await chooseCancelScope(x);
+  if(!scope)return;
+  const r=await sb.rpc("cancel_appointment_with_scope",{p_appointment_id:x.id,p_scope:scope});
+  if(r.error)return show("msg",fail(r.error),"error");
+  agendaMonthCache.clear();
+  show("msg",scope==="series"?"Agendamento cancelado e recorrência encerrada a partir desta data.":"Agendamento cancelado; as próximas recorrências foram mantidas.","ok");
+  await loadApps()
+}
+
 async function loadApps(){
   const req=++agendaLoadSeq,d=$("date").value||today();
   const a=new Date(d+"T00:00:00-03:00").toISOString(),z=new Date(d+"T23:59:59.999-03:00").toISOString();
   void loadMonthCalendar(false);
-  const r=await sb.from("appointments").select("id,client_id,vehicle_id,service_id,team_id,collaborator_id,starts_at,ends_at,duration_minutes,status,source,final_value,addon_value,notes,completed_at,cancelled_at").gte("starts_at",a).lte("starts_at",z).is("deleted_at",null).order("starts_at");
+  const r=await sb.from("appointments").select("id,client_id,vehicle_id,service_id,team_id,collaborator_id,recurring_plan_id,starts_at,ends_at,duration_minutes,status,source,final_value,addon_value,notes,completed_at,cancelled_at").gte("starts_at",a).lte("starts_at",z).is("deleted_at",null).order("starts_at");
   if(req!==agendaLoadSeq)return;
   if(r.error)return show("msg",fail(r.error),"error");
   currentApps=r.data||[];
@@ -3833,9 +3871,13 @@ async function loadApps(){
   document.querySelectorAll("[data-finish]").forEach(b=>b.onclick=e=>{e.stopPropagation();openCompletion(b.dataset.finish)});
   document.querySelectorAll("[data-st]").forEach(b=>b.onclick=async e=>{
     e.stopPropagation();
+    if(b.dataset.st==="cancelled"){
+      const x=currentApps.find(a=>String(a.id)===String(b.dataset.id));
+      if(x)await cancelAppointmentAction(x);
+      return
+    }
     let p={status:b.dataset.st};
     if(b.dataset.st==="completed")p.completed_at=new Date().toISOString();
-    if(b.dataset.st==="cancelled")p.cancelled_at=new Date().toISOString();
     let u=await sb.from("appointments").update(p).eq("id",b.dataset.id);
     if(u.error)return show("msg",fail(u.error),"error");
     agendaMonthCache.clear();
