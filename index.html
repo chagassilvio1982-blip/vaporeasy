@@ -1106,6 +1106,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 </style>
 <style id="vaporeasy-recurring-multi-20260929"></style>
+<link rel="stylesheet" href="/main-menu.css?v=20261001">
 </head>
 <body>
 <div class="app">
@@ -1170,7 +1171,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <form id="af" class="stack" autocomplete="on" novalidate><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<div class="password-wrap"><input id="pass" name="password" type="password" autocomplete="current-password" required><button id="passtoggle" class="password-toggle" type="button" aria-label="Mostrar senha">Mostrar</button></div></label><button id="ab" class="primary" type="submit">Entrar no Vaporeasy</button></form><div id="loginready" class="login-ready">Carregando sistema...</div><div class="meta" style="text-align:center;margin-top:6px">V2 STAGING · build 2026.09.28-11</div>
 </div></section>
 <section id="main" class="hidden">
-<div class="tabs"><button id="top" class="ghost hidden">Operação</button><button id="tc" class="ghost active">Cadastro</button><button id="ta" class="ghost">Agenda</button><button id="tf" class="ghost hidden">Financeiro</button><button id="tr" class="ghost hidden">Relatórios</button><button id="tset" class="ghost hidden">Configurações</button><button id="out" class="ghost">Sair</button></div>
+<div class="main-menu-bar"><button id="main-menu-toggle" class="ghost" type="button" aria-haspopup="dialog" aria-controls="main-menu-dialog" aria-expanded="false"><span aria-hidden="true">☰</span> Menu</button><span id="main-menu-current" aria-live="polite">Cadastro</span></div>
+<dialog id="main-menu-dialog" aria-labelledby="main-menu-title"><div class="main-menu-heading"><h2 id="main-menu-title">Menu</h2><button id="main-menu-close" class="ghost" type="button" aria-label="Fechar menu">Fechar</button></div>
+<nav class="tabs" aria-label="Navegação principal"><button id="top" class="ghost hidden">Operação</button><button id="tc" class="ghost active">Cadastro</button><button id="ta" class="ghost">Agenda</button><button id="tf" class="ghost hidden">Financeiro</button><button id="tr" class="ghost hidden">Relatórios</button><button id="tset" class="ghost hidden">Configurações</button><button id="out" class="ghost">Sair</button></nav></dialog>
 <div id="msg" class="notice hidden"></div>
 <div id="watercard" class="card" style="margin-bottom:14px;background:linear-gradient(145deg,#0b3043,#10465e);border-color:#1d607c">
   <div class="meta" style="font-weight:900;letter-spacing:.4px">ECONOMIA ESTIMADA DE ÁGUA</div>
@@ -3844,4 +3847,5 @@ async function loadApps(){
 
 boot();
 </script>
+<script src="/main-menu.js?v=20261001"></script>
 </body></html>
