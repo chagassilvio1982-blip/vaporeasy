@@ -3173,7 +3173,7 @@ async function fillVehicles(cid){
   if(!$("aid").value)renderMultiVehiclePicker(list)
 }
 function spDateTime(iso){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(iso)),g=t=>p.find(x=>x.type===t)?.value||"";return{date:g("year")+"-"+g("month")+"-"+g("day"),time:g("hour")+":"+g("minute")}}
-async function openAppt(){try{$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";show("apmsg","");await refs();fillSelects();setApptVehicleMode(false);clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículos e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Selecione um ou mais veículos, serviço e data.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
+async function openAppt(){try{window.__appointmentIdempotencyKey=crypto.randomUUID();window.__appointmentSaveInFlight=false;$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";show("apmsg","");await refs();fillSelects();setApptVehicleMode(false);clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículos e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Selecione um ou mais veículos, serviço e data.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
 async function openAppointmentDetail(id){
   try{
     const a=currentApps.find(x=>x.id===id);
@@ -3226,10 +3226,12 @@ async function openAppointmentDetail(id){
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)}
   }catch(e){show("msg",fail(e),"error")}
 }
-async function openEditAppt(id){try{const x=currentApps.find(a=>a.id===id);if(!x)throw Error("Agendamento não encontrado.");$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
+async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;const x=currentApps.find(a=>a.id===id);if(!x)throw Error("Agendamento não encontrado.");$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
 async function saveAppt(e){
   e.preventDefault();
-  const b=$("apsave"),id=$("aid").value,clientId=$("ac").value,vehicleIds=selectedBatchVehicleIds(),serviceId=$("as").value,date=$("adt").value,time=$("atm").value;
+  if(window.__appointmentSaveInFlight)return;
+  const b=$("apsave"),id=$("aid").value,clientId=$("ac").value,vehicleIds=selectedBatchVehicleIds(),serviceId=$("as").value,date=$("adt").value,time=$("atm").value,
+    requestKey=id?"":(window.__appointmentIdempotencyKey||(window.__appointmentIdempotencyKey=crypto.randomUUID()));
   show("apmsg","");
   if(!clientId)return show("apmsg","Selecione o cliente.","error");
   if(!vehicleIds.length)return show("apmsg","Selecione pelo menos um veículo.","error");
@@ -3239,6 +3241,7 @@ async function saveAppt(e){
   const s=services.find(x=>x.id===serviceId);
   if(!s)return show("apmsg","Serviço inválido. Feche e abra o agendamento novamente.","error");
   const assignment=selectedAssignment();
+  window.__appointmentSaveInFlight=true;
   b.disabled=true;b.textContent=id?"Salvando...":"Agendando...";
   try{
     if(id){
@@ -3259,7 +3262,7 @@ async function saveAppt(e){
         p_team_id:assignment.team_id,
         p_collaborator_id:assignment.collaborator_id,
         p_notes:$("an").value.trim(),
-        p_idempotency_key:crypto.randomUUID()
+        p_idempotency_key:requestKey
       });
       if(r.error)throw r.error;
       const result=r.data||{},weekly=Number(result.weekly_count||0),biweekly=Number(result.biweekly_count||0);
@@ -3270,12 +3273,13 @@ async function saveAppt(e){
       if(rp.length)msg+=" Recorrência ativa: "+rp.join(" e ")+" — até você alterar.";
       window.__lastAppointmentSaveMessage=msg
     }
+    if(!id)window.__appointmentIdempotencyKey="";
     $("ad").close();$("date").value=date;agendaMonthCache.clear();
     show("msg",id?"Agendamento atualizado.":(window.__lastAppointmentSaveMessage||"Agendamento salvo com sucesso."),"ok");
     window.__lastAppointmentSaveMessage="";
     tab("age")
   }catch(err){show("apmsg",fail(err),"error")}
-  finally{b.disabled=false;b.textContent=appointmentSubmitLabel()}
+  finally{window.__appointmentSaveInFlight=false;b.disabled=false;b.textContent=appointmentSubmitLabel()}
 }
 
 
