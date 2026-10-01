@@ -1223,6 +1223,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div><div class="title">Agenda</div><p class="sub">Organize o dia e abra os detalhes somente quando precisar.</p></div>
     <button id="na" class="primary section-primary">+ Agendamento</button>
   </div>
+  <div class="actions" style="margin:10px 0 12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px">
+    <button id="agendaViewMonth" type="button" class="ghost">Mês</button>
+    <button id="agendaViewDay" type="button" class="primary">Dia</button>
+    <button id="agendaViewList" type="button" class="ghost">Lista</button>
+  </div>
   <div class="agenda-toolbar">
     <label>Dia selecionado<input id="date" type="date"></label>
     <details class="compact-tools">
@@ -1230,13 +1235,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button id="gl" class="ghost" type="button">Gerar link público</button>
     </details>
   </div>
-  <div id="monthcal" class="calendar-shell" style="margin:14px 0 18px;padding:12px;border:1px solid #20495d;border-radius:16px;background:#0d2632">
+  <div id="monthcal" class="calendar-shell hidden" style="margin:14px 0 18px;padding:12px;border:1px solid #20495d;border-radius:16px;background:#0d2632">
     <div class="calendar-head"><button id="calprev" type="button" class="ghost" style="padding:9px 0">‹</button><div id="caltitle"></div><button id="calnext" type="button" class="ghost" style="padding:9px 0">›</button></div>
     <div class="calendar-week"><div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div></div>
     <div id="calgrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:5px"></div>
   </div>
-  <div class="list-caption">Atendimentos do dia</div>
-  <div id="apps"></div>
+  <div id="agendaDayView">
+    <div class="list-caption">Atendimentos do dia</div>
+    <div id="apps"></div>
+  </div>
+  <div id="agendaListView" class="hidden">
+    <div class="calendar-head" style="margin:14px 0 10px"><button id="listprev" type="button" class="ghost" style="padding:9px 0">‹</button><div id="listtitle"></div><button id="listnext" type="button" class="ghost" style="padding:9px 0">›</button></div>
+    <div id="agendaListItems"><div class="empty">Carregando lista...</div></div>
+  </div>
 </section>
 <section id="fin" class="hidden">
 <div class="section-head">
@@ -1480,7 +1491,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=async()=>{operatorMonthCache.clear();await Promise.all([loadOperatorMonth(true),loadOperatorJobs(operatorSelectedDate,false)])};$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lclientsearch").oninput=()=>{if($("lclient").value)clearLinkClientPicker(true);renderLinkClientSuggestions()};$("lclientsearch").onfocus=renderLinkClientSuggestions;$("lclientsearch").onkeydown=e=>{if(e.key==="Escape"){$("lclientsuggestions").classList.add("hidden");$("lclientsearch").blur()}};$("lnewclient").onclick=useNewLinkClient;$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);loadApps()};$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("rshare").onclick=shareReceiptVisual;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month")loadMonthCalendar(false);else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -2726,7 +2737,18 @@ async function deleteExpense(id){
   if(!financeAllowed()||!confirm("Excluir esta despesa?"))return;
   const r=await sb.from("finance_expenses").delete().eq("id",id);if(r.error)return show("msg",fail(r.error),"error");show("msg","Despesa excluída.","ok");await loadFinance()
 }
-let agendaCalendarMonth="";
+let agendaCalendarMonth="",agendaViewMode="day",agendaListLoadSeq=0;
+function setAgendaView(mode){
+  agendaViewMode=["month","day","list"].includes(mode)?mode:"day";
+  const views={month:$("monthcal"),day:$("agendaDayView"),list:$("agendaListView")};
+  Object.entries(views).forEach(([key,el])=>el?.classList.toggle("hidden",key!==agendaViewMode));
+  [["agendaViewMonth","month"],["agendaViewDay","day"],["agendaViewList","list"]].forEach(([id,key])=>{
+    const b=$(id);if(!b)return;b.className=key===agendaViewMode?"primary":"ghost"
+  });
+  if(agendaViewMode==="month")loadMonthCalendar(false);
+  else if(agendaViewMode==="list")loadAgendaList();
+  else loadApps()
+}
 function calendarMonthFromDate(value){
   const d=/^\d{4}-\d{2}-\d{2}$/.test(value||"")?value:today();
   return d.slice(0,7)
@@ -2735,6 +2757,53 @@ function shiftCalendarMonth(delta){
   const base=agendaCalendarMonth||calendarMonthFromDate($("date").value),parts=base.split("-").map(Number),y=parts[0],m=parts[1],d=new Date(y,m-1+delta,1);
   agendaCalendarMonth=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
   loadMonthCalendar(false)
+}
+function shiftAgendaListMonth(delta){
+  const base=agendaCalendarMonth||calendarMonthFromDate($("date").value),parts=base.split("-").map(Number),y=parts[0],m=parts[1],d=new Date(y,m-1+delta,1);
+  agendaCalendarMonth=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  loadAgendaList()
+}
+function agendaLocalDateKey(iso){
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(iso));
+  const get=t=>parts.find(p=>p.type===t)?.value||"";
+  return get("year")+"-"+get("month")+"-"+get("day")
+}
+async function loadAgendaList(){
+  const req=++agendaListLoadSeq,box=$("agendaListItems");
+  if(!box)return;
+  const month=agendaCalendarMonth||calendarMonthFromDate($("date").value),[y,m]=month.split("-").map(Number),nextDate=new Date(y,m,1),next=nextDate.getFullYear()+"-"+String(nextDate.getMonth()+1).padStart(2,"0");
+  const startIso=new Date(month+"-01T00:00:00-03:00").toISOString(),nextIso=new Date(next+"-01T00:00:00-03:00").toISOString();
+  const title=new Intl.DateTimeFormat("pt-BR",{month:"long",year:"numeric"}).format(new Date(y,m-1,1));
+  $("listtitle").textContent=title.charAt(0).toUpperCase()+title.slice(1);
+  box.innerHTML='<div class="empty">Atualizando lista do mês...</div>';
+  const r=await sb.from("appointments").select("id,client_id,vehicle_id,service_id,team_id,collaborator_id,starts_at,ends_at,duration_minutes,status").gte("starts_at",startIso).lt("starts_at",nextIso).is("deleted_at",null).order("starts_at");
+  if(req!==agendaListLoadSeq)return;
+  if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}
+  const rows=r.data||[];
+  if(!rows.length){box.innerHTML='<div class="empty">Nenhum agendamento neste mês.</div>';return}
+  const clientIds=[...new Set(rows.map(x=>x.client_id).filter(Boolean))],vehicleIds=[...new Set(rows.map(x=>x.vehicle_id).filter(Boolean))],serviceIds=[...new Set(rows.map(x=>x.service_id).filter(Boolean))],teamIds=[...new Set(rows.map(x=>x.team_id).filter(Boolean))],collabIds=[...new Set(rows.map(x=>x.collaborator_id).filter(Boolean))];
+  const [cr,vr,sr,tr,cor]=await Promise.all([
+    clientIds.length?sb.from("clients").select("id,name").in("id",clientIds):Promise.resolve({data:[],error:null}),
+    vehicleIds.length?sb.from("vehicles").select("id,brand,model,plate").in("id",vehicleIds):Promise.resolve({data:[],error:null}),
+    serviceIds.length?sb.from("services").select("id,name").in("id",serviceIds):Promise.resolve({data:[],error:null}),
+    teamIds.length?sb.from("teams").select("id,name").in("id",teamIds):Promise.resolve({data:[],error:null}),
+    collabIds.length?sb.from("collaborators").select("id,name").in("id",collabIds):Promise.resolve({data:[],error:null})
+  ]);
+  if(req!==agendaListLoadSeq)return;
+  const cm=new Map((cr.data||[]).map(x=>[x.id,x])),vm=new Map((vr.data||[]).map(x=>[x.id,x])),sm=new Map((sr.data||[]).map(x=>[x.id,x])),tm=new Map((tr.data||[]).map(x=>[x.id,x])),com=new Map((cor.data||[]).map(x=>[x.id,x]));
+  const groups=new Map();
+  rows.forEach(x=>{const key=agendaLocalDateKey(x.starts_at);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
+  let html="";
+  for(const [key,list] of groups){
+    const [yy,mm,dd]=key.split("-").map(Number),label=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"long"}).format(new Date(yy,mm-1,dd));
+    html+='<div class="list-caption" style="margin-top:14px;text-transform:capitalize">'+esc(label)+'</div>';
+    html+=list.map(x=>{
+      const cl=cm.get(x.client_id),v=vm.get(x.vehicle_id),s=sm.get(x.service_id),resp=tm.get(x.team_id)?.name||com.get(x.collaborator_id)?.name||"Responsável a definir";
+      return '<button type="button" class="item" data-agenda-list-day="'+key+'" style="display:block;width:100%;text-align:left;margin-top:7px;color:inherit"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3 style="margin:0 0 5px">'+esc(cl?.name||"Cliente")+'</h3><div class="appt-core"><b>'+esc(v?[v.brand,v.model].filter(Boolean).join(" "):"Veículo")+(v?.plate?' • '+esc(v.plate):'')+'</b><span>'+esc(s?.name||"Serviço")+' • '+esc(resp)+'</span></div></button>'
+    }).join("")
+  }
+  box.innerHTML=html;
+  box.querySelectorAll("[data-agenda-list-day]").forEach(b=>b.onclick=()=>{$("date").value=b.dataset.agendaListDay;agendaCalendarMonth=calendarMonthFromDate(b.dataset.agendaListDay);setAgendaView("day")})
 }
 async function loadMonthCalendar(force=false){
   const selected=$("date").value||today();
@@ -2759,7 +2828,7 @@ async function loadMonthCalendar(force=false){
     out+='<button type="button" data-calday="'+key+'" style="position:relative;min-height:57px;padding:7px 3px;border-radius:12px;border:1px solid '+(isSelected?'#22b7ef':isToday?'#3d6476':'#234655')+';background:'+(isSelected?'#123d50':'#102d3a')+';color:#eef7fa;text-align:center"><span style="font-weight:900;font-size:15px">'+day+'</span>'+(count?'<span style="display:block;margin:4px auto 0;min-width:23px;width:max-content;padding:2px 6px;border-radius:999px;background:#22a7dc;color:#fff;font-size:11px;font-weight:900">'+count+'</span>':'<span style="display:block;height:18px;margin-top:4px"></span>')+'</button>'
   }
   $("calgrid").innerHTML=out;
-  $("calgrid").querySelectorAll("[data-calday]").forEach(b=>b.onclick=()=>{$("date").value=b.dataset.calday;agendaCalendarMonth=calendarMonthFromDate(b.dataset.calday);loadApps()})
+  $("calgrid").querySelectorAll("[data-calday]").forEach(b=>b.onclick=()=>{$("date").value=b.dataset.calday;agendaCalendarMonth=calendarMonthFromDate(b.dataset.calday);setAgendaView("day")})
 }
 function tab(x){
   const operator=currentRole==="operator";
@@ -2779,7 +2848,7 @@ function tab(x){
   $("tr").classList.toggle("active",x==="rep");
   $("tset").classList.toggle("active",x==="set");
   if(x==="ops"){loadOperatorMonth();loadOperatorJobs(operatorSelectedDate,false)}
-  if(x==="age"){agendaCalendarMonth=calendarMonthFromDate($("date").value||today());loadApps()}
+  if(x==="age"){agendaCalendarMonth=calendarMonthFromDate($("date").value||today());if(agendaViewMode==="month")loadMonthCalendar(false);else if(agendaViewMode==="list")loadAgendaList();else loadApps()}
   if(x==="fin"){if(!$("fmonth").value)$("fmonth").value=today().slice(0,7);loadFinance()}
   if(x==="rep"){setDefaultReportDates();loadManagementReport()}
   if(x==="set")loadOperationalSettings()
@@ -3826,7 +3895,7 @@ async function cancelAppointmentAction(x){
 async function loadApps(){
   const req=++agendaLoadSeq,d=$("date").value||today();
   const a=new Date(d+"T00:00:00-03:00").toISOString(),z=new Date(d+"T23:59:59.999-03:00").toISOString();
-  void loadMonthCalendar(false);
+  if(agendaViewMode==="month")void loadMonthCalendar(false);
   const r=await sb.from("appointments").select("id,client_id,vehicle_id,service_id,team_id,collaborator_id,recurring_plan_id,starts_at,ends_at,duration_minutes,status,source,final_value,addon_value,notes,completed_at,cancelled_at").gte("starts_at",a).lte("starts_at",z).is("deleted_at",null).order("starts_at");
   if(req!==agendaLoadSeq)return;
   if(r.error)return show("msg",fail(r.error),"error");
