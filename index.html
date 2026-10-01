@@ -3215,6 +3215,12 @@ async function loadAvailableSlots(preferred=""){
   if(r.error){t.innerHTML='<option value="">Não foi possível consultar</option>';help.textContent=fail(r.error);b.disabled=true;return}
   const rows=r.data||[];
   if(!rows.length){
+    if(id&&preferred){
+      t.innerHTML='<option value="'+esc(preferred)+'">'+esc(preferred)+' • horário atual</option>';
+      t.value=preferred;t.disabled=false;b.disabled=false;
+      help.textContent="Horário atual preservado. Você pode alterar observações sem remanejar o atendimento.";
+      return
+    }
     t.innerHTML='<option value="">Nenhum horário disponível</option>';
     help.textContent=id
       ?"Não há horário compatível nesta data para esse serviço. Escolha outro dia, serviço ou equipe."
@@ -3222,10 +3228,18 @@ async function loadAvailableSlots(preferred=""){
     b.disabled=true;return
   }
   t.innerHTML=rows.map(x=>'<option value="'+esc(x.local_time)+'">'+esc(x.local_time)+'</option>').join("");
-  if(preferred&&rows.some(x=>x.local_time===preferred))t.value=preferred;
+  if(preferred){
+    if(rows.some(x=>x.local_time===preferred))t.value=preferred;
+    else if(id){
+      t.insertAdjacentHTML("afterbegin",'<option value="'+esc(preferred)+'">'+esc(preferred)+' • horário atual</option>');
+      t.value=preferred
+    }
+  }
   t.disabled=false;b.disabled=false;
   help.textContent=id
-    ?rows.length+" horário"+(rows.length===1?" disponível":"s disponíveis")+" nesta data."
+    ?(preferred&&!rows.some(x=>x.local_time===preferred)
+      ?"Horário atual preservado. Para remanejar, escolha outro horário disponível."
+      :rows.length+" horário"+(rows.length===1?" disponível":"s disponíveis")+" nesta data.")
     :rows.length+" início"+(rows.length===1?" disponível":"s disponíveis")+" para "+vehicleIds.length+" veículo"+(vehicleIds.length===1?"":"s")+" em sequência."
 }
 async function fillVehicles(cid){
@@ -3295,7 +3309,7 @@ async function openAppointmentDetail(id){
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)}
   }catch(e){show("msg",fail(e),"error")}
 }
-async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;const x=currentApps.find(a=>a.id===id);if(!x)throw Error("Agendamento não encontrado.");$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
+async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;const fresh=await sb.from("appointments").select("*").eq("id",id).single();if(fresh.error)throw fresh.error;const x=fresh.data;if(!x)throw Error("Agendamento não encontrado.");const idx=currentApps.findIndex(a=>String(a.id)===String(id));if(idx>=0)currentApps[idx]={...currentApps[idx],...x};if(x.status==="completed"||x.status==="cancelled"){agendaMonthCache.clear();await loadApps();throw Error(x.status==="completed"?"Este agendamento já foi concluído e não pode mais ser editado.":"Este agendamento já foi cancelado e não pode mais ser editado.");}$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
 async function saveAppt(e){
   e.preventDefault();
   if(window.__appointmentSaveInFlight)return;
