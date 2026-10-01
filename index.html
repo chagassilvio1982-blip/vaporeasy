@@ -2737,7 +2737,7 @@ async function deleteExpense(id){
   if(!financeAllowed()||!confirm("Excluir esta despesa?"))return;
   const r=await sb.from("finance_expenses").delete().eq("id",id);if(r.error)return show("msg",fail(r.error),"error");show("msg","Despesa excluída.","ok");await loadFinance()
 }
-let agendaCalendarMonth="",agendaViewMode="day",agendaListLoadSeq=0;
+let agendaCalendarMonth="",agendaViewMode="day",agendaListLoadSeq=0,agendaFocusAppointmentId="";
 function setAgendaView(mode){
   agendaViewMode=["month","day","list"].includes(mode)?mode:"day";
   const views={month:$("monthcal"),day:$("agendaDayView"),list:$("agendaListView")};
@@ -2799,11 +2799,11 @@ async function loadAgendaList(){
     html+='<div class="list-caption" style="margin-top:14px;text-transform:capitalize">'+esc(label)+'</div>';
     html+=list.map(x=>{
       const cl=cm.get(x.client_id),v=vm.get(x.vehicle_id),s=sm.get(x.service_id),resp=tm.get(x.team_id)?.name||com.get(x.collaborator_id)?.name||"Responsável a definir";
-      return '<button type="button" class="item" data-agenda-list-day="'+key+'" style="display:block;width:100%;text-align:left;margin-top:7px;color:inherit"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3 style="margin:0 0 5px">'+esc(cl?.name||"Cliente")+'</h3><div class="appt-core"><b>'+esc(v?[v.brand,v.model].filter(Boolean).join(" "):"Veículo")+(v?.plate?' • '+esc(v.plate):'')+'</b><span>'+esc(s?.name||"Serviço")+' • '+esc(resp)+'</span></div></button>'
+      return '<button type="button" class="item" data-agenda-list-day="'+key+'" data-agenda-list-id="'+esc(x.id)+'" style="display:block;width:100%;text-align:left;margin-top:7px;color:inherit"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3 style="margin:0 0 5px">'+esc(cl?.name||"Cliente")+'</h3><div class="appt-core"><b>'+esc(v?[v.brand,v.model].filter(Boolean).join(" "):"Veículo")+(v?.plate?' • '+esc(v.plate):'')+'</b><span>'+esc(s?.name||"Serviço")+' • '+esc(resp)+'</span></div></button>'
     }).join("")
   }
   box.innerHTML=html;
-  box.querySelectorAll("[data-agenda-list-day]").forEach(b=>b.onclick=()=>{$("date").value=b.dataset.agendaListDay;agendaCalendarMonth=calendarMonthFromDate(b.dataset.agendaListDay);setAgendaView("day")})
+  box.querySelectorAll("[data-agenda-list-day]").forEach(b=>b.onclick=()=>{agendaFocusAppointmentId=b.dataset.agendaListId||"";$("date").value=b.dataset.agendaListDay;agendaCalendarMonth=calendarMonthFromDate(b.dataset.agendaListDay);setAgendaView("day")})
 }
 async function loadMonthCalendar(force=false){
   const selected=$("date").value||today();
@@ -3957,6 +3957,24 @@ async function loadApps(){
     if(b.dataset.st==="completed")waterCounterLoadedAt=0;
     await loadApps()
   });
+  if(agendaFocusAppointmentId){
+    const focusId=agendaFocusAppointmentId;
+    agendaFocusAppointmentId="";
+    requestAnimationFrame(()=>{
+      const card=document.querySelector('[data-detail="'+CSS.escape(focusId)+'"]');
+      if(!card)return;
+      let parent=card.parentElement;
+      while(parent&&parent!==$("apps")){
+        if(parent.tagName==="DETAILS")parent.open=true;
+        parent=parent.parentElement
+      }
+      const actions=card.querySelector(".appt-actions");if(actions)actions.open=true;
+      card.scrollIntoView({behavior:"smooth",block:"center"});
+      const prevOutline=card.style.outline,prevOffset=card.style.outlineOffset;
+      card.style.outline="2px solid #22b7ef";card.style.outlineOffset="2px";
+      setTimeout(()=>{card.style.outline=prevOutline;card.style.outlineOffset=prevOffset},2200)
+    })
+  }
   void loadWaterCounter(false)
 }
 
