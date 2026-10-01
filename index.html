@@ -1362,7 +1362,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
     <div id="collabloginfields" class="stack hidden">
       <label>E-mail de acesso<input id="collabemail" type="email" autocomplete="username" placeholder="nome@exemplo.com"></label>
-      <label>Perfil<select id="collabaccessrole"><option value="operator">Operacional</option><option value="admin">Administrador</option></select></label>
+      <label>Perfil de acesso<select id="collabaccessrole"><option value="operator">Colaborador</option><option value="admin">Gerente</option><option value="owner">Proprietário</option></select></label><div class="meta">Colaborador: próprios atendimentos e RG. Gerente: operação, agenda, clientes, financeiro e relatórios. Proprietário: acesso total.</div>
 
       <div class="credential-actions">
         <button id="collabpassgenerate" type="button" class="ghost">Gerar senha inicial</button>
@@ -1614,14 +1614,14 @@ async function enter(session){
     currentUserId=u.data.user.id;currentRole=p.data.role;
     const operator=currentRole==="operator",manager=["owner","admin"].includes(currentRole);
     $("pname").textContent=p.data.name||u.data.user.email.split("@")[0];
-    $("prole").textContent=operator?"Operador":currentRole==="admin"?"Administrador":"Proprietário";
+    $("prole").textContent=operator?"Colaborador":currentRole==="admin"?"Gerente":"Proprietário";
 
     $("top").classList.toggle("hidden",!operator);
     $("tc").classList.toggle("hidden",operator);
     $("ta").classList.toggle("hidden",operator);
     $("tf").classList.toggle("hidden",!manager);
     $("tr").classList.toggle("hidden",!manager);
-    $("tset").classList.toggle("hidden",!manager);
+    $("tset").classList.toggle("hidden",currentRole!=="owner");
     $("teamsbtn").classList.toggle("hidden",!manager);
     $("collabsbtn").classList.toggle("hidden",!manager);
     $("importcontacts").classList.toggle("hidden",!manager);
@@ -1690,7 +1690,7 @@ async function openCollaboratorsManager(){
   }catch(e){show("msg",fail(e),"error")}
 }
 
-function accessRoleLabel(role){return role==="admin"?"Administrador":role==="owner"?"Proprietário":"Operacional"}
+function accessRoleLabel(role){return role==="admin"?"Gerente":role==="owner"?"Proprietário":"Colaborador"}
 async function openCollaboratorsManager(){
   if(!["owner","admin"].includes(currentRole))return;
   try{
@@ -1712,7 +1712,7 @@ function renderCollaboratorsManager(){
     const memberships=teamMembers.filter(m=>m.collaborator_id===x.id).map(m=>teams.find(t=>t.id===m.team_id)?.name).filter(Boolean);
     const access=collabAccess.get(x.id);
     const sub=[x.role_label||"Sem função",memberships.length?memberships.join(", "):""].filter(Boolean).join(" • ");
-    const accessText=access?(access.active?"Acesso ativo":"Acesso bloqueado"):"Sem login";
+    const accessText=access?(access.active?accessRoleLabel(access.role):"Acesso bloqueado"):"Sem login";
     const accessClass=access?(access.active?"is-on":"is-blocked"):"is-off";
     return '<div class="collab-card"><div class="collab-card-head"><div class="collab-card-main"><div class="collab-card-title">'+esc(x.name)+'</div><div class="collab-card-sub">'+esc(sub)+'</div><div class="collab-status-row"><span class="status-chip '+(x.active?"is-on":"is-off")+'">'+(x.active?"Cadastro ativo":"Cadastro inativo")+'</span><span class="status-chip '+accessClass+'">'+esc(accessText)+'</span></div></div><button type="button" class="ghost" data-collab-edit="'+x.id+'">Editar</button></div></div>'
   }).join(""):'<div class="empty">Nenhum colaborador cadastrado.</div>';
@@ -1783,12 +1783,13 @@ function openCollaboratorEditor(x=null){
   $("collabnotes").value=x?.notes||"";
   $("collablogin").checked=!!access?.active;
   $("collabemail").value=access?.email||"";
-  $("collabaccessrole").value=access?.role==="admin"?"admin":"operator";
+  $("collabaccessrole").value=["owner","admin","operator"].includes(access?.role)?access.role:"operator";
   $("collabpassword").value="";
   $("collabpassvalue").textContent="—";
   $("collabpassbox").classList.add("hidden");
-  const adminOption=$("collabaccessrole").querySelector('option[value="admin"]');
+  const adminOption=$("collabaccessrole").querySelector('option[value="admin"]'),ownerOption=$("collabaccessrole").querySelector('option[value="owner"]');
   if(adminOption)adminOption.disabled=currentRole!=="owner";
+  if(ownerOption)ownerOption.disabled=currentRole!=="owner";
   switchCollaboratorSection("data");
   toggleCollaboratorAccessFields();
   $("collabd").showModal()
@@ -2314,7 +2315,7 @@ async function saveVehicle(e){e.preventDefault();try{const brand=$("vb").value==
 let settingServices=[],settingAddons=[],settingAddonCompat=[],settingSchedule=null,settingWeek=[],settingPayment=null;
 const WEEK_NAMES=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 async function loadOperationalSettings(){
-  if(!financeAllowed())return;
+  if(currentRole!=="owner")return;
   try{
     const [sv,ad,cp,ss,wr,ps]=await Promise.all([
       sb.from("services").select("*").order("active",{ascending:false}).order("name"),
@@ -2342,7 +2343,7 @@ function openServiceSetting(s=null){
   $("setservicef").reset();show("setservicemsg","");$("setserviceid").value=s?.id||"";$("setservicetitle").textContent=s?"Editar serviço":"Novo serviço";$("setservicename").value=s?.name||"";$("setservicecat").value=s?.category||"";$("setserviceprice").value=s?.price??"";$("setserviceduration").value=s?.duration_minutes??90;$("setservicemode").value=s?.booking_mode||"auto";$("setservicefirst").value=s?.first_slot_time?String(s.first_slot_time).slice(0,5):"";$("setserviceactive").checked=s?!!s.active:true;$("setservicenotes").value=s?.notes||"";$("setserviced").showModal()
 }
 async function saveServiceSetting(e){
-  e.preventDefault();if(!financeAllowed())return;
+  e.preventDefault();if(currentRole!=="owner")return;
   const id=$("setserviceid").value,p={name:$("setservicename").value.trim(),category:$("setservicecat").value.trim(),price:Number($("setserviceprice").value||0),duration_minutes:Number($("setserviceduration").value||0),booking_mode:$("setservicemode").value,first_slot_time:$("setservicefirst").value||null,active:$("setserviceactive").checked,notes:$("setservicenotes").value.trim(),updated_at:new Date().toISOString()};
   if(!p.name||p.duration_minutes<=0)return show("setservicemsg","Informe nome e duração válida.","error");
   try{const r=id?await sb.from("services").update(p).eq("id",id):await sb.from("services").insert(p);if(r.error)throw r.error;$("setserviced").close();await refs(true);await loadOperationalSettings();show("msg",id?"Serviço atualizado.":"Serviço criado.","ok")}catch(err){show("setservicemsg",fail(err),"error")}
@@ -2355,7 +2356,7 @@ function openAddonSetting(a=null){
   toggleAddonServiceScope();$("setaddond").showModal()
 }
 async function saveAddonSetting(e){
-  e.preventDefault();if(!financeAllowed())return;
+  e.preventDefault();if(currentRole!=="owner")return;
   const id=$("setaddonid").value,p={name:$("setaddonname").value.trim(),description:$("setaddondesc").value.trim(),price:Number($("setaddonprice").value||0),duration_minutes:Number($("setaddonduration").value||0),active:$("setaddonactive").checked,public_enabled:$("setaddonpublic").checked,sort_order:Number($("setaddonsort").value||0),updated_at:new Date().toISOString()},all=$("setaddonall").checked;
   if(!p.name)return show("setaddonmsg","Informe o nome do extra.","error");
   const selected=[...$("setaddonservices").querySelectorAll("[data-addon-service]:checked")].map(x=>x.dataset.addonService);
@@ -2368,7 +2369,7 @@ async function saveAddonSetting(e){
   }catch(err){show("setaddonmsg",fail(err),"error")}
 }
 async function saveScheduleSettings(e){
-  e.preventDefault();if(!financeAllowed())return;
+  e.preventDefault();if(currentRole!=="owner")return;
   const start=$("setstart").value,end=$("setend").value,interval=Number($("setinterval").value||0);if(!start||!end||start>=end||interval<5)return show("msg","Revise início, fim e intervalo da agenda.","error");
   try{
     const s=await sb.from("schedule_settings").update({workday_start:start,workday_end:end,slot_interval_minutes:interval,public_allow_same_day_default:$("setsameday").checked,updated_at:new Date().toISOString()}).eq("id",1);if(s.error)throw s.error;
@@ -2377,7 +2378,7 @@ async function saveScheduleSettings(e){
   }catch(err){show("msg",fail(err),"error")}
 }
 async function savePaymentSettings(e){
-  e.preventDefault();if(!financeAllowed())return;
+  e.preventDefault();if(currentRole!=="owner")return;
   const p={business_name:$("setbiz").value.trim()||"Vaporeasy",account_holder:$("setholder").value.trim(),bank_name:$("setbank").value.trim(),branch:$("setbranch").value.trim(),account_number:$("setaccount").value.trim(),pix_key:$("setpix").value.trim(),pix_key_type:$("setpixtype").value.trim(),receipt_footer:$("setfooter").value.trim(),updated_at:new Date().toISOString()};
   if(!p.account_holder)return show("msg","Informe o favorecido do pagamento.","error");
   const r=await sb.from("business_payment_settings").update(p).eq("id",1);if(r.error)return show("msg",fail(r.error),"error");settingPayment={...(settingPayment||{}),...p};show("msg","Dados de pagamento atualizados.","ok")
@@ -2853,7 +2854,8 @@ function tab(x){
   const operator=currentRole==="operator";
   if(operator)x="ops";
   else if(x==="ops")x="cad";
-  if((x==="fin"||x==="rep"||x==="set")&&!financeAllowed())x=operator?"ops":"cad";
+  if((x==="fin"||x==="rep")&&!financeAllowed())x=operator?"ops":"cad";
+  if(x==="set"&&currentRole!=="owner")x=operator?"ops":"cad";
   $("ops").classList.toggle("hidden",x!=="ops");
   $("cad").classList.toggle("hidden",x!=="cad");
   $("age").classList.toggle("hidden",x!=="age");
