@@ -1789,7 +1789,13 @@ function openCollaboratorEditor(x=null){
   $("collabpassbox").classList.add("hidden");
   const adminOption=$("collabaccessrole").querySelector('option[value="admin"]'),ownerOption=$("collabaccessrole").querySelector('option[value="owner"]');
   if(adminOption)adminOption.disabled=currentRole!=="owner";
-  if(ownerOption)ownerOption.disabled=currentRole!=="owner";
+  if(ownerOption)ownerOption.disabled=true;
+  const protectedOwner=access?.role==="owner";
+  $("collablogin").disabled=protectedOwner;
+  $("collabemail").disabled=protectedOwner;
+  $("collabaccessrole").disabled=protectedOwner;
+  $("collabpassgenerate").disabled=protectedOwner;
+  if(protectedOwner)$("collabpasshint").textContent="Perfil Proprietário protegido. O acesso pode ser alterado somente pela administração técnica.";
   switchCollaboratorSection("data");
   toggleCollaboratorAccessFields();
   $("collabd").showModal()
@@ -1802,7 +1808,7 @@ async function saveCollaborator(e){
     const member=teamMembers.find(m=>m.collaborator_id===id&&teams.find(t=>t.id===m.team_id)?.active);
     if(member){const t=teams.find(x=>x.id===member.team_id);switchCollaboratorSection("data");return show("collabmsg","Este colaborador pertence à "+(t?.name||"uma equipe ativa")+". Remova-o da equipe ou inative a equipe antes de desativá-lo.","error")}
   }
-  const existing=id?collabAccess.get(id):null,accessEnabled=active&&$("collablogin").checked;
+  const existing=id?collabAccess.get(id):null,protectedOwner=existing?.role==="owner",accessEnabled=active&&$("collablogin").checked;
   if(accessEnabled&&!$("collabemail").value.trim()){switchCollaboratorSection("access");return show("collabmsg","Informe o e-mail de acesso.","error")}
   if(accessEnabled&&!existing&&!$("collabpassword").value){switchCollaboratorSection("access");return show("collabmsg","Gere a senha inicial antes de salvar o primeiro acesso.","error")}
   const payload={name,phone:$("collabphone").value.trim(),whatsapp:$("collabwhatsapp").value.trim(),role_label:$("collabrole").value.trim(),active,notes:$("collabnotes").value.trim(),updated_at:new Date().toISOString()};
@@ -1813,7 +1819,7 @@ async function saveCollaborator(e){
     else r=await sb.from("collaborators").insert(payload).select("id").single();
     if(r.error)throw r.error;
     const savedId=r.data.id,hadAccess=collabAccess.has(savedId);
-    if(accessEnabled||hadAccess){
+    if((accessEnabled||hadAccess)&&!protectedOwner){
       await edgeCall("team-access-save",{
         collaborator_id:savedId,
         access_enabled:accessEnabled,
