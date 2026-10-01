@@ -3219,13 +3219,19 @@ async function loadAvailableSlots(preferred=""){
       t.innerHTML='<option value="'+esc(preferred)+'">'+esc(preferred)+' • horário atual</option>';
       t.value=preferred;t.disabled=false;b.disabled=false;
       help.textContent="Horário atual preservado. Você pode alterar observações sem remanejar o atendimento.";
+      show("apmsg","");
       return
     }
     t.innerHTML='<option value="">Nenhum horário disponível</option>';
-    help.textContent=id
-      ?"Não há horário compatível nesta data para esse serviço. Escolha outro dia, serviço ou equipe."
-      :"Não há um bloco contínuo disponível para todos os veículos selecionados. Reduza a seleção, mude o horário/equipe ou escolha outro dia.";
-    b.disabled=true;return
+    const selectedLabel=$("acol").selectedOptions?.[0]?.textContent?.trim()||"responsável selecionado";
+    const msg=id&&($("acol").value||"")
+      ?selectedLabel+" não está disponível nesse horário. Escolha outro responsável ou outro horário."
+      :(id
+        ?"Não há horário compatível nesta data para esse serviço. Escolha outro dia, serviço ou equipe."
+        :"Não há um bloco contínuo disponível para todos os veículos selecionados. Reduza a seleção, mude o horário/equipe ou escolha outro dia.");
+    help.textContent=msg;
+    if(id)show("apmsg",msg,"error");
+    b.disabled=true;b.textContent=appointmentSubmitLabel();return
   }
   t.innerHTML=rows.map(x=>'<option value="'+esc(x.local_time)+'">'+esc(x.local_time)+'</option>').join("");
   if(preferred){
