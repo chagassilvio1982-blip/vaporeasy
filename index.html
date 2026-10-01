@@ -3919,11 +3919,12 @@ async function loadApps(){
   const clientMap=new Map(clients.map(c=>[c.id,c])),serviceMap=new Map(services.map(s=>[s.id,s])),collabMap=new Map(collabs.map(c=>[c.id,c])),teamMap=new Map(teams.map(t=>[t.id,t]));
   const card=x=>{
     const c=clientMap.get(x.client_id),v=vehicleMap.get(x.vehicle_id)||findVehicleLocal(x.vehicle_id),s=serviceMap.get(x.service_id),co=collabMap.get(x.collaborator_id),assignedTeam=teamMap.get(x.team_id);
-    let nx=x.status==="requested"?"confirmed":x.status==="scheduled"?"confirmed":x.status==="confirmed"?"in_progress":x.status==="in_progress"?"completed":null,
+    let nx=x.status==="requested"?"confirmed":x.status==="scheduled"?"in_progress":x.status==="confirmed"?"in_progress":x.status==="in_progress"?"completed":null,
       team=assignedTeam?teamDisplay(assignedTeam.id):(co?.name||(x.source==="public"?"1 equipe reservada • equipe a definir":"Equipe reservada • responsável a definir")),
-      photo=photoMap.get(x.id),payment=paymentMap.get(x.id);
+      photo=photoMap.get(x.id),payment=paymentMap.get(x.id),
+      primaryActionLabel=x.status==="requested"?"Aceitar solicitação":"Iniciar";
     const actionButtons=(x.status!=="completed"&&x.status!=="cancelled"?'<button class="ghost" data-edit="'+x.id+'">Editar</button>':"")+
-      (nx?(nx==="completed"?'<button class="success" data-finish="'+x.id+'">Concluir</button>':'<button class="success" data-st="'+nx+'" data-id="'+x.id+'">'+(nx==="confirmed"?"Confirmar":"Iniciar")+'</button>'):"")+
+      (nx?(nx==="completed"?'<button class="success" data-finish="'+x.id+'">Concluir</button>':'<button class="success" data-st="'+nx+'" data-id="'+x.id+'">'+esc(primaryActionLabel)+'</button>'):"")+
       (x.status!=="completed"&&x.status!=="cancelled"?'<button class="danger subtle-danger" data-st="cancelled" data-id="'+x.id+'">Cancelar</button>':"")+
       (x.status==="completed"&&financeAllowed()&&!photo?'<button class="ghost" data-legacy-photo="'+x.id+'">Adicionar foto final</button>':"")+
       (x.status==="completed"&&financeAllowed()?'<button class="ghost" data-receipt="'+x.id+'">'+(payment?.status==="paid"?"Recibo":"Comprovante")+'</button>':"")+
