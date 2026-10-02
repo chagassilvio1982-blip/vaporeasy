@@ -1295,7 +1295,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </section>
 </main>
 <dialog id="ld"><div class="stack"><h3 style="margin:4px 0">Gerar link de agendamento</h3><div class="notice">O cliente nunca verá nem escolherá colaborador.</div><label>Cliente destinatário<div class="appt-client-picker"><input id="lclientsearch" type="text" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="words" spellcheck="false"><select id="lclient" class="hidden" aria-hidden="true" tabindex="-1"><option value="">Novo cliente</option></select><div id="lclientsuggestions" class="appt-client-suggestions hidden"></div><div id="lclientselected" class="appt-client-selected hidden"></div></div></label><button id="lnewclient" class="ghost" type="button">+ Link para novo cliente</button><div id="lpreview" class="meta">Link para um novo cliente preencher o próprio cadastro.</div><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="lat" type="checkbox" checked style="width:22px;min-height:22px">Permitir que o cliente agende para hoje</label><button id="mklink" class="primary" type="button">Gerar link</button><label>Link<input id="linkout" readonly placeholder="O link aparecerá aqui"></label><label id="sharemsgwrap" class="hidden">Mensagem para o cliente<textarea id="sharemsg" readonly></textarea></label><div class="actions"><button id="copylink" class="ghost" type="button" disabled>Copiar mensagem</button><button id="sharelink" class="ghost" type="button" disabled>Compartilhar</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
-<dialog id="rd"><div class="stack"><div id="rcontent"></div><div class="actions"><button id="rshare" class="primary" type="button">Compartilhar comprovante</button><button id="rdiscount" class="ghost hidden" type="button">Aplicar desconto</button><button id="rcharge" class="ghost" type="button">Cobrança / Pix</button><button id="rprint" class="ghost" type="button">Compartilhar PDF</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
+<dialog id="rd"><div class="stack"><div id="rcontent"></div><div id="rgroupmsg" class="notice hidden"></div><div class="actions"><button id="rshare" class="primary" type="button">Compartilhar comprovante</button><button id="rgroup" class="ghost hidden" type="button">Agrupar deste cliente</button><button id="rdiscount" class="ghost hidden" type="button">Aplicar desconto</button><button id="rcharge" class="ghost" type="button">Cobrança / Pix</button><button id="rprint" class="ghost" type="button">Compartilhar PDF</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
 <dialog id="fd"><form id="finishf" class="stack"><input id="finishid" type="hidden"><h3 id="finishtitle">Finalizar atendimento</h3><div class="notice">A foto final é o registro padrão da conclusão e é usada somente para controle interno da Vaporeasy. Se realmente não for possível fotografar, use a exceção com justificativa obrigatória.</div><div id="finishsummary" class="meta"></div><div id="finishphotowrap">
   <div style="font-weight:800;margin-bottom:8px">Foto final do veículo</div>
   <input id="finishphoto" type="file" accept="image/*" capture="environment" class="hidden">
@@ -1491,7 +1491,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);await sb.auth.signOut({scope:"local"});location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=async()=>{operatorMonthCache.clear();await Promise.all([loadOperatorMonth(true),loadOperatorJobs(operatorSelectedDate,false)])};$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lclientsearch").oninput=()=>{if($("lclient").value)clearLinkClientPicker(true);renderLinkClientSuggestions()};$("lclientsearch").onfocus=renderLinkClientSuggestions;$("lclientsearch").onkeydown=e=>{if(e.key==="Escape"){$("lclientsuggestions").classList.add("hidden");$("lclientsearch").blur()}};$("lnewclient").onclick=useNewLinkClient;$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -3733,6 +3733,8 @@ async function openReceiptGroup(ids){
     currentReceiptGroup=await getReceiptGroupData(ids);
     $("rcontent").innerHTML=groupReceiptHtml(currentReceiptGroup);
     $("rshare").textContent=currentReceiptGroup.allPaid?"Compartilhar recibo conjunto":"Compartilhar comprovante conjunto";
+    show("rgroupmsg","");
+    $("rgroup").classList.add("hidden");
     $("rdiscount").classList.add("hidden");
     $("rcharge").classList.toggle("hidden",currentReceiptGroup.allPaid);
     $("rprint").textContent="Compartilhar PDF";
@@ -3747,11 +3749,50 @@ async function openReceipt(id){
     const paid=currentReceipt.payment?.status==="paid";
     $("rcontent").innerHTML=receiptHtml(currentReceipt);
     $("rshare").textContent=paid?"Compartilhar recibo":"Compartilhar comprovante";
+    show("rgroupmsg","");
+    $("rgroup").textContent=paid?"Agrupar recibos deste cliente":"Agrupar comprovantes deste cliente";
+    $("rgroup").classList.remove("hidden");
     $("rdiscount").classList.toggle("hidden",paid);
     $("rcharge").classList.toggle("hidden",paid);
     $("rprint").textContent="Compartilhar PDF";
     $("rd").showModal();
   }catch(e){show("msg",fail(e),"error")}
+}
+async function openSameClientReceiptGroup(){
+  if(!currentReceipt||currentReceiptGroup)return;
+  const clientId=currentReceipt.x?.client_id,baseId=currentReceipt.x?.id;
+  if(!clientId||!baseId)return;
+  const paid=currentReceipt.payment?.status==="paid";
+  const dateKey=agendaLocalDateKey(currentReceipt.x.completed_at||currentReceipt.x.starts_at);
+  const startIso=new Date(dateKey+"T00:00:00-03:00").toISOString();
+  const nextDate=new Date(dateKey+"T12:00:00-03:00");nextDate.setDate(nextDate.getDate()+1);
+  const nextKey=nextDate.getFullYear()+"-"+String(nextDate.getMonth()+1).padStart(2,"0")+"-"+String(nextDate.getDate()).padStart(2,"0");
+  const nextIso=new Date(nextKey+"T00:00:00-03:00").toISOString();
+  try{
+    show("rgroupmsg","Procurando outros atendimentos deste cliente...","");
+    const ar=await sb.from("appointments")
+      .select("id,completed_at")
+      .eq("client_id",clientId)
+      .eq("status","completed")
+      .is("deleted_at",null)
+      .gte("completed_at",startIso)
+      .lt("completed_at",nextIso)
+      .order("completed_at");
+    if(ar.error)throw ar.error;
+    const ids=(ar.data||[]).map(x=>x.id);
+    if(!ids.length)return show("rgroupmsg","Não há outros atendimentos deste cliente neste dia.","error");
+    const pr=await sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",ids);
+    if(pr.error)throw pr.error;
+    const pm=new Map((pr.data||[]).map(x=>[x.appointment_id,x]));
+    const eligible=ids.filter(id=>(pm.get(id)?.status==="paid")===paid);
+    if(!eligible.includes(baseId))eligible.unshift(baseId);
+    const unique=[...new Set(eligible)];
+    if(unique.length<2){
+      return show("rgroupmsg",paid?"Não há outro recibo pago deste cliente para agrupar neste dia.":"Não há outro comprovante pendente deste cliente para agrupar neste dia.","error")
+    }
+    if($("rd").open)$("rd").close();
+    await openReceiptGroup(unique)
+  }catch(e){show("rgroupmsg",fail(e),"error")}
 }
 function openReceiptDiscount(){
   if(!currentReceipt||currentReceiptGroup||currentReceipt.payment?.status==="paid")return;
