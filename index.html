@@ -1362,7 +1362,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
     <div id="collabloginfields" class="stack hidden">
       <label>E-mail de acesso<input id="collabemail" type="email" autocomplete="username" placeholder="nome@exemplo.com"></label>
-      <label>Perfil de acesso<select id="collabaccessrole"><option value="operator">Colaborador</option><option value="admin">Gerente</option><option value="owner">Proprietário</option></select></label><div class="meta">Colaborador: próprios atendimentos e RG. Gerente: operação, agenda, clientes, financeiro e relatórios. Proprietário: acesso total.</div>
+      <label>Perfil de acesso<select id="collabaccessrole"><option value="operator">Colaborador</option><option value="admin">Gerente</option><option value="owner">Proprietário</option></select></label><div class="meta">Colaborador: próprios atendimentos, iniciar/concluir e RG no dia do serviço. Gerente: operação, agenda, clientes, financeiro e relatórios. Proprietário: acesso total.</div>
 
       <div class="credential-actions">
         <button id="collabpassgenerate" type="button" class="ghost">Gerar senha inicial</button>
@@ -2981,10 +2981,10 @@ async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
         :'<button class="primary operator-main-action" type="button" data-op-start="'+x.id+'">Iniciar serviço</button>')
       :"";
     const rg=isToday?'<button class="ghost operator-rg-action" type="button" data-op-rg="'+x.id+'">📷 RG do veículo</button>':"";
-    const info=!isToday?'<div class="operator-future-note">Atendimento programado para esta data.</div>':"";
+    const info=!isToday?'<div class="operator-future-note">As ações Iniciar, Concluir e RG do veículo ficam disponíveis no dia do atendimento.</div>':"";
     return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
   };
-  let out=active.length?active.map(card).join(""):'<div class="empty">Nenhum atendimento atribuído a você nesta data.</div>';
+  let out=active.length?active.map(card).join(""):(done.length?'<div class="empty">Nenhum atendimento pendente nesta data.</div>':'<div class="empty">Nenhum atendimento atribuído a você nesta data.</div>');
   if(done.length)out+='<details class="operator-completed"><summary>Concluídos ('+done.length+')</summary><div>'+done.map(card).join("")+'</div></details>';
   box.innerHTML=out;
   box.querySelectorAll("[data-op-start]").forEach(b=>b.onclick=()=>operatorStartJob(b.dataset.opStart));
