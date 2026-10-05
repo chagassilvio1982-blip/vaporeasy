@@ -1393,7 +1393,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div class="actions"><button id="contactsselectall" class="ghost" type="button">Selecionar disponíveis</button><button id="contactsimportsave" class="primary" type="button">Importar selecionados</button></div>
 </div></dialog>
 <dialog id="cd"><form id="cf" class="stack"><input id="cid" type="hidden"><h3>Cliente</h3><label>Nome<input id="cn" required></label><div class="row"><label>Telefone<input id="cp"></label><label>WhatsApp<input id="cw"></label></div><label>Condomínio<input id="cc"></label><label>Endereço<input id="ca"></label><label>Observações<textarea id="co"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar</button></div></form></dialog>
-<dialog id="vd"><form id="vf" class="stack"><input id="vid" type="hidden"><input id="vcid" type="hidden"><h3>Veículo</h3><div class="row"><label>Montadora<select id="vb" required></select></label><label>Modelo<select id="vm" required></select></label></div><div class="row"><label id="vboc" class="hidden">Outra montadora<input id="vbo"></label><label id="vmoc" class="hidden">Outro modelo<input id="vmo"></label></div><div class="row"><label>Placa<input id="vp"></label><label>Ano<input id="vy"></label></div><label>Cor<input id="vco"></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar</button></div></form></dialog>
+<dialog id="vd"><form id="vf" class="stack"><input id="vid" type="hidden"><input id="vcid" type="hidden"><h3>Veículo</h3><div class="row"><label>Montadora<select id="vb" required></select></label><label>Modelo<select id="vm" required></select></label></div><div class="row"><label id="vboc" class="hidden">Outra montadora<input id="vbo"></label><label id="vmoc" class="hidden">Outro modelo<input id="vmo"></label></div><div class="row"><label>Placa<input id="vp"></label><label>Ano<input id="vy"></label></div><label>Cor<input id="vco"></label><label>Porte para pacotes<select id="vsize"><option value="">Definir depois</option><option value="pm">P/M — hatch ou sedã</option><option value="g">G — SUV, picape, minivan ou 7+ lugares</option></select><span class="meta">Usado para aplicar automaticamente o preço correto dos pacotes.</span></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar</button></div></form></dialog>
 <dialog id="rgd"><form id="rgf" class="stack"><input id="rgvid" type="hidden"><input id="rgcid" type="hidden"><input id="rgplanid" type="hidden"><div class="actions"><h3 style="margin:8px 0;flex:3">RG do veículo</h3><button type="button" class="ghost" data-close>Fechar</button></div><div id="rgsummary" class="item"></div>
 <details open><summary style="cursor:pointer;font-weight:900">Necessidades do veículo</summary><div class="stack" style="margin-top:10px"><div class="actions"><button id="rgissueadd" type="button" class="primary">+ Registrar necessidade</button><button id="rgreport" type="button" class="ghost">Gerar relatório para cliente</button></div><div class="meta">Cada necessidade pode ter fotos próprias. Somente os itens e fotos marcados serão enviados no relatório.</div><div id="rgissues"><div class="empty">Nenhuma necessidade registrada.</div></div><input id="rgissuephotofile" type="file" accept="image/*" capture="environment" class="hidden"></div></details>
 <details><summary style="cursor:pointer;font-weight:900">Diagnóstico geral</summary><div class="stack" style="margin-top:10px"><label>Funilaria / pintura<textarea id="rgbody" placeholder="Riscos, amassados, retoques, repintura..."></textarea></label><label>Vidros<textarea id="rgglass" placeholder="Trincas, riscos, manchas, proteção..."></textarea></label><label>Interior<textarea id="rginterior" placeholder="Bancos, couro, tecidos, painel, odores..."></textarea></label><label>Proteção / acabamento<textarea id="rgprotection" placeholder="Cera, selante, vitrificação, hidrorrepelente..."></textarea></label><label>Observações gerais<textarea id="rgnotes"></textarea></label></div></details>
@@ -1436,7 +1436,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div id="avmulti" class="multi-vehicle-list"><div class="empty">Selecione o cliente primeiro.</div></div>
   <div id="avmultisummary" class="meta multi-vehicle-summary">Nenhum veículo selecionado.</div>
 </div>
-<label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label id="apvaluewrap" class="hidden">Valor do atendimento antes do desconto (R$)<input id="apvalue" type="number" min="0" step="0.01" inputmode="decimal"><span class="meta">Você pode ajustar este valor manualmente quando necessário.</span></label><div id="apdiscountblock" class="hidden"><label>Desconto<select id="apdiscounttype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label><label id="apdiscountwrap" class="hidden"><span id="apdiscountlabel">Valor do desconto</span><input id="apdiscountvalue" type="number" min="0" step="0.01" inputmode="decimal"></label><div id="apdiscountpreview" class="payment-preview"></div></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
+<label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label id="appackagesizewrap" class="hidden">Porte do veículo<select id="appackagesize"><option value="">Selecione P/M ou G</option><option value="pm">P/M — hatch ou sedã</option><option value="g">G — SUV, picape, minivan ou 7+ lugares</option></select><span class="meta">O porte fica salvo no veículo e define o preço do pacote.</span></label><label id="apvaluewrap" class="hidden">Valor do atendimento antes do desconto (R$)<input id="apvalue" type="number" min="0" step="0.01" inputmode="decimal"><span class="meta">Você pode ajustar este valor manualmente quando necessário.</span></label><div id="apdiscountblock" class="hidden"><label>Desconto<select id="apdiscounttype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label><label id="apdiscountwrap" class="hidden"><span id="apdiscountlabel">Valor do desconto</span><input id="apdiscountvalue" type="number" min="0" step="0.01" inputmode="decimal"></label><div id="apdiscountpreview" class="payment-preview"></div></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
 </div>
 <script>
 (function(){
@@ -1513,7 +1513,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);const r=await sb.auth.signOut({scope:"local"});if(r.error){show("msg","Não foi possível encerrar a sessão. Tente novamente.","error");return}const check=await sb.auth.getSession();if(check.data?.session){show("msg","A sessão anterior ainda está ativa. Tente sair novamente.","error");return}currentUserId=null;currentRole=null;currentApps=[];$("pass").value="";location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=async()=>{operatorMonthCache.clear();await Promise.all([loadOperatorMonth(true),loadOperatorJobs(operatorSelectedDate,false)])};$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lclientsearch").oninput=()=>{if($("lclient").value)clearLinkClientPicker(true);renderLinkClientSuggestions()};$("lclientsearch").onfocus=renderLinkClientSuggestions;$("lclientsearch").onkeydown=e=>{if(e.key==="Escape"){$("lclientsuggestions").classList.add("hidden");$("lclientsearch").blur()}};$("lnewclient").onclick=useNewLinkClient;$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("recorddone").onclick=openRealizedService;$("rdf").onsubmit=saveRealizedService;$("rdclient").onchange=loadRealizedVehicles;$("rdservice").onchange=applyRealizedService;$("rddisctype").onchange=updateRealizedQuote;$("rddiscvalue").oninput=updateRealizedQuote;$("rdvalue").oninput=updateRealizedQuote;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("recorddone").onclick=openRealizedService;$("rdf").onsubmit=saveRealizedService;$("rdclient").onchange=loadRealizedVehicles;$("rdservice").onchange=applyRealizedService;$("rddisctype").onchange=updateRealizedQuote;$("rddiscvalue").oninput=updateRealizedQuote;$("rdvalue").oninput=updateRealizedQuote;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=()=>{syncSingleAppointmentPackageSize();loadAvailableSlots()};$("appackagesize").onchange=()=>{updateSingleAppointmentPackagePrice()};$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -2339,8 +2339,8 @@ function fillBrandOptions(){const s=$("vb");s.innerHTML='<option value="">Seleci
 function fillModelOptions(brandName){const brand=vehicleBrands.find(b=>b.name===brandName),list=brand?vehicleModels.filter(m=>m.brand_id===brand.id):[];$("vm").innerHTML='<option value="">Selecione</option>'+list.map(m=>'<option value="'+esc(m.name)+'">'+esc(m.name)+'</option>').join("")+'<option value="__other__">Outro modelo</option>'}
 function onBrandChange(){const other=$("vb").value==="__other__";$("vboc").classList.toggle("hidden",!other);$("vbo").required=other;if(other){$("vm").innerHTML='<option value="__other__">Outro modelo</option>';$("vm").value="__other__";$("vmoc").classList.remove("hidden");$("vmo").required=true}else{fillModelOptions($("vb").value);$("vmoc").classList.add("hidden");$("vmo").required=false;$("vmo").value=""}}
 function onModelChange(){const other=$("vm").value==="__other__";$("vmoc").classList.toggle("hidden",!other);$("vmo").required=other;if(!other)$("vmo").value=""}
-async function openVehicle(cid,v){try{await loadVehicleCatalog();$("vf").reset();$("vcid").value=cid;$("vid").value=v?.id||"";fillBrandOptions();$("vboc").classList.add("hidden");$("vmoc").classList.add("hidden");$("vbo").required=false;$("vmo").required=false;const brandMatch=v?vehicleBrands.find(b=>b.name.toLowerCase()===String(v.brand||"").toLowerCase()):null;if(v&&brandMatch){$("vb").value=brandMatch.name;fillModelOptions(brandMatch.name);const modelMatch=vehicleModels.find(m=>m.brand_id===brandMatch.id&&m.name.toLowerCase()===String(v.model||"").toLowerCase());if(modelMatch){$("vm").value=modelMatch.name}else{$("vm").value="__other__";$("vmo").value=v.model||"";$("vmoc").classList.remove("hidden");$("vmo").required=true}}else if(v){$("vb").value="__other__";$("vbo").value=v.brand||"";$("vboc").classList.remove("hidden");$("vbo").required=true;$("vm").innerHTML='<option value="__other__">Outro modelo</option>';$("vm").value="__other__";$("vmo").value=v.model||"";$("vmoc").classList.remove("hidden");$("vmo").required=true}else{fillModelOptions("")}$("vp").value=v?.plate||"";$("vy").value=v?.year||"";$("vco").value=v?.color||"";$("vd").showModal()}catch(e){show("msg",fail(e),"error")}}
-async function saveVehicle(e){e.preventDefault();try{const brand=$("vb").value==="__other__"?$("vbo").value.trim():$("vb").value.trim(),model=$("vm").value==="__other__"?$("vmo").value.trim():$("vm").value.trim();if(!brand)throw Error("Selecione ou informe a montadora.");if(!model)throw Error("Selecione ou informe o modelo.");const p={client_id:$("vcid").value,brand,model,plate:plate($("vp").value)||null,year:$("vy").value.trim(),color:$("vco").value.trim()};let r=$("vid").value?await sb.from("vehicles").update(p).eq("id",$("vid").value):await sb.from("vehicles").insert(p);if(r.error)throw r.error;$("vd").close();show("msg","Veículo salvo.","ok");renderClients()}catch(e){show("msg",fail(e),"error")}}
+async function openVehicle(cid,v){try{await loadVehicleCatalog();$("vf").reset();$("vcid").value=cid;$("vid").value=v?.id||"";$("vsize").value=v?.package_size==="g"?"g":(v?.package_size==="pm"?"pm":"");fillBrandOptions();$("vboc").classList.add("hidden");$("vmoc").classList.add("hidden");$("vbo").required=false;$("vmo").required=false;const brandMatch=v?vehicleBrands.find(b=>b.name.toLowerCase()===String(v.brand||"").toLowerCase()):null;if(v&&brandMatch){$("vb").value=brandMatch.name;fillModelOptions(brandMatch.name);const modelMatch=vehicleModels.find(m=>m.brand_id===brandMatch.id&&m.name.toLowerCase()===String(v.model||"").toLowerCase());if(modelMatch){$("vm").value=modelMatch.name}else{$("vm").value="__other__";$("vmo").value=v.model||"";$("vmoc").classList.remove("hidden");$("vmo").required=true}}else if(v){$("vb").value="__other__";$("vbo").value=v.brand||"";$("vboc").classList.remove("hidden");$("vbo").required=true;$("vm").innerHTML='<option value="__other__">Outro modelo</option>';$("vm").value="__other__";$("vmo").value=v.model||"";$("vmoc").classList.remove("hidden");$("vmo").required=true}else{fillModelOptions("")}$("vp").value=v?.plate||"";$("vy").value=v?.year||"";$("vco").value=v?.color||"";$("vd").showModal()}catch(e){show("msg",fail(e),"error")}}
+async function saveVehicle(e){e.preventDefault();try{const brand=$("vb").value==="__other__"?$("vbo").value.trim():$("vb").value.trim(),model=$("vm").value==="__other__"?$("vmo").value.trim():$("vm").value.trim();if(!brand)throw Error("Selecione ou informe a montadora.");if(!model)throw Error("Selecione ou informe o modelo.");const p={client_id:$("vcid").value,brand,model,plate:plate($("vp").value)||null,year:$("vy").value.trim(),color:$("vco").value.trim(),package_size:$("vsize").value||null};let r=$("vid").value?await sb.from("vehicles").update(p).eq("id",$("vid").value):await sb.from("vehicles").insert(p);if(r.error)throw r.error;$("vd").close();show("msg","Veículo salvo.","ok");renderClients()}catch(e){show("msg",fail(e),"error")}}
 let settingServices=[],settingAddons=[],settingAddonCompat=[],settingSchedule=null,settingWeek=[],settingPayment=null;
 const WEEK_NAMES=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 async function loadOperationalSettings(){
@@ -3153,6 +3153,54 @@ function appointmentSubmitLabel(){
 function recurringFrequencyLabel(v){
   return v==="weekly"?"Semanal":v==="biweekly"?"Quinzenal":"Somente esta vez"
 }
+function serviceUsesVehicleSizePricing(s){return !!s?.size_pricing_enabled}
+function servicePriceByVehicleSize(s,size){
+  if(!s)return 0;
+  if(!serviceUsesVehicleSizePricing(s))return Number(s.price||0);
+  if(size==="g")return Number(s.price_g??s.price??0);
+  if(size==="pm")return Number(s.price_pm??s.price??0);
+  return null
+}
+function serviceOptionPriceLabel(s){
+  if(!financeAllowed())return "";
+  if(serviceUsesVehicleSizePricing(s)){
+    return " • P/M "+money(s.price_pm??s.price)+" • G "+money(s.price_g??s.price)
+  }
+  return " • "+money(s.price)
+}
+function appointmentVehicleSizeSelect(id){
+  return $("avmulti").querySelector('[data-avsize="'+CSS.escape(id)+'"]')
+}
+function syncSingleAppointmentPackageSize(updatePrice=true){
+  if(!$("aid").value)return;
+  const v=findVehicleLocal($("av").value),size=v?.package_size==="g"?"g":(v?.package_size==="pm"?"pm":"");
+  $("appackagesize").value=size;
+  if(updatePrice)updateSingleAppointmentPackagePrice()
+}
+function updateSingleAppointmentPackagePrice(){
+  const s=services.find(x=>x.id===$("as").value),editing=!!$("aid").value,uses=serviceUsesVehicleSizePricing(s);
+  $("appackagesizewrap").classList.toggle("hidden",!(editing&&uses));
+  if(!editing||!uses)return;
+  const price=servicePriceByVehicleSize(s,$("appackagesize").value);
+  if(price!==null&&financeAllowed()&&!window.__appointmentValueTouched){
+    $("apvalue").value=(Number(price||0)+Number(window.__editingAppointmentAddonValue||0)).toFixed(2);
+    updateAppointmentDiscountPreview()
+  }
+}
+function refreshAppointmentPackageSizeUI(){
+  const s=services.find(x=>x.id===$("as").value),uses=serviceUsesVehicleSizePricing(s),editing=!!$("aid").value;
+  if(editing){
+    $("appackagesizewrap").classList.toggle("hidden",!uses);
+    updateSingleAppointmentPackagePrice()
+  }else{
+    $("appackagesizewrap").classList.add("hidden");
+    $("avmulti").querySelectorAll("[data-avsizewrap]").forEach(w=>w.classList.toggle("hidden",!uses));
+    $("avmulti").querySelectorAll("[data-avsize]").forEach(sel=>{
+      const cb=$("avmulti").querySelector('[data-avmulti][value="'+CSS.escape(sel.dataset.avsize)+'"]');
+      sel.disabled=!uses||!cb?.checked
+    })
+  }
+}
 function renderMultiVehiclePicker(list){
   const box=$("avmulti");
   if(!list.length){
@@ -3174,19 +3222,32 @@ function renderMultiVehiclePicker(list){
         '<option value="weekly">Semanal — até eu alterar</option>'+
         '<option value="biweekly">Quinzenal — até eu alterar</option>'+
       '</select>'+
+      '<label data-avsizewrap class="hidden" style="margin-top:7px">Porte do veículo'+
+        '<select data-avsize="'+esc(v.id)+'" disabled aria-label="Porte de '+esc(v.brand+" "+v.model)+'">'+
+          '<option value="">Selecione P/M ou G</option>'+
+          '<option value="pm">P/M — hatch ou sedã</option>'+
+          '<option value="g">G — SUV, picape, minivan ou 7+ lugares</option>'+
+        '</select>'+
+      '</label>'+
     '</div>'
   }).join("");
   list.forEach(v=>{
     const plan=apptRecurringByVehicle.get(v.id),freq=plan?.frequency==="weekly"||plan?.frequency==="biweekly"?plan.frequency:"once";
-    const s=box.querySelector('[data-avfreq="'+CSS.escape(v.id)+'"]');
-    if(s)s.value=freq
+    const f=box.querySelector('[data-avfreq="'+CSS.escape(v.id)+'"]');
+    if(f)f.value=freq;
+    const z=appointmentVehicleSizeSelect(v.id);
+    if(z)z.value=v.package_size==="g"?"g":(v.package_size==="pm"?"pm":"")
   });
   box.querySelectorAll("[data-avmulti]").forEach(c=>c.onchange=()=>{
-    const s=box.querySelector('[data-avfreq="'+CSS.escape(c.value)+'"]');
-    if(s)s.disabled=!c.checked;
+    const f=box.querySelector('[data-avfreq="'+CSS.escape(c.value)+'"]');
+    if(f)f.disabled=!c.checked;
+    const z=appointmentVehicleSizeSelect(c.value),svc=services.find(x=>x.id===$("as").value);
+    if(z)z.disabled=!c.checked||!serviceUsesVehicleSizePricing(svc);
     updateMultiVehicleSelection()
   });
-  box.querySelectorAll("[data-avfreq]").forEach(s=>s.onchange=()=>updateMultiVehicleSelection(false));
+  box.querySelectorAll("[data-avfreq]").forEach(f=>f.onchange=()=>updateMultiVehicleSelection(false));
+  box.querySelectorAll("[data-avsize]").forEach(z=>z.onchange=()=>updateMultiVehicleSelection(false));
+  refreshAppointmentPackageSizeUI();
   updateMultiVehicleSelection(false)
 }
 function selectedBatchRecurrences(){
@@ -3206,6 +3267,14 @@ function updateMultiVehicleSelection(refreshSlots=true){
   if(total)parts.push("bloco de "+durationLabel(total));
   if(weekly)parts.push(weekly+" semanal"+(weekly===1?"":"is"));
   if(biweekly)parts.push(biweekly+(biweekly===1?" quinzenal":" quinzenais"));
+  if(serviceUsesVehicleSizePricing(s)&&n){
+    const missing=ids.filter(id=>!["pm","g"].includes(appointmentVehicleSizeSelect(id)?.value||""));
+    if(missing.length)parts.push("defina P/M ou G em "+missing.length+" veículo"+(missing.length===1?"":"s"));
+    else if(financeAllowed()){
+      const packageTotal=ids.reduce((sum,id)=>sum+Number(servicePriceByVehicleSize(s,appointmentVehicleSizeSelect(id)?.value)||0),0);
+      parts.push("pacote"+(n>1?"s":"")+": "+money(packageTotal))
+    }
+  }
   $("avmultisummary").textContent=parts.join(" • ");
   $("apsave").textContent=appointmentSubmitLabel();
   if(refreshSlots)loadAvailableSlots()
@@ -3216,14 +3285,16 @@ function toggleAllAppointmentVehicles(){
   const shouldCheck=!all.every(x=>x.checked);
   all.forEach(x=>{
     x.checked=shouldCheck;
-    const s=$("avmulti").querySelector('[data-avfreq="'+CSS.escape(x.value)+'"]');
-    if(s)s.disabled=!shouldCheck
+    const f=$("avmulti").querySelector('[data-avfreq="'+CSS.escape(x.value)+'"]');
+    if(f)f.disabled=!shouldCheck;
+    const z=appointmentVehicleSizeSelect(x.value),svc=services.find(q=>q.id===$("as").value);
+    if(z)z.disabled=!shouldCheck||!serviceUsesVehicleSizePricing(svc)
   });
   updateMultiVehicleSelection()
 }
 function fillSelects(){
   $("ac").innerHTML='<option value=""></option>'+clients.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
-  $("as").innerHTML='<option value="">Selecione</option>'+services.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(financeAllowed()?' • '+money(s.price):'')+'</option>').join("");
+  $("as").innerHTML='<option value="">Selecione</option>'+services.map(s=>'<option value="'+s.id+'">'+esc(s.name)+esc(serviceOptionPriceLabel(s))+'</option>').join("");
   const activeTeams=teams.filter(t=>t.active);
   let html='<option value="">Equipe não definida</option>';
   if(activeTeams.length)html+='<optgroup label="Equipes">'+activeTeams.map(t=>'<option value="team:'+t.id+'">'+esc(teamDisplay(t.id))+'</option>').join("")+'</optgroup>';
@@ -3270,13 +3341,18 @@ async function applyServiceRule(){
   }
   const n=$("aid").value?1:selectedBatchVehicleIds().length;
   let parts=["Duração por veículo: "+durationLabel(s.duration_minutes)];
+  if(serviceUsesVehicleSizePricing(s))parts.push("P/M: "+money(s.price_pm??s.price)+" • G: "+money(s.price_g??s.price));
   if(n>1)parts.push("Bloco total: "+durationLabel(Number(s.duration_minutes||0)*n));
   if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));
   if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");
   h.textContent=parts.join(" • ");h.classList.remove("hidden");
+  refreshAppointmentPackageSizeUI();
   if($("aid").value&&financeAllowed()&&!window.__appointmentValueTouched){
-    $("apvalue").value=(Number(s.price||0)+Number(window.__editingAppointmentAddonValue||0)).toFixed(2);
-    updateAppointmentDiscountPreview()
+    const base=serviceUsesVehicleSizePricing(s)?servicePriceByVehicleSize(s,$("appackagesize").value):Number(s.price||0);
+    if(base!==null){
+      $("apvalue").value=(Number(base||0)+Number(window.__editingAppointmentAddonValue||0)).toFixed(2);
+      updateAppointmentDiscountPreview()
+    }
   }
   if(!$("aid").value)updateMultiVehicleSelection(false);
   await loadAvailableSlots()
@@ -3345,7 +3421,7 @@ async function fillVehicles(cid){
   if(!$("aid").value)renderMultiVehiclePicker(list)
 }
 function spDateTime(iso){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(iso)),g=t=>p.find(x=>x.type===t)?.value||"";return{date:g("year")+"-"+g("month")+"-"+g("day"),time:g("hour")+":"+g("minute")}}
-async function openAppt(){try{window.__appointmentIdempotencyKey=crypto.randomUUID();window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";$("apvaluewrap").classList.add("hidden");$("apdiscountblock").classList.add("hidden");$("apvalue").value="";$("apdiscounttype").value="none";$("apdiscountvalue").value="";show("apmsg","");await refs();fillSelects();setApptVehicleMode(false);clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículos e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Selecione um ou mais veículos, serviço e data.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
+async function openAppt(){try{window.__appointmentIdempotencyKey=crypto.randomUUID();window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";$("apvaluewrap").classList.add("hidden");$("apdiscountblock").classList.add("hidden");$("apvalue").value="";$("apdiscounttype").value="none";$("apdiscountvalue").value="";$("appackagesize").value="";$("appackagesizewrap").classList.add("hidden");show("apmsg","");await refs();fillSelects();setApptVehicleMode(false);clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículos e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Selecione um ou mais veículos, serviço e data.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
 async function openAppointmentDetail(id){
   try{
     const a=currentApps.find(x=>x.id===id);
@@ -3398,7 +3474,7 @@ async function openAppointmentDetail(id){
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)}
   }catch(e){show("msg",fail(e),"error")}
 }
-async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;const fresh=await sb.from("appointments").select("*").eq("id",id).single();if(fresh.error)throw fresh.error;const x=fresh.data;if(!x)throw Error("Agendamento não encontrado.");const idx=currentApps.findIndex(a=>String(a.id)===String(id));if(idx>=0)currentApps[idx]={...currentApps[idx],...x};if(x.status==="completed"||x.status==="cancelled"){agendaMonthCache.clear();await loadApps();throw Error(x.status==="completed"?"Este agendamento já foi concluído e não pode mais ser editado.":"Este agendamento já foi cancelado e não pode mais ser editado.");}$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";window.__editingAppointmentAddonValue=Number(x.addon_value||0);window.__editingAppointmentDiscountAmount=Number(x.discount_amount||0);window.__editingAppointmentDiscountPercent=Number(x.discount_percent||0);$("apvalue").value=(Number(x.base_value||0)+Number(x.addon_value||0)).toFixed(2);$("apvaluewrap").classList.toggle("hidden",!financeAllowed());$("apdiscountblock").classList.toggle("hidden",!financeAllowed());const existingDiscount=Number(x.discount_amount||0),existingPercent=Number(x.discount_percent||0);if(existingDiscount>0&&existingPercent>0){$("apdiscounttype").value="percent";$("apdiscountvalue").value=existingPercent.toFixed(2)}else if(existingDiscount>0){$("apdiscounttype").value="fixed";$("apdiscountvalue").value=existingDiscount.toFixed(2)}else{$("apdiscounttype").value="none";$("apdiscountvalue").value=""}updateAppointmentDiscountPreview();syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");window.__appointmentValueTouched=!!(s&&Math.abs(Number(x.base_value||0)-Number(s.price||0))>0.009);if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
+async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;const fresh=await sb.from("appointments").select("*").eq("id",id).single();if(fresh.error)throw fresh.error;const x=fresh.data;if(!x)throw Error("Agendamento não encontrado.");const idx=currentApps.findIndex(a=>String(a.id)===String(id));if(idx>=0)currentApps[idx]={...currentApps[idx],...x};if(x.status==="completed"||x.status==="cancelled"){agendaMonthCache.clear();await loadApps();throw Error(x.status==="completed"?"Este agendamento já foi concluído e não pode mais ser editado.":"Este agendamento já foi cancelado e não pode mais ser editado.");}$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";window.__editingAppointmentAddonValue=Number(x.addon_value||0);window.__editingAppointmentDiscountAmount=Number(x.discount_amount||0);window.__editingAppointmentDiscountPercent=Number(x.discount_percent||0);$("apvalue").value=(Number(x.base_value||0)+Number(x.addon_value||0)).toFixed(2);$("apvaluewrap").classList.toggle("hidden",!financeAllowed());$("apdiscountblock").classList.toggle("hidden",!financeAllowed());const existingDiscount=Number(x.discount_amount||0),existingPercent=Number(x.discount_percent||0);if(existingDiscount>0&&existingPercent>0){$("apdiscounttype").value="percent";$("apdiscountvalue").value=existingPercent.toFixed(2)}else if(existingDiscount>0){$("apdiscounttype").value="fixed";$("apdiscountvalue").value=existingDiscount.toFixed(2)}else{$("apdiscounttype").value="none";$("apdiscountvalue").value=""}updateAppointmentDiscountPreview();syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;syncSingleAppointmentPackageSize(false);refreshAppointmentPackageSizeUI();$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");const expectedBase=s?(serviceUsesVehicleSizePricing(s)?servicePriceByVehicleSize(s,$("appackagesize").value):Number(s.price||0)):null;window.__appointmentValueTouched=!!(s&&expectedBase!==null&&Math.abs(Number(x.base_value||0)-Number(expectedBase||0))>0.009);if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
 async function saveAppt(e){
   e.preventDefault();
   if(window.__appointmentSaveInFlight)return;
@@ -3412,14 +3488,27 @@ async function saveAppt(e){
   if(!time)return show("apmsg","Selecione um horário disponível.","error");
   const s=services.find(x=>x.id===serviceId);
   if(!s)return show("apmsg","Serviço inválido. Feche e abra o agendamento novamente.","error");
+  const packageSizes=serviceUsesVehicleSizePricing(s)
+    ?vehicleIds.map(vehicle_id=>({vehicle_id,size:id?$("appackagesize").value:(appointmentVehicleSizeSelect(vehicle_id)?.value||"")}))
+    :[];
+  if(packageSizes.some(x=>!["pm","g"].includes(x.size)))return show("apmsg","Defina o porte P/M ou G de todos os veículos selecionados para aplicar o preço correto do pacote.","error");
   const assignment=selectedAssignment();
   window.__appointmentSaveInFlight=true;
   b.disabled=true;b.textContent=id?"Salvando...":"Agendando...";
   try{
+    if(serviceUsesVehicleSizePricing(s)){
+      for(const item of packageSizes){
+        const local=findVehicleLocal(item.vehicle_id);
+        if(local?.package_size===item.size)continue;
+        const ur=await sb.from("vehicles").update({package_size:item.size,updated_by:currentUserId,updated_at:new Date().toISOString()}).eq("id",item.vehicle_id);
+        if(ur.error)throw ur.error;
+        if(local)local.package_size=item.size
+      }
+    }
     if(id){
       const existing=currentApps.find(x=>x.id===id),addonValue=Number(existing?.addon_value??window.__editingAppointmentAddonValue??0),localIso=date+"T"+time+":00",localDate=new Date(localIso);
       if(Number.isNaN(localDate.getTime()))throw Error("Data ou horário inválido. Selecione o horário novamente.");
-      const q=financeAllowed()?appointmentDiscountCalc():{gross:Number(s.price||0)+addonValue,discount:Number(window.__editingAppointmentDiscountAmount||0),percent:Number(window.__editingAppointmentDiscountPercent||0),final:Math.max(0,Number(s.price||0)+addonValue-Number(window.__editingAppointmentDiscountAmount||0)),error:""};
+      const standardBase=serviceUsesVehicleSizePricing(s)?Number(servicePriceByVehicleSize(s,packageSizes[0]?.size)||0):Number(s.price||0);const q=financeAllowed()?appointmentDiscountCalc():{gross:standardBase+addonValue,discount:Number(window.__editingAppointmentDiscountAmount||0),percent:Number(window.__editingAppointmentDiscountPercent||0),final:Math.max(0,standardBase+addonValue-Number(window.__editingAppointmentDiscountAmount||0)),error:""};
       if(q.error)throw Error(q.error);
       if(q.gross+0.009<addonValue)throw Error("O valor do atendimento não pode ser menor que os extras já vinculados ("+money(addonValue)+").");
       const customBase=Math.round(Math.max(0,q.gross-addonValue)*100)/100,customTotal=Math.round(q.final*100)/100,discountAmount=Math.round(q.discount*100)/100,discountPercent=Math.round(q.percent*10000)/10000;
