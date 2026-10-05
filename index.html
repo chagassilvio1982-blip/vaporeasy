@@ -2545,26 +2545,42 @@ function financeReceiptGroupCards(apps,payMap,maps,paid=false){
   }).join("")
 }
 function financeApptCard(a,p,maps,paid=false){
-  const cl=maps.cm.get(a.client_id),v=maps.vm.get(a.vehicle_id),s=maps.sm.get(a.service_id),when=paid?(p?.paid_at||a.completed_at):a.completed_at;
-  return '<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+esc(s?.name||"Serviço")+'<br>'+esc(receiptDate(when))+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(p?.amount??a.final_value))+'</div></div><div class="actions" style="margin-top:8px">'+(!paid?'<button type="button" class="success" data-fin-pay="'+a.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-fin-receipt="'+a.id+'">Comprovante</button>':'<button type="button" class="ghost" data-fin-receipt="'+a.id+'">Recibo</button>')+'</div></div>'
+  const cl=maps.cm.get(a.client_id),v=maps.vm.get(a.vehicle_id),sv=maps.sm.get(a.service_id),when=paid?(p?.paid_at||a.completed_at):a.completed_at;
+  return '<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+esc(sv?.name||"Serviço")+'<br>'+esc(receiptDate(when))+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(p?.amount??a.final_value))+'</div></div><div class="actions" style="margin-top:8px">'+(!paid?'<button type="button" class="success" data-fin-pay="'+a.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-fin-receipt="'+a.id+'">Comprovante</button>':'<button type="button" class="ghost" data-fin-receipt="'+a.id+'">Recibo</button>')+'</div></div>'
+}
+function financePackageDate(d){
+  if(!d)return "—";
+  const raw=String(d),dt=new Date(raw.length===10?raw+"T12:00:00":raw);
+  return Number.isNaN(dt.getTime())?raw:new Intl.DateTimeFormat("pt-BR").format(dt)
+}
+function financePackageChargeCard(c,maps,paid=false){
+  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0);
+  const detail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
+  const dateLine=paid?("Recebido em "+financePackageDate(c.paid_at)+(c.payment_method?" • "+esc(c.payment_method):"")):("Vencimento "+financePackageDate(c.due_date));
+  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+detail+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(c.amount))+'</div></div>'+(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button></div>':'<div class="meta" style="margin-top:8px">Mensalidade do pacote paga.</div>')+'</div>'
 }
 async function loadFinance(){
   if(!financeAllowed())return;
   const k=financeMonthKeys();
   try{
-    const [ar,paid,ex]=await Promise.all([
-      sb.from("appointments").select("id,client_id,vehicle_id,service_id,completed_at,base_value,addon_value,discount_amount,final_value").eq("status","completed").is("deleted_at",null).gte("completed_at",k.startIso).lt("completed_at",k.nextIso).order("completed_at",{ascending:false}),
+    const sync=await sb.rpc("ensure_current_package_charges");
+    if(sync.error)throw sync.error;
+    const [ar,paid,ex,pkgMonth,pkgPaid,subs]=await Promise.all([
+      sb.from("appointments").select("id,client_id,vehicle_id,service_id,recurring_plan_id,completed_at,base_value,addon_value,discount_amount,final_value").eq("status","completed").is("deleted_at",null).gte("completed_at",k.startIso).lt("completed_at",k.nextIso).order("completed_at",{ascending:false}),
       sb.from("appointment_payments").select("*").eq("status","paid").gte("paid_at",k.startIso).lt("paid_at",k.nextIso).order("paid_at",{ascending:false}),
-      sb.from("finance_expenses").select("*").gte("expense_date",k.startDate).lt("expense_date",k.nextDate).order("expense_date",{ascending:false}).order("created_at",{ascending:false})
+      sb.from("finance_expenses").select("*").gte("expense_date",k.startDate).lt("expense_date",k.nextDate).order("expense_date",{ascending:false}).order("created_at",{ascending:false}),
+      sb.from("package_charges").select("*").eq("competence_month",k.startDate).neq("status","cancelled").order("created_at",{ascending:false}),
+      sb.from("package_charges").select("*").eq("status","paid").gte("paid_at",k.startIso).lt("paid_at",k.nextIso).order("paid_at",{ascending:false}),
+      sb.from("package_subscriptions").select("id,recurring_plan_id")
     ]);
-    if(ar.error)throw ar.error;if(paid.error)throw paid.error;if(ex.error)throw ex.error;
-    const monthApps=ar.data||[],paidRows=paid.data||[],expenseRows=ex.data||[],monthIds=monthApps.map(x=>x.id);
+    if(ar.error)throw ar.error;if(paid.error)throw paid.error;if(ex.error)throw ex.error;if(pkgMonth.error)throw pkgMonth.error;if(pkgPaid.error)throw pkgPaid.error;if(subs.error)throw subs.error;
+    const monthApps=ar.data||[],rawPaidRows=paid.data||[],expenseRows=ex.data||[],packageMonthRows=pkgMonth.data||[],packagePaidRows=pkgPaid.data||[],packagePlanIds=new Set((subs.data||[]).map(x=>x.recurring_plan_id).filter(Boolean)),monthIds=monthApps.map(x=>x.id);
     let monthPayments=[];
     if(monthIds.length){const pr=await sb.from("appointment_payments").select("*").in("appointment_id",monthIds);if(pr.error)throw pr.error;monthPayments=pr.data||[]}
-    const paidIds=paidRows.map(x=>x.appointment_id),missingPaidIds=paidIds.filter(id=>!monthIds.includes(id));
+    const paidIds=rawPaidRows.map(x=>x.appointment_id),missingPaidIds=paidIds.filter(id=>!monthIds.includes(id));
     let otherApps=[];
-    if(missingPaidIds.length){const rr=await sb.from("appointments").select("id,client_id,vehicle_id,service_id,completed_at,base_value,addon_value,discount_amount,final_value").in("id",missingPaidIds);if(rr.error)throw rr.error;otherApps=rr.data||[]}
-    const allApps=[...monthApps,...otherApps],clientIds=[...new Set(allApps.map(x=>x.client_id))],vehicleIds=[...new Set(allApps.map(x=>x.vehicle_id))],serviceIds=[...new Set(allApps.map(x=>x.service_id))];
+    if(missingPaidIds.length){const rr=await sb.from("appointments").select("id,client_id,vehicle_id,service_id,recurring_plan_id,completed_at,base_value,addon_value,discount_amount,final_value").in("id",missingPaidIds);if(rr.error)throw rr.error;otherApps=rr.data||[]}
+    const allApps=[...monthApps,...otherApps],allClientIds=[...allApps.map(x=>x.client_id),...packageMonthRows.map(x=>x.client_id),...packagePaidRows.map(x=>x.client_id)],allVehicleIds=[...allApps.map(x=>x.vehicle_id),...packageMonthRows.map(x=>x.vehicle_id),...packagePaidRows.map(x=>x.vehicle_id)],allServiceIds=[...allApps.map(x=>x.service_id),...packageMonthRows.map(x=>x.service_id),...packagePaidRows.map(x=>x.service_id)],clientIds=[...new Set(allClientIds.filter(Boolean))],vehicleIds=[...new Set(allVehicleIds.filter(Boolean))],serviceIds=[...new Set(allServiceIds.filter(Boolean))];
     const [cr,vr,sr]=await Promise.all([
       clientIds.length?sb.from("clients").select("id,name").in("id",clientIds):Promise.resolve({data:[],error:null}),
       vehicleIds.length?sb.from("vehicles").select("id,brand,model,plate").in("id",vehicleIds):Promise.resolve({data:[],error:null}),
@@ -2572,26 +2588,32 @@ async function loadFinance(){
     ]);
     if(cr.error)throw cr.error;if(vr.error)throw vr.error;if(sr.error)throw sr.error;
     const maps=financeEntityMaps({clients:cr.data||[],vehicles:vr.data||[],services:sr.data||[]}),payMap=new Map(monthPayments.map(p=>[p.appointment_id,p])),appMap=new Map(allApps.map(a=>[a.id,a]));
-    const pendingApps=monthApps.filter(a=>payMap.get(a.id)?.status!=="paid"),faturado=monthApps.reduce((s,a)=>s+Number(a.final_value||0),0),recebido=paidRows.reduce((s,p)=>s+Number(p.amount||0),0),areceber=pendingApps.reduce((s,a)=>s+Number(payMap.get(a.id)?.amount??a.final_value??0),0),despesas=expenseRows.reduce((s,e)=>s+Number(e.amount||0),0);
+    const serviceApps=monthApps.filter(a=>!packagePlanIds.has(a.recurring_plan_id)),paidRows=rawPaidRows.filter(p=>{const a=appMap.get(p.appointment_id);return !a||!packagePlanIds.has(a.recurring_plan_id)}),pendingApps=serviceApps.filter(a=>payMap.get(a.id)?.status!=="paid"),pendingPackage=packageMonthRows.filter(c=>c.status==="pending");
+    const billedServices=serviceApps.reduce((sum,a)=>sum+Number(a.final_value||0),0),billedPackages=packageMonthRows.reduce((sum,c)=>sum+Number(c.amount||0),0),faturado=billedServices+billedPackages,receivedServices=paidRows.reduce((sum,p)=>sum+Number(p.amount||0),0),receivedPackages=packagePaidRows.reduce((sum,c)=>sum+Number(c.amount||0),0),recebido=receivedServices+receivedPackages,areceber=pendingApps.reduce((sum,a)=>sum+Number(payMap.get(a.id)?.amount??a.final_value??0),0)+pendingPackage.reduce((sum,c)=>sum+Number(c.amount||0),0),despesas=expenseRows.reduce((sum,e)=>sum+Number(e.amount||0),0);
     const serviceGroups=new Map(),paymentGroups=new Map(),expenseGroups=new Map();
-    monthApps.forEach(a=>{
-      const name=maps.sm.get(a.service_id)?.name||"Serviço";
-      const g=serviceGroups.get(name)||{name,count:0,total:0};
+    serviceApps.forEach(a=>{
+      const name=maps.sm.get(a.service_id)?.name||"Serviço",g=serviceGroups.get(name)||{name,count:0,total:0};
       g.count++;g.total+=Number(a.final_value||0);serviceGroups.set(name,g)
     });
+    packageMonthRows.forEach(c=>{
+      const name=(maps.sm.get(c.service_id)?.name||"Pacote")+" ("+(packageFrequencyMeta(c.frequency)?.label||c.frequency)+")",g=serviceGroups.get(name)||{name,count:0,total:0};
+      g.count++;g.total+=Number(c.amount||0);serviceGroups.set(name,g)
+    });
     paidRows.forEach(p=>{
-      const name=p.payment_method||"Não informado";
-      const g=paymentGroups.get(name)||{name,count:0,total:0};
+      const name=p.payment_method||"Não informado",g=paymentGroups.get(name)||{name,count:0,total:0};
       g.count++;g.total+=Number(p.amount||0);paymentGroups.set(name,g)
     });
+    packagePaidRows.forEach(c=>{
+      const name=c.payment_method||"Não informado",g=paymentGroups.get(name)||{name,count:0,total:0};
+      g.count++;g.total+=Number(c.amount||0);paymentGroups.set(name,g)
+    });
     expenseRows.forEach(e=>{
-      const name=e.category||"Outros";
-      const g=expenseGroups.get(name)||{name,count:0,total:0};
+      const name=e.category||"Outros",g=expenseGroups.get(name)||{name,count:0,total:0};
       g.count++;g.total+=Number(e.amount||0);expenseGroups.set(name,g)
     });
-    const descontos=monthApps.reduce((s,a)=>s+Number(a.discount_amount||0),0),uniqueClients=new Set(monthApps.map(a=>a.client_id)).size,uniqueVehicles=new Set(monthApps.map(a=>a.vehicle_id)).size,ticket=monthApps.length?faturado/monthApps.length:0,competenceResult=faturado-despesas,cashResult=recebido-despesas,margin=faturado?competenceResult/faturado*100:0;
+    const descontos=serviceApps.reduce((sum,a)=>sum+Number(a.discount_amount||0),0),uniqueClients=new Set([...serviceApps.map(a=>a.client_id),...packageMonthRows.map(c=>c.client_id)]).size,uniqueVehicles=new Set([...serviceApps.map(a=>a.vehicle_id),...packageMonthRows.map(c=>c.vehicle_id)]).size,billedTransactions=serviceApps.length+packageMonthRows.length,ticket=billedTransactions?faturado/billedTransactions:0,competenceResult=faturado-despesas,cashResult=recebido-despesas,margin=faturado?competenceResult/faturado*100:0;
     currentFinanceMonthReport={
-      keys:k,monthApps,paidRows,expenseRows,monthPayments,pendingApps,allApps,maps,payMap,appMap,
+      keys:k,monthApps,serviceApps,paidRows,expenseRows,monthPayments,pendingApps,packageMonthRows,pendingPackage,packagePaidRows,allApps,maps,payMap,appMap,
       faturado,recebido,areceber,despesas,descontos,cashResult,competenceResult,margin,ticket,
       uniqueClients,uniqueVehicles,
       services:[...serviceGroups.values()].sort((a,b)=>b.total-a.total||b.count-a.count),
@@ -2599,12 +2621,15 @@ async function loadFinance(){
       expenseCategories:[...expenseGroups.values()].sort((a,b)=>b.total-a.total||b.count-a.count)
     };
     $("ffaturado").textContent=money(faturado);$("frecebido").textContent=money(recebido);$("fareceber").textContent=money(areceber);$("fdespesas").textContent=money(despesas);$("fsaldo").textContent=money(recebido-despesas);
-    $("fpendingcount").textContent="("+pendingApps.length+")";$("fpaidcount").textContent="("+paidRows.length+")";$("fexpensecount").textContent="("+expenseRows.length+")";
-    $("fpending").innerHTML=pendingApps.length?financeReceiptGroupCards(monthApps,payMap,maps,false)+pendingApps.map(a=>financeApptCard(a,payMap.get(a.id),maps,false)).join(""):'<div class="empty">Nenhum valor pendente neste mês.</div>';
-    const paidMonthApps=monthApps.filter(a=>payMap.get(a.id)?.status==="paid");
-    $("fpaid").innerHTML=paidRows.length?financeReceiptGroupCards(monthApps,payMap,maps,true)+paidRows.map(p=>{const a=appMap.get(p.appointment_id);return a?financeApptCard(a,p,maps,true):""}).join(""):'<div class="empty">Nenhum recebimento confirmado neste mês.</div>';
+    const pendingCount=pendingApps.length+pendingPackage.length,paidCount=paidRows.length+packagePaidRows.length;
+    $("fpendingcount").textContent="("+pendingCount+")";$("fpaidcount").textContent="("+paidCount+")";$("fexpensecount").textContent="("+expenseRows.length+")";
+    const pendingHtml=financeReceiptGroupCards(serviceApps,payMap,maps,false)+pendingPackage.map(c=>financePackageChargeCard(c,maps,false)).join("")+pendingApps.map(a=>financeApptCard(a,payMap.get(a.id),maps,false)).join("");
+    $("fpending").innerHTML=pendingCount?pendingHtml:'<div class="empty">Nenhum valor pendente neste mês.</div>';
+    const paidHtml=financeReceiptGroupCards(serviceApps,payMap,maps,true)+packagePaidRows.map(c=>financePackageChargeCard(c,maps,true)).join("")+paidRows.map(p=>{const a=appMap.get(p.appointment_id);return a?financeApptCard(a,p,maps,true):""}).join("");
+    $("fpaid").innerHTML=paidCount?paidHtml:'<div class="empty">Nenhum recebimento confirmado neste mês.</div>';
     $("fexpenses").innerHTML=expenseRows.length?expenseRows.map(e=>'<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(e.description)+'</div><div class="meta">'+esc(e.category)+' • '+esc(new Intl.DateTimeFormat("pt-BR").format(new Date(e.expense_date+"T12:00:00"))) +(e.notes?'<br>'+esc(e.notes):'')+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(e.amount))+'</div></div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-exp-edit="'+e.id+'">Editar</button><button type="button" class="danger" data-exp-del="'+e.id+'">Excluir</button></div></div>').join(""):'<div class="empty">Nenhuma despesa registrada neste mês.</div>';
     document.querySelectorAll("[data-fin-pay]").forEach(b=>b.onclick=()=>openPayment(b.dataset.finPay));
+    document.querySelectorAll("[data-pkg-pay]").forEach(b=>b.onclick=()=>openPackagePayment(b.dataset.pkgPay));
     document.querySelectorAll("[data-fin-receipt]").forEach(b=>b.onclick=()=>openReceipt(b.dataset.finReceipt));
     document.querySelectorAll("[data-fin-group]").forEach(b=>b.onclick=()=>openReceiptGroup((b.dataset.finGroup||"").split(",").filter(Boolean)));
     document.querySelectorAll("[data-exp-edit]").forEach(b=>b.onclick=()=>openExpense(expenseRows.find(e=>e.id===b.dataset.expEdit)));
