@@ -3733,6 +3733,17 @@ async function openAppointmentDetail(id){
     ]);
     if(ph.error)throw ph.error;if(exr.error)throw exr.error;
     const photo=ph.data||null,completionException=exr.data||null;
+    let packageCharge=null;
+    if(packageVisit&&financeAllowed()){
+      const psr=await sb.from("package_subscriptions").select("id").eq("recurring_plan_id",a.recurring_plan_id).maybeSingle();
+      if(psr.error)throw psr.error;
+      if(psr.data?.id){
+        const competence=spDateTime(a.starts_at).date.slice(0,7)+"-01";
+        const pcr=await sb.from("package_charges").select("*").eq("subscription_id",psr.data.id).eq("competence_month",competence).neq("status","cancelled").order("created_at",{ascending:false}).limit(1).maybeSingle();
+        if(pcr.error)throw pcr.error;
+        packageCharge=pcr.data||null
+      }
+    }
     let photoUrl="";
     if(photo?.storage_path){
       const su=await sb.storage.from("completion-photos").createSignedUrl(photo.storage_path,900);
@@ -3744,6 +3755,11 @@ async function openAppointmentDetail(id){
     const exceptionAt=completionException?.recorded_at?spDateTime(completionException.recorded_at):null;
     const finisher=photo?.collaborator_id?(collabs.find(x=>x.id===photo.collaborator_id)?.name||responsibleLabel||"Equipe Vaporeasy"):(assignedTeam?teamDisplay(assignedTeam.id):(responsible?.name||photo?.uploaded_by_name||"Equipe Vaporeasy"));
     const status=statusLabel(a.status);
+    const packageChargeLabel=packageVisit
+      ?(packageCharge
+        ?("Mensalidade "+money(packageCharge.amount)+" • "+(packageCharge.status==="paid"?"paga":packageCharge.status==="covered"?"quitada por crédito":"pagamento pendente"))
+        :"Incluído na mensalidade do pacote")
+      :"";
     $("ddcontent").innerHTML=
       '<div class="item" style="margin:0">'+
         '<h3 style="margin-top:0">'+esc(client?.name||"Cliente")+'</h3>'+
@@ -3753,7 +3769,7 @@ async function openAppointmentDetail(id){
         '<div class="meta"><b>Serviço</b><br>'+esc(service?.name||"Serviço")+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Status</b><br>'+esc(status)+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Agendado para</b><br>'+esc(scheduled.date+" • "+scheduled.time)+'</div>'+
-        '<div class="meta" style="margin-top:10px"><b>Equipe / responsável</b><br>'+esc(responsibleLabel)+'</div>'+(financeAllowed()?'<div class="meta" style="margin-top:10px"><b>'+esc(packageVisit?"Cobrança":"Valor")+'</b><br>'+esc(packageVisit?"Incluído na mensalidade do pacote":money(a.final_value))+'</div>':'')+
+        '<div class="meta" style="margin-top:10px"><b>Equipe / responsável</b><br>'+esc(responsibleLabel)+'</div>'+(financeAllowed()?'<div class="meta" style="margin-top:10px"><b>'+esc(packageVisit?"Cobrança":"Valor")+'</b><br>'+esc(packageVisit?packageChargeLabel:money(a.final_value))+'</div>':'')+
         (a.notes?'<div class="meta" style="margin-top:10px"><b>Observações</b><br>'+esc(a.notes)+'</div>':'')+
       '</div>'+
       (a.status==="completed"?
@@ -3767,11 +3783,13 @@ async function openAppointmentDetail(id){
           '<div class="meta" style="margin-top:8px">Uso interno da Vaporeasy. Fotos e justificativas de exceção não são enviadas ao cliente.</div>'+
         '</div>':'')+
       '<div class="actions" style="margin-top:12px">'+
+        (packageVisit&&packageCharge&&packageCharge.status==="pending"&&financeAllowed()?'<button class="primary" type="button" data-detail-package-charge="'+esc(packageCharge.id)+'">Compartilhar cobrança / Pix</button>':'')+
         (a.status!=="completed"&&a.status!=="cancelled"?'<button class="ghost" type="button" data-detail-edit="'+esc(a.id)+'">Editar agendamento</button>':'')+
       '</div>';
     $("dd").showModal();
-    const eb=$("dd").querySelector("[data-detail-edit]");
-    if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)}
+    const eb=$("dd").querySelector("[data-detail-edit]"),cb=$("dd").querySelector("[data-detail-package-charge]");
+    if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)};
+    if(cb)cb.onclick=()=>sharePackageCharge(cb.dataset.detailPackageCharge)
   }catch(e){show("msg",fail(e),"error")}
 }
 async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;const fresh=await sb.from("appointments").select("*").eq("id",id).single();if(fresh.error)throw fresh.error;const x=fresh.data;if(!x)throw Error("Agendamento não encontrado.");const idx=currentApps.findIndex(a=>String(a.id)===String(id));if(idx>=0)currentApps[idx]={...currentApps[idx],...x};if(x.status==="completed"||x.status==="cancelled"){agendaMonthCache.clear();await loadApps();throw Error(x.status==="completed"?"Este agendamento já foi concluído e não pode mais ser editado.":"Este agendamento já foi cancelado e não pode mais ser editado.");}$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";window.__editingAppointmentAddonValue=Number(x.addon_value||0);window.__editingAppointmentDiscountAmount=Number(x.discount_amount||0);window.__editingAppointmentDiscountPercent=Number(x.discount_percent||0);$("apvalue").value=(Number(x.base_value||0)+Number(x.addon_value||0)).toFixed(2);$("apvaluewrap").classList.toggle("hidden",!financeAllowed());$("apdiscountblock").classList.toggle("hidden",!financeAllowed());const existingDiscount=Number(x.discount_amount||0),existingPercent=Number(x.discount_percent||0);if(existingDiscount>0&&existingPercent>0){$("apdiscounttype").value="percent";$("apdiscountvalue").value=existingPercent.toFixed(2)}else if(existingDiscount>0){$("apdiscounttype").value="fixed";$("apdiscountvalue").value=existingDiscount.toFixed(2)}else{$("apdiscounttype").value="none";$("apdiscountvalue").value=""}updateAppointmentDiscountPreview();syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;syncSingleAppointmentPackageSize(false);$("appackagesizewrap").classList.toggle("hidden",!serviceUsesVehicleSizePricing(services.find(q=>q.id===x.service_id)));$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");const expectedBase=s?(serviceUsesVehicleSizePricing(s)?servicePriceByVehicleSize(s,$("appackagesize").value):Number(s.price||0)):null;window.__appointmentValueTouched=!!(s&&expectedBase!==null&&Math.abs(Number(x.base_value||0)-Number(expectedBase||0))>0.009);if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
