@@ -2553,9 +2553,28 @@ function financePackageDate(d){
   const raw=String(d),dt=new Date(raw.length===10?raw+"T12:00:00":raw);
   return Number.isNaN(dt.getTime())?raw:new Intl.DateTimeFormat("pt-BR").format(dt)
 }
-function financePackageChargeCard(c,maps,paid=false){
+function financePackageUpgradeTarget(c,charges=[]){
+  const baseCreated=Date.parse(c.created_at||"")||0;
+  return charges
+    .filter(n=>n.id!==c.id
+      &&n.client_id===c.client_id
+      &&n.vehicle_id===c.vehicle_id
+      &&n.competence_month===c.competence_month
+      &&(Date.parse(n.created_at||"")||0)>baseCreated
+      &&Number(n.credit_applied||0)>=Number(c.amount||0)-0.009
+      &&Number(n.gross_monthly_amount??n.amount??0)>Number(c.gross_monthly_amount??c.amount??0)
+      &&n.status!=="cancelled")
+    .sort((a,b)=>(Date.parse(a.created_at||"")||0)-(Date.parse(b.created_at||"")||0))[0]||null
+}
+function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
   const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0);
-  const detail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
+  const baseDetail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
+  const targetMeta=upgradeTarget?packageFrequencyMeta(upgradeTarget.frequency):null;
+  const targetService=upgradeTarget?maps.sm.get(upgradeTarget.service_id):null;
+  const historyTitle=upgradeTarget&&paid?'Pagamento inicial do pacote':baseDetail;
+  const historyDetail=upgradeTarget&&paid
+    ?'<br><span>'+baseDetail+'</span><br><span>Incorporado ao upgrade para '+esc(targetService?.name||sv?.name||"pacote")+' '+esc(targetMeta?.label||upgradeTarget.frequency||"")+'</span>'
+    :"";
   const dateLine=paid?("Recebido em "+financePackageDate(c.paid_at)+(c.payment_method?" • "+esc(c.payment_method):"")):("Vencimento "+financePackageDate(c.due_date));
   let adjustment="";
   if(credit>0){
@@ -2564,10 +2583,12 @@ function financePackageChargeCard(c,maps,paid=false){
       :'<br><span>Mensalidade: '+esc(money(gross))+' • já pago: '+esc(money(credit))+' • saldo a pagar: '+esc(money(amount))+'</span>'
   }
   const covered=c.status==="covered";
-  const paidMessage=credit>0
-    ?'Complemento pago. Mensalidade total de '+esc(money(gross))+' quitada.'
-    :'Mensalidade do pacote paga.';
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+detail+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div>'))+'</div>'
+  const paidMessage=upgradeTarget
+    ?'Valor preservado como crédito no upgrade do pacote.'
+    :(credit>0
+      ?'Complemento pago. Mensalidade total de '+esc(money(gross))+' quitada.'
+      :'Mensalidade do pacote paga.');
+  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div>'))+'</div>'
 }
 async function loadFinance(){
   if(!financeAllowed())return;
@@ -2635,7 +2656,7 @@ async function loadFinance(){
     $("fpendingcount").textContent="("+pendingCount+")";$("fpaidcount").textContent="("+paidCount+")";$("fexpensecount").textContent="("+expenseRows.length+")";
     const pendingHtml=financeReceiptGroupCards(serviceApps,payMap,maps,false)+pendingPackage.map(c=>financePackageChargeCard(c,maps,false)).join("")+pendingApps.map(a=>financeApptCard(a,payMap.get(a.id),maps,false)).join("");
     $("fpending").innerHTML=pendingCount?pendingHtml:'<div class="empty">Nenhum valor pendente neste mês.</div>';
-    const paidHtml=financeReceiptGroupCards(serviceApps,payMap,maps,true)+packagePaidRows.map(c=>financePackageChargeCard(c,maps,true)).join("")+paidRows.map(p=>{const a=appMap.get(p.appointment_id);return a?financeApptCard(a,p,maps,true):""}).join("");
+    const paidHtml=financeReceiptGroupCards(serviceApps,payMap,maps,true)+packagePaidRows.map(c=>financePackageChargeCard(c,maps,true,financePackageUpgradeTarget(c,packageMonthRows))).join("")+paidRows.map(p=>{const a=appMap.get(p.appointment_id);return a?financeApptCard(a,p,maps,true):""}).join("");
     $("fpaid").innerHTML=paidCount?paidHtml:'<div class="empty">Nenhum recebimento confirmado neste mês.</div>';
     $("fexpenses").innerHTML=expenseRows.length?expenseRows.map(e=>'<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(e.description)+'</div><div class="meta">'+esc(e.category)+' • '+esc(new Intl.DateTimeFormat("pt-BR").format(new Date(e.expense_date+"T12:00:00"))) +(e.notes?'<br>'+esc(e.notes):'')+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(e.amount))+'</div></div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-exp-edit="'+e.id+'">Editar</button><button type="button" class="danger" data-exp-del="'+e.id+'">Excluir</button></div></div>').join(""):'<div class="empty">Nenhuma despesa registrada neste mês.</div>';
     document.querySelectorAll("[data-fin-pay]").forEach(b=>b.onclick=()=>openPayment(b.dataset.finPay));
