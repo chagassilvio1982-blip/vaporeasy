@@ -1322,7 +1322,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <dialog id="exd"><form id="exf" class="stack"><input id="exid" type="hidden"><h3 id="extitle">Nova despesa</h3><div id="exmsg" class="notice hidden"></div><label>Data<input id="exdate" type="date" required></label><label>Categoria<select id="excat" required><option>Equipe</option><option>Combustível</option><option>Produtos / materiais</option><option>Contador</option><option>Impostos</option><option>Sistema / tecnologia</option><option>Manutenção</option><option>Marketing</option><option>Outros</option></select></label><label>Descrição<input id="exdesc" required placeholder="Ex.: combustível da semana"></label><label>Valor<input id="examount" type="number" min="0" step="0.01" inputmode="decimal" required></label><label>Observações<textarea id="exnotes"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar despesa</button></div></form></dialog>
 <dialog id="pd"><form id="payf" class="stack"><input id="payid" type="hidden"><h3 id="paytitle">Confirmar pagamento</h3><div id="paymsg" class="notice hidden"></div>
 <div id="paysummary" class="payment-summary"></div>
-<label>Desconto<select id="paydiscounttype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label>
+<label id="paydiscountlabelwrap">Desconto<select id="paydiscounttype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label>
 <label id="paydiscountwrap" class="hidden"><span id="paydiscountlabel">Valor do desconto</span><input id="paydiscountvalue" type="number" min="0" step="0.01" inputmode="decimal"></label>
 <div id="paypreview" class="payment-preview"></div>
 <div id="payreceivefields" class="stack"><label>Forma de pagamento<select id="paymethod" required><option value="">Selecione</option><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Transferência</option><option>Outro</option></select></label>
@@ -3196,6 +3196,17 @@ function recurringFrequencyLabel(v){
   return v==="weekly"?"Semanal":v==="biweekly"?"Quinzenal":"Somente esta vez"
 }
 function serviceUsesVehicleSizePricing(s){return !!s?.size_pricing_enabled}
+function serviceIsPackage(s){return /^pacote/i.test(String(s?.category||"").trim())}
+function packageFrequencyMeta(freq){
+  if(freq==="weekly")return{label:"Semanal",visits:4,units:2};
+  if(freq==="biweekly")return{label:"Quinzenal",visits:2,units:1};
+  return null
+}
+function packageMonthlyAmount(s,size,freq){
+  const meta=packageFrequencyMeta(freq),unit=servicePriceByVehicleSize(s,size);
+  if(!meta||unit===null)return null;
+  return Math.round(Number(unit||0)*meta.units*100)/100
+}
 function servicePriceByVehicleSize(s,size){
   if(!s)return 0;
   if(!serviceUsesVehicleSizePricing(s))return Number(s.price||0);
@@ -3213,8 +3224,28 @@ function appointmentSelectedPackageSizes(){
     return z?.value||""
   }).filter(size=>["pm","g"].includes(size))
 }
+function appointmentSelectedPackageFrequencies(){
+  if($("aid").value)return[];
+  return selectedBatchVehicleIds().map(id=>$("avmulti").querySelector('[data-avfreq="'+CSS.escape(id)+'"]')?.value||"")
+}
 function serviceOptionPriceLabel(s){
   if(!financeAllowed())return "";
+  if(serviceIsPackage(s)&&!$("aid").value){
+    const ids=selectedBatchVehicleIds();
+    if(ids.length===1){
+      const id=ids[0],size=appointmentVehicleSizeSelect(id)?.value||"",freq=$("avmulti").querySelector('[data-avfreq="'+CSS.escape(id)+'"]')?.value||"",monthly=packageMonthlyAmount(s,size,freq);
+      if(monthly!==null)return " • "+money(monthly)+"/mês";
+      return ""
+    }
+    if(ids.length>1){
+      let total=0,ready=true;
+      ids.forEach(id=>{
+        const size=appointmentVehicleSizeSelect(id)?.value||"",freq=$("avmulti").querySelector('[data-avfreq="'+CSS.escape(id)+'"]')?.value||"",m=packageMonthlyAmount(s,size,freq);
+        if(m===null)ready=false;else total+=m
+      });
+      return ready?" • total "+money(total)+"/mês":""
+    }
+  }
   if(!serviceUsesVehicleSizePricing(s))return " • "+money(s.price);
   const sizes=appointmentSelectedPackageSizes(),unique=[...new Set(sizes)];
   if(unique.length===1)return " • "+money(servicePriceByVehicleSize(s,unique[0]));
@@ -3229,7 +3260,25 @@ function refreshAppointmentServiceOptions(){
 function appointmentServiceHelpText(s){
   const n=$("aid").value?1:selectedBatchVehicleIds().length;
   let parts=["Duração por veículo: "+durationLabel(s.duration_minutes)];
-  if(serviceUsesVehicleSizePricing(s)){
+  if(serviceIsPackage(s)&&!$("aid").value){
+    const ids=selectedBatchVehicleIds();
+    if(!ids.length){
+      parts.push("Selecione o veículo, o porte e a frequência do pacote")
+    }else{
+      const rows=ids.map(id=>{
+        const size=appointmentVehicleSizeSelect(id)?.value||"",freq=$("avmulti").querySelector('[data-avfreq="'+CSS.escape(id)+'"]')?.value||"",meta=packageFrequencyMeta(freq),monthly=packageMonthlyAmount(s,size,freq);
+        return{size,freq,meta,monthly}
+      });
+      if(rows.some(x=>!["pm","g"].includes(x.size)))parts.push("Defina P/M ou G");
+      else if(rows.some(x=>!x.meta))parts.push("Escolha Quinzenal ou Semanal");
+      else if(rows.length===1){
+        const x=rows[0];
+        parts.push((x.size==="g"?"G":"P/M")+" • "+x.meta.label+" • "+x.meta.visits+" estéticas/mês • "+money(x.monthly)+"/mês")
+      }else{
+        parts.push("Cobrança mensal calculada por veículo conforme porte e frequência")
+      }
+    }
+  }else if(serviceUsesVehicleSizePricing(s)){
     const sizes=appointmentSelectedPackageSizes(),unique=[...new Set(sizes)];
     if(unique.length===1){
       const size=unique[0],label=size==="g"?"G":"P/M";
@@ -3247,6 +3296,23 @@ function appointmentServiceHelpText(s){
 }
 function appointmentVehicleSizeSelect(id){
   return $("avmulti").querySelector('[data-avsize="'+CSS.escape(id)+'"]')
+}
+function refreshAppointmentPackageFrequencyUI(){
+  if($("aid").value)return;
+  const svc=services.find(x=>x.id===$("as").value),isPackage=serviceIsPackage(svc);
+  $("avmulti").querySelectorAll("[data-avfreq]").forEach(sel=>{
+    const id=sel.dataset.avfreq,cb=$("avmulti").querySelector('[data-avmulti][value="'+CSS.escape(id)+'"]'),plan=apptRecurringByVehicle.get(id);
+    let current=sel.value;
+    if(isPackage){
+      if(!["weekly","biweekly"].includes(current))current=["weekly","biweekly"].includes(plan?.frequency)?plan.frequency:"";
+      sel.innerHTML='<option value="">Escolha: Quinzenal ou Semanal</option><option value="biweekly">Quinzenal — 2 estéticas/mês</option><option value="weekly">Semanal — 4 estéticas/mês</option>';
+    }else{
+      if(!["once","weekly","biweekly"].includes(current))current="once";
+      sel.innerHTML='<option value="once">Somente esta vez</option><option value="weekly">Semanal — até eu alterar</option><option value="biweekly">Quinzenal — até eu alterar</option>';
+    }
+    sel.value=current;
+    sel.disabled=!cb?.checked
+  })
 }
 function syncSingleAppointmentPackageSize(updatePrice=true){
   if(!$("aid").value)return;
@@ -3327,13 +3393,15 @@ function renderMultiVehiclePicker(list){
   box.querySelectorAll("[data-avfreq]").forEach(f=>f.onchange=()=>updateMultiVehicleSelection(false));
   box.querySelectorAll("[data-avsize]").forEach(z=>z.onchange=()=>updateMultiVehicleSelection(false));
   refreshAppointmentPackageSizeUI();
+  refreshAppointmentPackageFrequencyUI();
   updateMultiVehicleSelection(false)
 }
 function selectedBatchRecurrences(){
   if($("aid").value)return[];
+  const svc=services.find(x=>x.id===$("as").value),fallback=serviceIsPackage(svc)?"":"once";
   return selectedBatchVehicleIds().map(id=>({
     vehicle_id:id,
-    frequency:$("avmulti").querySelector('[data-avfreq="'+CSS.escape(id)+'"]')?.value||"once"
+    frequency:$("avmulti").querySelector('[data-avfreq="'+CSS.escape(id)+'"]')?.value||fallback
   }))
 }
 function updateMultiVehicleSelection(refreshSlots=true){
@@ -3344,14 +3412,34 @@ function updateMultiVehicleSelection(refreshSlots=true){
   const weekly=recs.filter(x=>x.frequency==="weekly").length,biweekly=recs.filter(x=>x.frequency==="biweekly").length;
   let parts=[n?n+" veículo"+(n===1?" selecionado":"s selecionados"):"Nenhum veículo selecionado."];
   if(total)parts.push("bloco de "+durationLabel(total));
-  if(weekly)parts.push(weekly+" semanal"+(weekly===1?"":"is"));
-  if(biweekly)parts.push(biweekly+(biweekly===1?" quinzenal":" quinzenais"));
-  if(serviceUsesVehicleSizePricing(s)&&n){
-    const missing=ids.filter(id=>!["pm","g"].includes(appointmentVehicleSizeSelect(id)?.value||""));
-    if(missing.length)parts.push("defina P/M ou G em "+missing.length+" veículo"+(missing.length===1?"":"s"));
-    else if(financeAllowed()){
-      const packageTotal=ids.reduce((sum,id)=>sum+Number(servicePriceByVehicleSize(s,appointmentVehicleSizeSelect(id)?.value)||0),0);
-      parts.push("pacote"+(n>1?"s":"")+": "+money(packageTotal))
+  if(serviceIsPackage(s)&&n){
+    const missingSize=ids.filter(id=>!["pm","g"].includes(appointmentVehicleSizeSelect(id)?.value||""));
+    const missingFreq=recs.filter(x=>!["weekly","biweekly"].includes(x.frequency));
+    if(missingSize.length)parts.push("defina P/M ou G em "+missingSize.length+" veículo"+(missingSize.length===1?"":"s"));
+    if(missingFreq.length)parts.push("escolha Quinzenal ou Semanal");
+    if(!missingSize.length&&!missingFreq.length){
+      if(n===1){
+        const id=ids[0],freq=recs[0].frequency,meta=packageFrequencyMeta(freq),monthly=packageMonthlyAmount(s,appointmentVehicleSizeSelect(id)?.value||"",freq);
+        parts.push(meta.label+" • "+meta.visits+" estéticas/mês");
+        if(financeAllowed())parts.push("mensalidade: "+money(monthly))
+      }else if(financeAllowed()){
+        const monthlyTotal=ids.reduce((sum,id)=>{
+          const freq=recs.find(x=>x.vehicle_id===id)?.frequency||"";
+          return sum+Number(packageMonthlyAmount(s,appointmentVehicleSizeSelect(id)?.value||"",freq)||0)
+        },0);
+        parts.push("mensalidades: "+money(monthlyTotal)+"/mês")
+      }
+    }
+  }else{
+    if(weekly)parts.push(weekly+" semanal"+(weekly===1?"":"is"));
+    if(biweekly)parts.push(biweekly+(biweekly===1?" quinzenal":" quinzenais"));
+    if(serviceUsesVehicleSizePricing(s)&&n){
+      const missing=ids.filter(id=>!["pm","g"].includes(appointmentVehicleSizeSelect(id)?.value||""));
+      if(missing.length)parts.push("defina P/M ou G em "+missing.length+" veículo"+(missing.length===1?"":"s"));
+      else if(financeAllowed()){
+        const packageTotal=ids.reduce((sum,id)=>sum+Number(servicePriceByVehicleSize(s,appointmentVehicleSizeSelect(id)?.value)||0),0);
+        parts.push("pacote"+(n>1?"s":"")+": "+money(packageTotal))
+      }
     }
   }
   $("avmultisummary").textContent=parts.join(" • ");
@@ -3423,6 +3511,7 @@ async function applyServiceRule(){
     if(!$("aid").value)updateMultiVehicleSelection(false);
     await loadAvailableSlots();return
   }
+  refreshAppointmentPackageFrequencyUI();
   h.textContent=appointmentServiceHelpText(s);h.classList.remove("hidden");
   refreshAppointmentPackageSizeUI();
   if($("aid").value&&financeAllowed()&&!window.__appointmentValueTouched){
@@ -3570,6 +3659,8 @@ async function saveAppt(e){
     ?vehicleIds.map(vehicle_id=>({vehicle_id,size:id?$("appackagesize").value:(appointmentVehicleSizeSelect(vehicle_id)?.value||"")}))
     :[];
   if(packageSizes.some(x=>!["pm","g"].includes(x.size)))return show("apmsg","Defina o porte P/M ou G de todos os veículos selecionados para aplicar o preço correto do pacote.","error");
+  const selectedRecurrences=selectedBatchRecurrences();
+  if(!id&&serviceIsPackage(s)&&selectedRecurrences.some(x=>!["weekly","biweekly"].includes(x.frequency)))return show("apmsg","Para contratar o pacote, escolha Quinzenal ou Semanal.","error");
   const assignment=selectedAssignment();
   window.__appointmentSaveInFlight=true;
   b.disabled=true;b.textContent=id?"Salvando...":"Agendando...";
@@ -3594,7 +3685,7 @@ async function saveAppt(e){
       const r=await sb.from("appointments").update(p).eq("id",id).select("id,starts_at,base_value,discount_amount,discount_percent,final_value").single();
       if(r.error)throw r.error
     }else{
-      const recurrences=selectedBatchRecurrences();
+      const recurrences=selectedRecurrences;
       const r=await sb.rpc("create_multi_vehicle_booking_recurring",{
         p_client_id:clientId,
         p_vehicle_ids:vehicleIds,
@@ -3608,12 +3699,22 @@ async function saveAppt(e){
         p_idempotency_key:requestKey
       });
       if(r.error)throw r.error;
-      const result=r.data||{},weekly=Number(result.weekly_count||0),biweekly=Number(result.biweekly_count||0);
+      const result=r.data||{},weekly=Number(result.weekly_count||0),biweekly=Number(result.biweekly_count||0),billing=Array.isArray(result.package_billing)?result.package_billing:[];
       let msg=vehicleIds.length>1?vehicleIds.length+" veículos agendados em sequência.":"Agendamento salvo com sucesso.";
-      const rp=[];
-      if(weekly)rp.push(weekly+" semanal"+(weekly===1?"":"is"));
-      if(biweekly)rp.push(biweekly+(biweekly===1?" quinzenal":" quinzenais"));
-      if(rp.length)msg+=" Recorrência ativa: "+rp.join(" e ")+" — até você alterar.";
+      if(billing.length){
+        if(billing.length===1){
+          const x=billing[0],meta=packageFrequencyMeta(x.frequency);
+          msg="Pacote contratado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • cobrança de "+money(x.monthly_amount)+" criada no Financeiro."
+        }else{
+          const total=billing.reduce((sum,x)=>sum+Number(x.monthly_amount||0),0);
+          msg=billing.length+" pacotes contratados. Cobranças mensais criadas no Financeiro: "+money(total)+"."
+        }
+      }else{
+        const rp=[];
+        if(weekly)rp.push(weekly+" semanal"+(weekly===1?"":"is"));
+        if(biweekly)rp.push(biweekly+(biweekly===1?" quinzenal":" quinzenais"));
+        if(rp.length)msg+=" Recorrência ativa: "+rp.join(" e ")+" — até você alterar."
+      }
       window.__lastAppointmentSaveMessage=msg
     }
     if(!id)window.__appointmentIdempotencyKey="";
