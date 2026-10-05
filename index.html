@@ -1592,6 +1592,18 @@ function publicServiceBasePrice(svc){
   if(size==="pm")return Number(svc.price_pm??svc.price??0);
   return 0
 }
+function publicServiceOptionPriceLabel(svc){
+  if(!svc?.size_pricing_enabled)return " • "+money(svc?.price||0);
+  const size=publicPackageSize();
+  if(!["pm","g"].includes(size))return "";
+  return " • "+money(publicServiceBasePrice(svc))
+}
+function refreshPublicServiceOptions(){
+  if(!publicCfg)return;
+  const current=$("pfs").value;
+  $("pfs").innerHTML='<option value="">Selecione</option>'+(publicCfg.services||[]).map(s=>'<option value="'+s.id+'">'+esc(s.name)+esc(publicServiceOptionPriceLabel(s))+'</option>').join("");
+  if(current&&(publicCfg.services||[]).some(s=>s.id===current))$("pfs").value=current
+}
 function syncPublicPackageSize(){
   const svc=(publicCfg?.services||[]).find(x=>x.id===$("pfs")?.value),uses=!!svc?.size_pricing_enabled;
   $("pfpackagesizewrap").classList.toggle("hidden",!uses);
@@ -1602,19 +1614,19 @@ function syncPublicPackageSize(){
   }else $("pfpackagesize").value="";
 }
 function setPublicVehicleFields(showFields){$("pfvehiclefields").classList.toggle("hidden",!showFields);$("pfb").required=showFields;$("pfm").required=showFields;if(!showFields){$("pfbo").required=false;$("pfmo").required=false}}
-function publicVehicleChanged(){const id=publicVehicleId();if(id){const v=publicCfg.vehicles.find(x=>x.id===id);setPublicVehicleFields(false);$("pfvsummary").textContent=v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"";$("pfpackagesize").value=v?.package_size==="g"?"g":(v?.package_size==="pm"?"pm":"")}else{setPublicVehicleFields(true);$("pfvtitle").textContent="Cadastrar novo veículo";$("pfvsummary").textContent="Preencha os dados abaixo para adicionar este veículo ao seu cadastro.";$("pfpackagesize").value=""}syncPublicPackageSize();renderPublicAddons();loadPublicDates()}
+function publicVehicleChanged(){const id=publicVehicleId();if(id){const v=publicCfg.vehicles.find(x=>x.id===id);setPublicVehicleFields(false);$("pfvsummary").textContent=v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"";$("pfpackagesize").value=v?.package_size==="g"?"g":(v?.package_size==="pm"?"pm":"")}else{setPublicVehicleFields(true);$("pfvtitle").textContent="Cadastrar novo veículo";$("pfvsummary").textContent="Preencha os dados abaixo para adicionar este veículo ao seu cadastro.";$("pfpackagesize").value=""}syncPublicPackageSize();refreshPublicServiceOptions();renderPublicAddons();loadPublicDates()}
 const pbrand=()=>$("pfb").value==="__other__"?$("pfbo").value.trim():$("pfb").value;
 const pmodel=()=>$("pfm").value==="__other__"?$("pfmo").value.trim():$("pfm").value;
 function publicBrandChanged(){const other=$("pfb").value==="__other__";$("pfbol").classList.toggle("hidden",!other);$("pfbo").required=other;if(other){$("pfm").innerHTML='<option value="__other__">Outro modelo</option>';$("pfm").value="__other__";$("pfmol").classList.remove("hidden");$("pfmo").required=true}else{const b=publicCfg?.brands.find(x=>x.name===$("pfb").value),mods=b?(publicCfg.models||[]).filter(m=>m.brand_id===b.id):[];$("pfm").innerHTML='<option value="">Selecione</option>'+mods.map(m=>'<option value="'+esc(m.name)+'">'+esc(m.name)+'</option>').join("")+'<option value="__other__">Outro modelo</option>';$("pfmol").classList.add("hidden");$("pfmo").required=false;$("pfmo").value=""}loadPublicDates()}
 function publicModelChanged(){const other=$("pfm").value==="__other__";$("pfmol").classList.toggle("hidden",!other);$("pfmo").required=other;if(!other)$("pfmo").value=""}
 const fmtPublicDate=d=>new Intl.DateTimeFormat("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(d+"T12:00:00"));
-async function publicBoot(){try{$("auth").classList.add("hidden");$("main").classList.add("hidden");$("hdr").classList.add("hidden");$("public").classList.remove("hidden");const r=await fetch(PUBLIC_FN+"?action=public-config&token="+encodeURIComponent(publicToken),{cache:"no-store"});const j=await r.json();if(!r.ok)throw Error(j.error||"Link inválido.");publicCfg=j;$("pfintro").textContent=j.allow_same_day?"Escolha uma data e um horário disponível. Agendamentos para hoje podem aparecer se ainda houver horário.":"Escolha uma data e um horário disponível. Este link não permite agendamento para hoje.";$("pfb").innerHTML='<option value="">Selecione</option>'+j.brands.map(b=>'<option value="'+esc(b.name)+'">'+esc(b.name)+'</option>').join("")+'<option value="__other__">Outra montadora</option>';$("pfm").innerHTML='<option value="">Selecione a montadora</option>';$("pfs").innerHTML='<option value="">Selecione</option>'+j.services.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(s.size_pricing_enabled?' • P/M '+money(s.price_pm??s.price)+' • G '+money(s.price_g??s.price):' • '+money(s.price))+'</option>').join("");if(j.personalized&&j.client){$("pfwelcome").innerHTML='<b>Olá, '+esc(j.client.name)+'!</b><div class="meta" style="margin-top:5px">Que bom ter você por aqui. Seu cadastro Vaporeasy foi identificado; escolha um de seus veículos ou cadastre um novo.</div>';$("pfwelcome").classList.remove("hidden");$("pfidentity").classList.add("hidden");$("pfn").required=false;$("pfp").required=false;$("pfvehiclepick").classList.remove("hidden");$("pfvsel").innerHTML=(j.vehicles||[]).map(v=>'<option value="'+v.id+'">'+esc(v.brand+" "+v.model+(v.plate?" • "+v.plate:""))+'</option>').join("")+'<option value="__new__">+ Cadastrar novo veículo</option>';$("pfvsel").onchange=publicVehicleChanged;if((j.vehicles||[]).length){$("pfvsel").value=j.vehicles[0].id;publicVehicleChanged()}else{$("pfvsel").value="__new__";publicVehicleChanged()}}else{$("pfwelcome").innerHTML='<b>Bem-vindo à Vaporeasy!</b><div class="meta" style="margin-top:5px">Faça seu cadastro e escolha o melhor horário para o atendimento.</div>';$("pfwelcome").classList.remove("hidden");$("pfidentity").classList.remove("hidden");$("pfn").required=true;$("pfp").required=true;$("pfvehiclepick").classList.add("hidden");setPublicVehicleFields(true);$("pfvtitle").textContent="Seu veículo"}$("pfb").onchange=publicBrandChanged;$("pfm").onchange=publicModelChanged;$("pfs").onchange=publicServiceChanged;$("pfpackagesize").onchange=()=>{renderPublicAddons();loadPublicDates()};$("pfpl").onchange=loadPublicDates;$("pfpl").onblur=loadPublicDates;$("pfmore").onclick=()=>{publicDateLimit+=6;renderPublicDates()};$("pf").onsubmit=submitPublicBooking;$("pnew").onclick=resetPublicBooking}catch(e){show("pmsg",fail(e),"error");$("pf").classList.add("hidden")}}
+async function publicBoot(){try{$("auth").classList.add("hidden");$("main").classList.add("hidden");$("hdr").classList.add("hidden");$("public").classList.remove("hidden");const r=await fetch(PUBLIC_FN+"?action=public-config&token="+encodeURIComponent(publicToken),{cache:"no-store"});const j=await r.json();if(!r.ok)throw Error(j.error||"Link inválido.");publicCfg=j;$("pfintro").textContent=j.allow_same_day?"Escolha uma data e um horário disponível. Agendamentos para hoje podem aparecer se ainda houver horário.":"Escolha uma data e um horário disponível. Este link não permite agendamento para hoje.";$("pfb").innerHTML='<option value="">Selecione</option>'+j.brands.map(b=>'<option value="'+esc(b.name)+'">'+esc(b.name)+'</option>').join("")+'<option value="__other__">Outra montadora</option>';$("pfm").innerHTML='<option value="">Selecione a montadora</option>';refreshPublicServiceOptions();if(j.personalized&&j.client){$("pfwelcome").innerHTML='<b>Olá, '+esc(j.client.name)+'!</b><div class="meta" style="margin-top:5px">Que bom ter você por aqui. Seu cadastro Vaporeasy foi identificado; escolha um de seus veículos ou cadastre um novo.</div>';$("pfwelcome").classList.remove("hidden");$("pfidentity").classList.add("hidden");$("pfn").required=false;$("pfp").required=false;$("pfvehiclepick").classList.remove("hidden");$("pfvsel").innerHTML=(j.vehicles||[]).map(v=>'<option value="'+v.id+'">'+esc(v.brand+" "+v.model+(v.plate?" • "+v.plate:""))+'</option>').join("")+'<option value="__new__">+ Cadastrar novo veículo</option>';$("pfvsel").onchange=publicVehicleChanged;if((j.vehicles||[]).length){$("pfvsel").value=j.vehicles[0].id;publicVehicleChanged()}else{$("pfvsel").value="__new__";publicVehicleChanged()}}else{$("pfwelcome").innerHTML='<b>Bem-vindo à Vaporeasy!</b><div class="meta" style="margin-top:5px">Faça seu cadastro e escolha o melhor horário para o atendimento.</div>';$("pfwelcome").classList.remove("hidden");$("pfidentity").classList.remove("hidden");$("pfn").required=true;$("pfp").required=true;$("pfvehiclepick").classList.add("hidden");setPublicVehicleFields(true);$("pfvtitle").textContent="Seu veículo"}$("pfb").onchange=publicBrandChanged;$("pfm").onchange=publicModelChanged;$("pfs").onchange=publicServiceChanged;$("pfpackagesize").onchange=()=>{refreshPublicServiceOptions();renderPublicAddons();loadPublicDates()};$("pfpl").onchange=loadPublicDates;$("pfpl").onblur=loadPublicDates;$("pfmore").onclick=()=>{publicDateLimit+=6;renderPublicDates()};$("pf").onsubmit=submitPublicBooking;$("pnew").onclick=resetPublicBooking}catch(e){show("pmsg",fail(e),"error");$("pf").classList.add("hidden")}}
 const selectedPublicAddons=()=>publicAddonIds.map(id=>(publicCfg?.addons||[]).find(a=>a.id===id)).filter(Boolean);
 function publicTotals(){const svc=(publicCfg?.services||[]).find(x=>x.id===$("pfs").value),adds=selectedPublicAddons(),price=publicServiceBasePrice(svc)+adds.reduce((sum,a)=>sum+Number(a.price||0),0),mins=Number(svc?.duration_minutes||0)+adds.reduce((sum,a)=>sum+Number(a.duration_minutes||0),0);return{svc,adds,price,mins}}
 function publicCompatibleAddons(){const adds=publicCfg?.addons||[],sid=$("pfs")?.value||"",compat=publicCfg?.addon_compatibility||[];if(!sid)return adds;return adds.filter(a=>{const rows=compat.filter(c=>c.addon_id===a.id);return !rows.length||rows.some(c=>c.service_id===sid&&c.enabled!==false)})}
 function renderPublicAddons(){const box=$("pfaddons"),adds=publicCompatibleAddons();publicAddonIds=publicAddonIds.filter(id=>adds.some(a=>a.id===id));if(!adds.length){$("pfaddonswrap").classList.add("hidden");return}$("pfaddonswrap").classList.toggle("hidden",!$("pfs").value);box.innerHTML=adds.map(a=>'<button type="button" class="addon-card '+(publicAddonIds.includes(a.id)?"selected":"")+'" data-addon="'+a.id+'"><span class="addon-info"><span class="addon-name">'+esc(a.name)+'</span><span class="addon-meta">'+esc(a.description||"")+'</span></span><span><b>'+money(a.price)+'</b><span class="addon-meta" style="display:block;text-align:right">+'+durationLabel(a.duration_minutes)+'</span></span></button>').join("");box.querySelectorAll("[data-addon]").forEach(b=>b.onclick=()=>togglePublicAddon(b.dataset.addon));const t=publicTotals();$("pftotal").textContent=money(t.price);$("pfduration").textContent=t.mins?"Duração estimada: "+durationLabel(t.mins):""}
 async function togglePublicAddon(id){show("pmsg","");const selected=publicAddonIds.includes(id),rules=publicCfg?.addon_rules||[];if(selected){publicAddonIds=publicAddonIds.filter(x=>x!==id)}else{const includedBy=rules.find(r=>r.relation==="includes"&&r.related_addon_id===id&&publicAddonIds.includes(r.addon_id));if(includedBy){const parent=(publicCfg.addons||[]).find(a=>a.id===includedBy.addon_id);show("pmsg",(parent?.name||"O serviço selecionado")+" já inclui este cuidado.","error");return}const inc=rules.filter(r=>r.relation==="includes"&&r.addon_id===id).map(r=>r.related_addon_id);publicAddonIds=publicAddonIds.filter(x=>!inc.includes(x));const excluded=rules.filter(r=>r.relation==="excludes"&&r.addon_id===id).map(r=>r.related_addon_id);publicAddonIds=publicAddonIds.filter(x=>!excluded.includes(x));publicAddonIds.push(id)}renderPublicAddons();await loadPublicDates()}
-async function publicServiceChanged(){publicAddonIds=[];syncPublicPackageSize();renderPublicAddons();await loadPublicDates()}
+async function publicServiceChanged(){publicAddonIds=[];syncPublicPackageSize();refreshPublicServiceOptions();renderPublicAddons();await loadPublicDates()}
 function shortDateLabel(d){const dt=new Date(d+"T12:00:00"),wd=new Intl.DateTimeFormat("pt-BR",{weekday:"short"}).format(dt).replace(".",""),dm=new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"2-digit"}).format(dt);return{wd,dm}}
 function renderPublicDates(){const box=$("pfdates"),visible=publicDates.slice(0,publicDateLimit),selected=$("pfd").value;if(!publicDates.length){box.innerHTML='<div class="choice-hint">Nenhuma data disponível para este serviço.</div>';$("pfmore").classList.add("hidden");return}box.innerHTML=visible.map(d=>{const x=shortDateLabel(d);return '<button type="button" class="choice-btn '+(selected===d?"selected":"")+'" data-pdate="'+d+'">'+esc(x.wd)+'<small>'+esc(x.dm)+'</small></button>'}).join("");box.querySelectorAll("[data-pdate]").forEach(b=>b.onclick=()=>selectPublicDate(b.dataset.pdate));$("pfmore").classList.toggle("hidden",publicDateLimit>=publicDates.length)}
 async function selectPublicDate(d){$("pfd").value=d;$("pft").value="";renderPublicDates();await loadPublicSlots(d)}
@@ -3191,12 +3203,47 @@ function servicePriceByVehicleSize(s,size){
   if(size==="pm")return Number(s.price_pm??s.price??0);
   return null
 }
+function appointmentSelectedPackageSizes(){
+  if($("aid").value){
+    const size=$("appackagesize")?.value||"";
+    return ["pm","g"].includes(size)?[size]:[]
+  }
+  return [...$("avmulti").querySelectorAll('input[data-avmulti]:checked')].map(c=>{
+    const z=appointmentVehicleSizeSelect(c.value);
+    return z?.value||""
+  }).filter(size=>["pm","g"].includes(size))
+}
 function serviceOptionPriceLabel(s){
   if(!financeAllowed())return "";
+  if(!serviceUsesVehicleSizePricing(s))return " • "+money(s.price);
+  const sizes=appointmentSelectedPackageSizes(),unique=[...new Set(sizes)];
+  if(unique.length===1)return " • "+money(servicePriceByVehicleSize(s,unique[0]));
+  if(unique.length>1)return " • conforme porte";
+  return ""
+}
+function refreshAppointmentServiceOptions(){
+  const current=$("as").value;
+  $("as").innerHTML='<option value="">Selecione</option>'+services.map(s=>'<option value="'+s.id+'">'+esc(s.name)+esc(serviceOptionPriceLabel(s))+'</option>').join("");
+  if(current&&services.some(s=>s.id===current))$("as").value=current
+}
+function appointmentServiceHelpText(s){
+  const n=$("aid").value?1:selectedBatchVehicleIds().length;
+  let parts=["Duração por veículo: "+durationLabel(s.duration_minutes)];
   if(serviceUsesVehicleSizePricing(s)){
-    return " • P/M "+money(s.price_pm??s.price)+" • G "+money(s.price_g??s.price)
+    const sizes=appointmentSelectedPackageSizes(),unique=[...new Set(sizes)];
+    if(unique.length===1){
+      const size=unique[0],label=size==="g"?"G":"P/M";
+      parts.push(label+": "+money(servicePriceByVehicleSize(s,size)))
+    }else if(unique.length>1){
+      parts.push("Valores aplicados conforme o porte de cada veículo")
+    }else{
+      parts.push("Defina P/M ou G para calcular o valor do pacote")
+    }
   }
-  return " • "+money(s.price)
+  if(n>1)parts.push("Bloco total: "+durationLabel(Number(s.duration_minutes||0)*n));
+  if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));
+  if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");
+  return parts.join(" • ")
 }
 function appointmentVehicleSizeSelect(id){
   return $("avmulti").querySelector('[data-avsize="'+CSS.escape(id)+'"]')
@@ -3224,10 +3271,12 @@ function refreshAppointmentPackageSizeUI(){
     updateSingleAppointmentPackagePrice()
   }else{
     $("appackagesizewrap").classList.add("hidden");
-    $("avmulti").querySelectorAll("[data-avsizewrap]").forEach(w=>w.classList.toggle("hidden",!uses));
     $("avmulti").querySelectorAll("[data-avsize]").forEach(sel=>{
       const cb=$("avmulti").querySelector('[data-avmulti][value="'+CSS.escape(sel.dataset.avsize)+'"]');
-      sel.disabled=!uses||!cb?.checked
+      const visible=uses&&!!cb?.checked;
+      const wrap=sel.closest("[data-avsizewrap]");
+      if(wrap)wrap.classList.toggle("hidden",!visible);
+      sel.disabled=!visible
     })
   }
 }
@@ -3306,6 +3355,11 @@ function updateMultiVehicleSelection(refreshSlots=true){
     }
   }
   $("avmultisummary").textContent=parts.join(" • ");
+  refreshAppointmentServiceOptions();
+  if(s){
+    const h=$("shelp");
+    h.textContent=appointmentServiceHelpText(s);h.classList.remove("hidden")
+  }
   $("apsave").textContent=appointmentSubmitLabel();
   if(refreshSlots)loadAvailableSlots()
 }
@@ -3324,7 +3378,7 @@ function toggleAllAppointmentVehicles(){
 }
 function fillSelects(){
   $("ac").innerHTML='<option value=""></option>'+clients.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
-  $("as").innerHTML='<option value="">Selecione</option>'+services.map(s=>'<option value="'+s.id+'">'+esc(s.name)+esc(serviceOptionPriceLabel(s))+'</option>').join("");
+  refreshAppointmentServiceOptions();
   const activeTeams=teams.filter(t=>t.active);
   let html='<option value="">Equipe não definida</option>';
   if(activeTeams.length)html+='<optgroup label="Equipes">'+activeTeams.map(t=>'<option value="team:'+t.id+'">'+esc(teamDisplay(t.id))+'</option>').join("")+'</optgroup>';
@@ -3369,13 +3423,7 @@ async function applyServiceRule(){
     if(!$("aid").value)updateMultiVehicleSelection(false);
     await loadAvailableSlots();return
   }
-  const n=$("aid").value?1:selectedBatchVehicleIds().length;
-  let parts=["Duração por veículo: "+durationLabel(s.duration_minutes)];
-  if(serviceUsesVehicleSizePricing(s))parts.push("P/M: "+money(s.price_pm??s.price)+" • G: "+money(s.price_g??s.price));
-  if(n>1)parts.push("Bloco total: "+durationLabel(Number(s.duration_minutes||0)*n));
-  if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));
-  if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");
-  h.textContent=parts.join(" • ");h.classList.remove("hidden");
+  h.textContent=appointmentServiceHelpText(s);h.classList.remove("hidden");
   refreshAppointmentPackageSizeUI();
   if($("aid").value&&financeAllowed()&&!window.__appointmentValueTouched){
     const base=serviceUsesVehicleSizePricing(s)?servicePriceByVehicleSize(s,$("appackagesize").value):Number(s.price||0);
