@@ -318,7 +318,7 @@ Deno.serve(async (req: Request) => {
     const link = await linkByToken(db, token);
     if (!link) return json({ error: "Link inválido ou inativo." }, 404);
     const [s, b, m, ax, arules, acompat] = await Promise.all([
-      db.from("services").select("id,name,category,price,duration_minutes,booking_mode,first_slot_time")
+      db.from("services").select("id,name,category,price,price_pm,price_g,size_pricing_enabled,duration_minutes,booking_mode,first_slot_time")
         .eq("active", true).order("name"),
       db.from("vehicle_brands").select("id,name").eq("active", true).order("name"),
       db.from("vehicle_models").select("id,brand_id,name").eq("active", true).order("name"),
@@ -348,7 +348,7 @@ Deno.serve(async (req: Request) => {
           condominium
         };
         const vr = await db.from("vehicles")
-          .select("id,brand,model,plate,year,color")
+          .select("id,brand,model,plate,year,color,package_size")
           .eq("client_id", cr.data.id).is("archived_at", null).order("brand");
         vehicles = vr.data || [];
       }
@@ -397,7 +397,7 @@ Deno.serve(async (req: Request) => {
     if (!link) return json({ error: "Link inválido ou inativo." }, 404);
     let vehicle = null;
     if (requestedVehicleId && link.client_id) {
-      const vr = await db.from("vehicles").select("id,client_id,brand,model,plate")
+      const vr = await db.from("vehicles").select("id,client_id,brand,model,plate,package_size")
         .eq("id", requestedVehicleId).eq("client_id", link.client_id).is("archived_at", null).maybeSingle();
       vehicle = vr.data || null;
     }
@@ -471,6 +471,10 @@ Deno.serve(async (req: Request) => {
     const model = clean(b.model, 100);
     const year = clean(b.year, 12);
     const color = clean(b.color, 40);
+    const packageSize = clean(b.package_size, 4).toLowerCase();
+    if (packageSize && packageSize !== "pm" && packageSize !== "g") {
+      return json({ error: "Porte do veículo inválido." }, 400);
+    }
     const notes = clean(b.notes, 500);
     const serviceId = clean(b.service_id, 80);
     const date = clean(b.date, 10);
@@ -509,7 +513,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const sr = await db.from("services")
-      .select("id,name,price,duration_minutes,booking_mode,active")
+      .select("id,name,price,price_pm,price_g,size_pricing_enabled,duration_minutes,booking_mode,active")
       .eq("id", serviceId).eq("active", true).maybeSingle();
     if (sr.error || !sr.data) return json({ error: "Serviço indisponível." }, 400);
     const service = sr.data;
@@ -567,7 +571,7 @@ Deno.serve(async (req: Request) => {
       if (!vehicleId) {
         if (!brand || !model) return json({ error: "Informe montadora e modelo do veículo." }, 400);
         const vi = await db.from("vehicles").insert({
-          client_id: clientId, brand, model, plate, year, color,
+          client_id: clientId, brand, model, plate, year, color, package_size: packageSize || null,
           notes: "Veículo cadastrado pelo agendamento público."
         }).select("id").single();
         if (vi.error) {
@@ -594,7 +598,7 @@ Deno.serve(async (req: Request) => {
       }
       if (!vehicleId) {
         const vi = await db.from("vehicles").insert({
-          client_id: clientId, brand, model, plate, year, color,
+          client_id: clientId, brand, model, plate, year, color, package_size: packageSize || null,
           notes: "Veículo cadastrado pelo agendamento público."
         }).select("id").single();
         if (vi.error) return json({ error: vi.error.message }, 400);
@@ -603,6 +607,19 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!clientId || !vehicleId) return json({ error: "Não foi possível identificar cliente e veículo." }, 400);
+
+    if (service.size_pricing_enabled) {
+      let effectiveSize = packageSize || clean(existingVehicle?.package_size, 4).toLowerCase();
+      if (effectiveSize !== "pm" && effectiveSize !== "g") {
+        const vr = await db.from("vehicles").select("package_size").eq("id", vehicleId).maybeSingle();
+        effectiveSize = clean(vr.data?.package_size, 4).toLowerCase();
+      }
+      if (effectiveSize !== "pm" && effectiveSize !== "g") {
+        return json({ error: "Selecione o porte P/M ou G do veículo para aplicar o preço correto do pacote." }, 400);
+      }
+      const ur = await db.from("vehicles").update({ package_size: effectiveSize }).eq("id", vehicleId);
+      if (ur.error) return json({ error: "Não foi possível salvar o porte do veículo." }, 400);
+    }
 
     let slots: Array<{starts_at:string,local_time:string}>;
     try {
