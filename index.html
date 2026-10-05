@@ -1233,6 +1233,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <details class="compact-tools">
       <summary>Ações da agenda</summary>
       <button id="gl" class="ghost" type="button">Gerar link público</button>
+<button id="recorddone" class="ghost" type="button">Registrar serviço realizado</button>
     </details>
   </div>
   <div id="monthcal" class="calendar-shell hidden" style="margin:14px 0 18px;padding:12px;border:1px solid #20495d;border-radius:16px;background:#0d2632">
@@ -1397,6 +1398,24 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <details><summary style="cursor:pointer;font-weight:900">Fotos gerais do RG</summary><div class="stack" style="margin-top:10px"><input id="rgphoto" type="file" accept="image/*" capture="environment" class="hidden"><button id="rgphotoadd" type="button" class="primary">📷 Tirar foto geral do veículo</button><div class="meta">Use esta área para fotos gerais. Fotos de problemas específicos devem ser adicionadas dentro da necessidade correspondente.</div><div id="rgphotos"><div class="empty">Nenhuma foto geral cadastrada.</div></div></div></details>
 <details><summary style="cursor:pointer;font-weight:900">Histórico de atendimentos</summary><div id="rghistory" style="margin-top:10px"><div class="empty">Carregando histórico...</div></div></details><div id="rgmsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar RG</button></div></form></dialog>
 <dialog id="rgid"><form id="rgif" class="stack"><input id="rgissueid" type="hidden"><div class="actions"><h3 id="rgissuetitle" style="margin:8px 0;flex:3">Registrar necessidade</h3><button type="button" class="ghost" data-close>Fechar</button></div><label>Categoria<select id="rgicategory" required><option value="">Selecione</option><option>Funilaria / Pintura</option><option>Interior</option><option>Vidros</option><option>Proteção / Acabamento</option><option>Rodas / Pneus</option><option>Outro</option></select></label><label>Local / peça<input id="rgiarea" required placeholder="Ex.: banco do motorista, porta traseira direita"></label><label>Descrição da necessidade<textarea id="rgidesc" required placeholder="Descreva o que foi identificado"></textarea></label><label>Prioridade<select id="rgipriority" required><option value="immediate">Atenção imediata</option><option value="recommended" selected>Recomendado</option><option value="preventive">Preventivo</option></select></label><label>Recomendação<textarea id="rgirecommendation" placeholder="O que a Vaporeasy recomenda fazer"></textarea></label><label>Serviço sugerido<select id="rgiservice"><option value="">Sem serviço definido</option></select></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgiinclude" type="checkbox" checked style="width:22px;min-height:22px">Incluir esta necessidade no relatório do cliente</label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgishowvalue" type="checkbox" style="width:22px;min-height:22px">Mostrar valor do serviço sugerido no relatório</label><div id="rgimsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar necessidade</button></div></form></dialog>
+<dialog id="rdd"><form id="rdf" class="stack" novalidate>
+<h3 style="margin:4px 0">Registrar serviço realizado</h3>
+<div class="notice">Use este fluxo somente para um atendimento que já aconteceu e não estava na agenda. O registro entrará como <b>Concluído</b>, no histórico do veículo e no Financeiro como pagamento pendente.</div>
+<label>Cliente<select id="rdclient" required><option value="">Selecione</option></select></label>
+<div><b>Veículos</b><div id="rdvehicles" class="multi-vehicle-list" style="margin-top:7px"><div class="empty">Selecione o cliente primeiro.</div></div><div id="rdvehiclesummary" class="meta multi-vehicle-summary">Nenhum veículo selecionado.</div></div>
+<label>Serviço<select id="rdservice" required><option value="">Selecione</option></select></label>
+<div id="rdservicehelp" class="meta"></div>
+<label>Equipe / responsável<select id="rdassign"><option value="">Equipe não definida</option></select></label>
+<div class="row"><label>Data realizada<input id="rddate" type="date" required></label><label>Horário inicial<input id="rdtime" type="time" step="1200" required></label></div>
+<div class="meta">Para vários veículos, os horários serão registrados em sequência conforme a duração do serviço.</div>
+<label>Valor por veículo antes do desconto (R$)<input id="rdvalue" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+<label>Desconto<select id="rddisctype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label>
+<label id="rddiscwrap" class="hidden"><span id="rddisclabel">Valor do desconto</span><input id="rddiscvalue" type="number" min="0" step="0.01" inputmode="decimal"></label>
+<div id="rdpreview" class="payment-preview"></div>
+<label>Observações<textarea id="rdnotes" placeholder="Ex.: atendimento realizado fora da agenda"></textarea></label>
+<div id="rdmsg" class="notice hidden"></div>
+<div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="rdsave" class="primary" type="submit">Registrar como realizado</button></div>
+</form></dialog>
 <dialog id="ad"><form id="apf" class="stack" novalidate><input id="aid" type="hidden"><h3 id="aptitle">Novo agendamento</h3><div id="apmsg" class="notice hidden"></div><label>Cliente
   <div class="appt-client-picker">
     <input id="acsearch" type="text" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="words" spellcheck="false">
@@ -1491,7 +1510,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);const r=await sb.auth.signOut({scope:"local"});if(r.error){show("msg","Não foi possível encerrar a sessão. Tente novamente.","error");return}const check=await sb.auth.getSession();if(check.data?.session){show("msg","A sessão anterior ainda está ativa. Tente sair novamente.","error");return}currentUserId=null;currentRole=null;currentApps=[];$("pass").value="";location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=async()=>{operatorMonthCache.clear();await Promise.all([loadOperatorMonth(true),loadOperatorJobs(operatorSelectedDate,false)])};$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lclientsearch").oninput=()=>{if($("lclient").value)clearLinkClientPicker(true);renderLinkClientSuggestions()};$("lclientsearch").onfocus=renderLinkClientSuggestions;$("lclientsearch").onkeydown=e=>{if(e.key==="Escape"){$("lclientsuggestions").classList.add("hidden");$("lclientsearch").blur()}};$("lnewclient").onclick=useNewLinkClient;$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("recorddone").onclick=openRealizedService;$("rdf").onsubmit=saveRealizedService;$("rdclient").onchange=loadRealizedVehicles;$("rdservice").onchange=applyRealizedService;$("rddisctype").onchange=updateRealizedQuote;$("rddiscvalue").oninput=updateRealizedQuote;$("rdvalue").oninput=updateRealizedQuote;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=loadAvailableSlots;$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -2065,9 +2084,7 @@ async function archiveClient(id){
   try{
     if(await hasFutureActiveAppointment({client_id:id}))return show("msg","Este cliente possui agendamento futuro ativo. Cancele ou remaneje o agendamento antes de excluir o cadastro.","error");
     if(!confirm('Excluir o cliente "'+client.name+'"?\n\nEle sairá dos cadastros e novos agendamentos. Veículos vinculados também serão arquivados. O histórico de atendimentos, fotos e recibos será preservado.'))return;
-    const now=new Date().toISOString();
-    const vr=await sb.from("vehicles").update({archived_at:now}).eq("client_id",id).is("archived_at",null);if(vr.error)throw vr.error;
-    const cr=await sb.from("clients").update({archived_at:now}).eq("id",id);if(cr.error)throw cr.error;
+    const r=await sb.rpc("archive_client_safe",{p_client_id:id});if(r.error)throw r.error;
     vehicles.delete(id);show("msg","Cliente excluído do cadastro. Histórico preservado.","ok");await loadClients()
   }catch(e){show("msg",fail(e),"error")}
 }
@@ -3438,6 +3455,114 @@ async function saveAppt(e){
   finally{window.__appointmentSaveInFlight=false;b.disabled=false;b.textContent=appointmentSubmitLabel()}
 }
 
+
+
+function realizedVehicleIds(){
+  return [...document.querySelectorAll('#rdvehicles input[data-rd-vehicle]:checked')].map(x=>x.value)
+}
+function updateRealizedVehicleSummary(){
+  const ids=realizedVehicleIds(),box=$("rdvehiclesummary");
+  box.textContent=ids.length?(ids.length+" veículo"+(ids.length===1?" selecionado":"s selecionados")+" em sequência."):"Nenhum veículo selecionado."
+}
+async function loadRealizedVehicles(){
+  const cid=$("rdclient").value,box=$("rdvehicles");
+  $("rdvehiclesummary").textContent="Nenhum veículo selecionado.";
+  if(!cid){box.innerHTML='<div class="empty">Selecione o cliente primeiro.</div>';return}
+  box.innerHTML='<div class="empty">Carregando veículos...</div>';
+  const r=await sb.from("vehicles").select("id,brand,model,plate").eq("client_id",cid).is("archived_at",null).order("brand").order("model");
+  if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}
+  const list=r.data||[];
+  box.innerHTML=list.length?list.map(v=>'<label class="multi-vehicle-item"><input type="checkbox" data-rd-vehicle value="'+v.id+'" style="width:22px;min-height:22px"><span><b>'+esc(v.brand+" "+v.model)+'</b><small>'+esc(v.plate||"Sem placa")+'</small></span></label>').join(""):'<div class="empty">Nenhum veículo ativo para este cliente.</div>';
+  box.querySelectorAll("input[data-rd-vehicle]").forEach(x=>x.onchange=updateRealizedVehicleSummary)
+}
+function realizedAssignment(){
+  const v=$("rdassign").value||"";
+  if(v.startsWith("team:"))return{team_id:v.slice(5),collaborator_id:null};
+  if(v.startsWith("collab:"))return{team_id:null,collaborator_id:v.slice(7)};
+  return{team_id:null,collaborator_id:null}
+}
+function realizedQuote(){
+  const svc=services.find(x=>x.id===$("rdservice").value);
+  const raw=$("rdvalue").value;
+  const base=Math.max(0,Number(raw===""?(svc?.price||0):raw)||0);
+  const type=$("rddisctype").value||"none";
+  const val=Math.max(0,Number($("rddiscvalue").value||0)||0);
+  let discount=0,percent=0,error="";
+  if(type==="percent"){
+    if(val>100)error="O desconto percentual não pode ultrapassar 100%.";
+    percent=Math.min(100,val);discount=base*percent/100
+  }else if(type==="fixed"){
+    if(val>base)error="O desconto em reais não pode ultrapassar o valor do serviço.";
+    discount=Math.min(base,val);percent=base>0?discount/base*100:0
+  }
+  return{base,discount,percent,final:Math.max(0,base-discount),type,value:val,error}
+}
+function updateRealizedQuote(){
+  const type=$("rddisctype").value||"none",wrap=$("rddiscwrap");
+  wrap.classList.toggle("hidden",type==="none");
+  $("rddisclabel").textContent=type==="percent"?"Percentual do desconto":"Valor do desconto (R$)";
+  if(type==="none")$("rddiscvalue").value="";
+  const q=realizedQuote(),box=$("rdpreview");
+  box.innerHTML=q.error?'<span style="color:#ff9a9a">'+esc(q.error)+'</span>':'Valor final por veículo: <b>'+esc(money(q.final))+'</b>'+(q.discount>0?' • desconto '+esc(money(q.discount)):'')
+}
+function applyRealizedService(){
+  const svc=services.find(x=>x.id===$("rdservice").value);
+  if(!svc){$("rdservicehelp").textContent="";$("rdvalue").value="";updateRealizedQuote();return}
+  $("rdvalue").value=Number(svc.price||0).toFixed(2);
+  $("rdservicehelp").textContent="Duração por veículo: "+durationLabel(svc.duration_minutes)+(svc.first_slot_time?" • horário padrão "+String(svc.first_slot_time).slice(0,5):"");
+  updateRealizedQuote()
+}
+async function openRealizedService(){
+  if(!["owner","admin"].includes(currentRole))return show("msg","Seu nível de acesso não permite registrar serviços realizados.","error");
+  try{
+    await refs();
+    if(!clients.length)await loadClients();
+    $("rdf").reset();show("rdmsg","");
+    window.__realizedIdempotencyKey=crypto.randomUUID();
+    $("rdclient").innerHTML='<option value="">Selecione</option>'+clients.slice().sort((a,b)=>a.name.localeCompare(b.name,"pt-BR")).map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
+    $("rdservice").innerHTML='<option value="">Selecione</option>'+services.filter(s=>s.active!==false).slice().sort((a,b)=>a.name.localeCompare(b.name,"pt-BR")).map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
+    let opts='<option value="">Equipe não definida</option>';
+    const activeTeams=teams.filter(t=>t.active!==false);
+    if(activeTeams.length)opts+='<optgroup label="Equipes">'+activeTeams.map(t=>'<option value="team:'+t.id+'">'+esc(t.name)+'</option>').join("")+'</optgroup>';
+    const activeCollabs=collabs.filter(c=>c.active!==false);
+    if(activeCollabs.length)opts+='<optgroup label="Colaborador individual">'+activeCollabs.map(c=>'<option value="collab:'+c.id+'">'+esc(c.name)+'</option>').join("")+'</optgroup>';
+    $("rdassign").innerHTML=opts;
+    $("rddate").value=$("date").value||today();$("rddate").max=today();$("rdtime").value="";
+    $("rdvehicles").innerHTML='<div class="empty">Selecione o cliente primeiro.</div>';$("rdvehiclesummary").textContent="Nenhum veículo selecionado.";
+    $("rdpreview").innerHTML="";$("rdservicehelp").textContent="";
+    $("rdd").showModal()
+  }catch(e){show("msg",fail(e),"error")}
+}
+async function saveRealizedService(e){
+  e.preventDefault();
+  if(window.__realizedSaveInFlight)return;
+  const clientId=$("rdclient").value,vehicleIds=realizedVehicleIds(),serviceId=$("rdservice").value,date=$("rddate").value,time=$("rdtime").value,q=realizedQuote();
+  show("rdmsg","");
+  if(!clientId)return show("rdmsg","Selecione o cliente.","error");
+  if(!vehicleIds.length)return show("rdmsg","Selecione pelo menos um veículo.","error");
+  if(!serviceId)return show("rdmsg","Selecione o serviço.","error");
+  if(!date||!time)return show("rdmsg","Informe a data e o horário em que o serviço foi realizado.","error");
+  if(date>today())return show("rdmsg","A data do serviço realizado não pode estar no futuro.","error");
+  if(q.error)return show("rdmsg",q.error,"error");
+  const assignment=realizedAssignment(),btn=$("rdsave");
+  window.__realizedSaveInFlight=true;btn.disabled=true;btn.textContent="Registrando...";
+  try{
+    const r=await sb.rpc("register_completed_services",{
+      p_client_id:clientId,p_vehicle_ids:vehicleIds,p_service_id:serviceId,
+      p_date:date,p_local_time:time,p_team_id:assignment.team_id,p_collaborator_id:assignment.collaborator_id,
+      p_notes:$("rdnotes").value.trim(),p_base_value:q.base,p_discount_type:q.type,
+      p_discount_value:q.value,p_idempotency_key:window.__realizedIdempotencyKey||crypto.randomUUID()
+    });
+    if(r.error)throw r.error;
+    const n=Number(r.data?.count||vehicleIds.length);
+    window.__realizedIdempotencyKey="";
+    $("rdd").close();$("date").value=date;agendaCalendarMonth=calendarMonthFromDate(date);
+    agendaMonthCache.clear();operatorMonthCache.clear();waterCounterLoadedAt=0;
+    await loadApps();
+    show("msg",n+" serviço"+(n===1?" realizado registrado":"s realizados registrados")+" como concluído"+(n===1?".":"s.")+" Pagamento pendente criado no Financeiro.","ok")
+  }catch(err){show("rdmsg",fail(err),"error")}
+  finally{window.__realizedSaveInFlight=false;btn.disabled=false;btn.textContent="Registrar como realizado"}
+}
 
 async function fileToCompressedJpeg(file){
   if(!file)throw Error("Tire uma foto do veículo para concluir.");
