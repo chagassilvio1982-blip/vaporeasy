@@ -3783,7 +3783,10 @@ async function saveAppt(e){
         }
         if(billing.length===1){
           const x=billing[0],meta=packageFrequencyMeta(x.frequency),c=chargeMap.get(x.charge_id),gross=Number(c?.gross_monthly_amount??x.monthly_amount??0),credit=Number(c?.credit_applied||0),due=Number(c?.amount??x.monthly_amount??0);
-          if(credit>0)msg="Pacote alterado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • mensalidade "+money(gross)+" • crédito de "+money(credit)+" já pago • cobrança complementar de "+money(due)+" criada no Financeiro.";
+          if(x.scheduled_change){
+            const effective=x.effective_on?new Intl.DateTimeFormat("pt-BR",{month:"long",year:"numeric"}).format(new Date(String(x.effective_on)+"T12:00:00")):"próximo mês";
+            msg="Downgrade agendado para "+effective+": "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • nova mensalidade "+money(x.monthly_amount)+"/mês. O pacote atual permanece válido até o fim deste mês e nenhuma cobrança adicional foi criada agora."
+          }else if(credit>0)msg="Pacote alterado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • mensalidade "+money(gross)+" • crédito de "+money(credit)+" já pago • cobrança complementar de "+money(due)+" criada no Financeiro.";
           else msg="Pacote contratado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • cobrança de "+money(due)+" criada no Financeiro."
         }else{
           const total=billing.reduce((sum,x)=>sum+Number(chargeMap.get(x.charge_id)?.amount??x.monthly_amount??0),0);
