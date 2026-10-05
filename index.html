@@ -2554,10 +2554,12 @@ function financePackageDate(d){
   return Number.isNaN(dt.getTime())?raw:new Intl.DateTimeFormat("pt-BR").format(dt)
 }
 function financePackageChargeCard(c,maps,paid=false){
-  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0);
+  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0);
   const detail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
   const dateLine=paid?("Recebido em "+financePackageDate(c.paid_at)+(c.payment_method?" • "+esc(c.payment_method):"")):("Vencimento "+financePackageDate(c.due_date));
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+detail+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(c.amount))+'</div></div>'+(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button></div>':'<div class="meta" style="margin-top:8px">Mensalidade do pacote paga.</div>')+'</div>'
+  const adjustment=credit>0?'<br><span>Mensalidade '+esc(money(gross))+' • já pago '+esc(money(credit))+' • saldo '+esc(money(c.amount))+'</span>':"";
+  const covered=c.status==="covered";
+  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+detail+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(c.amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button></div>':'<div class="meta" style="margin-top:8px">Mensalidade do pacote paga.</div>'))+'</div>'
 }
 async function loadFinance(){
   if(!financeAllowed())return;
@@ -3744,11 +3746,18 @@ async function saveAppt(e){
       const result=r.data||{},weekly=Number(result.weekly_count||0),biweekly=Number(result.biweekly_count||0),billing=Array.isArray(result.package_billing)?result.package_billing:[];
       let msg=vehicleIds.length>1?vehicleIds.length+" veículos agendados em sequência.":"Agendamento salvo com sucesso.";
       if(billing.length){
+        let chargeMap=new Map();
+        const chargeIds=billing.map(x=>x.charge_id).filter(Boolean);
+        if(chargeIds.length){
+          const cr=await sb.from("package_charges").select("id,amount,gross_monthly_amount,credit_applied,status").in("id",chargeIds);
+          if(!cr.error)(cr.data||[]).forEach(c=>chargeMap.set(c.id,c))
+        }
         if(billing.length===1){
-          const x=billing[0],meta=packageFrequencyMeta(x.frequency);
-          msg="Pacote contratado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • cobrança de "+money(x.monthly_amount)+" criada no Financeiro."
+          const x=billing[0],meta=packageFrequencyMeta(x.frequency),c=chargeMap.get(x.charge_id),gross=Number(c?.gross_monthly_amount??x.monthly_amount??0),credit=Number(c?.credit_applied||0),due=Number(c?.amount??x.monthly_amount??0);
+          if(credit>0)msg="Pacote alterado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • mensalidade "+money(gross)+" • crédito de "+money(credit)+" já pago • cobrança complementar de "+money(due)+" criada no Financeiro.";
+          else msg="Pacote contratado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • cobrança de "+money(due)+" criada no Financeiro."
         }else{
-          const total=billing.reduce((sum,x)=>sum+Number(x.monthly_amount||0),0);
+          const total=billing.reduce((sum,x)=>sum+Number(chargeMap.get(x.charge_id)?.amount??x.monthly_amount??0),0);
           msg=billing.length+" pacotes contratados. Cobranças mensais criadas no Financeiro: "+money(total)+"."
         }
       }else{
