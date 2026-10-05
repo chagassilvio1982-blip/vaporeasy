@@ -2617,48 +2617,41 @@ function packageDocumentModel(d){
   const gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),discount=packageChargeCommercialDiscount(c);
   const planTier=String(d.service?.name||"").replace(/^Pacote\s+/i,"").trim();
   const planName="Plano Vaporeasy"+(planTier?" "+planTier:"");
-  const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Plano",planName],["Frequência",meta?.label||c.frequency||"—"],["Atendimentos previstos",String(c.visits_per_month??meta?.visits??"—")+" por mês"],["Vencimento",financePackageDate(c.due_date)]];
+  const fields=[
+    ["Cliente",d.client?.name||"Cliente"],
+    ["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],
+    ["Frequência",meta?.label||c.frequency||"—"],
+    ["Atendimentos/mês",String(c.visits_per_month??meta?.visits??"—")],
+    ["Vencimento",financePackageDate(c.due_date)]
+  ];
   const amounts=[["Mensalidade",money(gross)]];
   if(discount>0)amounts.push(["Desconto comercial","− "+money(discount)]);
   if(credit>0)amounts.push(["Crédito já pago","− "+money(credit)]);
-  const bank=paid?[["Forma de pagamento",c.payment_method||"—"],["Recebido em",financePackageDate(c.paid_at)],["Favorecido",d.bank.account_holder||"Não informado"]]:[["Chave Pix",d.bank.pix_key||"Não cadastrada"],["Banco",d.bank.bank_name||"Não informado"],["Agência",d.bank.branch||"Não informada"],["Conta",d.bank.account_number||"Não informada"],["Favorecido",d.bank.account_holder||"Não informado"]];
+  const bank=paid
+    ?[["Forma de pagamento",c.payment_method||"—"],["Recebido em",financePackageDate(c.paid_at)],["Favorecido",d.bank.account_holder||"Não informado"]]
+    :[["Chave Pix",d.bank.pix_key||"Não cadastrada"],["Banco",d.bank.bank_name||"Não informado"],["Agência",d.bank.branch||"Não informada"],["Conta",d.bank.account_number||"Não informada"],["Favorecido",d.bank.account_holder||"Não informado"]];
   return{
-    paid,
-    title:paid?"Recibo Vaporeasy":planName,
-    subtitle:paid?"Mensalidade recebida":"Sua mensalidade",
+    paid,planName,
+    title:paid?"Recibo de pagamento":planName,
+    subtitle:paid?planName:"Mensalidade",
     status:paid?"PAGAMENTO RECEBIDO":"DADOS PARA PAGAMENTO",
     fields,amounts,bank,
     total:money(c.amount||0),
-    totalLabel:paid?"Valor recebido":"Valor da mensalidade",
-    introTitle:paid?"Pagamento confirmado":"Cuidado contínuo, com padrão Vaporeasy",
-    intro:paid
-      ?"Este documento confirma o recebimento da mensalidade do seu Plano Vaporeasy."
-      :"Seu Plano Vaporeasy foi pensado para manter seu veículo sempre bem cuidado, com atendimento recorrente, conveniência e atenção aos detalhes.",
-    intro2:paid
-      ?"Agradecemos pela confiança e pela continuidade dos cuidados com o seu veículo."
-      :"A manutenção frequente contribui para preservar a aparência do veículo e manter um padrão de cuidado consistente ao longo do tempo.",
-    impactTitle:"CUIDADO CONSCIENTE",
-    impact:"Nossos processos buscam maior eficiência no uso de água, produtos e recursos, unindo alto padrão de atendimento e menor desperdício.",
-    thanksTitle:"OBRIGADO POR ESCOLHER A VAPOREASY",
-    footerLead:"É um prazer cuidar do seu veículo.",
-    footer:"Nosso compromisso é oferecer uma experiência conveniente, cuidadosa e consistente em cada atendimento.",
-    signature:"Vaporeasy",
-    tagline:"Estética automotiva domiciliar premium"
+    totalLabel:paid?"Valor recebido":"Valor a pagar",
+    footer:paid
+      ?"Pagamento confirmado. Obrigado pela confiança na Vaporeasy."
+      :"Obrigado por escolher a Vaporeasy."
   }
 }
 function packageChargeHtml(d){
   const m=packageDocumentModel(d);
   return '<div class="receipt-sheet">'+
-    '<div class="receipt-head" style="flex-wrap:wrap;align-items:flex-start"><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:180px;max-width:100%;height:auto"><div style="text-align:right"><div class="receipt-title">'+esc(m.title)+'</div><div class="receipt-muted" style="margin-top:4px">'+esc(m.subtitle)+'</div></div></div>'+
-    '<div style="margin-top:22px;font-family:Georgia,serif;font-size:22px;line-height:1.35;color:#172832">'+esc(m.introTitle)+'</div>'+
-    '<p style="margin:10px 0 0;color:#4e6069;line-height:1.58">'+esc(m.intro)+'</p>'+
-    '<p style="margin:8px 0 0;color:#64747c;line-height:1.58">'+esc(m.intro2)+'</p>'+
-    '<div class="receipt-grid" style="margin-top:20px">'+m.fields.map(([k,v])=>'<div class="receipt-box" style="overflow-wrap:anywhere"><b>'+esc(k)+'</b>'+esc(v)+'</div>').join("")+'</div>'+
-    '<div class="receipt-lines">'+m.amounts.map(([k,v])=>'<div class="receipt-line"><span>'+esc(k)+'</span><b>'+esc(v)+'</b></div>').join("")+'</div>'+
-    '<div class="receipt-total"><span>'+esc(m.totalLabel)+'</span><span>'+esc(m.total)+'</span></div>'+
-    '<div class="receipt-pay" style="overflow-wrap:anywhere"><span class="'+(m.paid?'paid-pill':'pending-pill')+'">'+esc(m.status)+'</span>'+m.bank.map(([k,v])=>'<div style="margin-top:8px"><b>'+esc(k)+':</b> '+esc(v)+'</div>').join("")+'</div>'+
-    '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #d7e1e6"><div style="font-size:10px;color:#71808a;font-weight:900;letter-spacing:1px">'+esc(m.impactTitle)+'</div><p style="margin:8px 0 0;color:#4e6069;line-height:1.58">'+esc(m.impact)+'</p></div>'+
-    '<div style="margin-top:20px;padding-top:17px;border-top:1px solid #d7e1e6"><div style="font-size:13px;color:#172832;font-weight:900;letter-spacing:.7px">'+esc(m.thanksTitle)+'</div><p style="margin:8px 0 0;color:#40525a;font-size:15px;line-height:1.5">'+esc(m.footerLead)+'</p><p style="margin:6px 0 0;color:#647581;font-size:13px;line-height:1.5">'+esc(m.footer)+'</p><div style="margin-top:14px;font-weight:900;color:#172832">'+esc(m.signature)+'</div><div style="margin-top:2px;font-size:11px;color:#7b878d;font-style:italic">'+esc(m.tagline)+'</div></div>'+
+    '<div style="display:block"><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:145px;max-width:55%;height:auto"><div style="margin-top:14px;border-top:1px solid #d7e1e6;padding-top:16px"><div style="font-family:Georgia,serif;font-size:25px;font-weight:700;line-height:1.25;color:#172832">'+esc(m.title)+'</div><div class="receipt-muted" style="margin-top:5px;font-size:13px">'+esc(m.subtitle)+'</div></div></div>'+
+    '<div style="margin-top:20px">'+m.fields.map(([k,v])=>'<div style="margin-top:14px;overflow-wrap:anywhere"><div style="font-size:10px;color:#71808a;font-weight:900;letter-spacing:.6px;text-transform:uppercase">'+esc(k)+'</div><div style="margin-top:3px;font-size:16px;font-weight:700;color:#172832">'+esc(v)+'</div></div>').join("")+'</div>'+
+    '<div class="receipt-lines" style="margin-top:24px">'+m.amounts.map(([k,v])=>'<div class="receipt-line"><span>'+esc(k)+'</span><b>'+esc(v)+'</b></div>').join("")+'</div>'+
+    '<div class="receipt-total" style="margin-top:4px"><span>'+esc(m.totalLabel)+'</span><span>'+esc(m.total)+'</span></div>'+
+    '<div class="receipt-pay" style="margin-top:18px;overflow-wrap:anywhere"><span class="'+(m.paid?'paid-pill':'pending-pill')+'">'+esc(m.status)+'</span>'+m.bank.map(([k,v])=>'<div style="margin-top:8px"><b>'+esc(k)+':</b> '+esc(v)+'</div>').join("")+'</div>'+
+    '<div style="margin-top:18px;padding-top:13px;border-top:1px solid #d7e1e6;color:#71808a;font-size:11px;line-height:1.45">'+esc(m.footer)+'</div>'+
   '</div>'
 }
 async function packageChargeCanvas(d){
@@ -2675,48 +2668,41 @@ async function packageChargeCanvas(d){
   }
   function content(draw){
     let y=238;
-    y=wrapped(m.title,pad,y,width-pad*2,"700 42px system-ui, sans-serif","#172832",48)+10;
-    y=wrapped(m.subtitle,pad,y,width-pad*2,"500 24px system-ui, sans-serif","#647581",32)+24;
-    y=wrapped(m.introTitle,pad,y,width-pad*2,"400 30px Georgia, serif","#27485a",38)+18;
-    y=wrapped(m.intro,pad,y,width-pad*2,"500 21px system-ui, sans-serif","#4e6069",32)+8;
-    y=wrapped(m.intro2,pad,y,width-pad*2,"500 19px system-ui, sans-serif","#64747c",30)+28;
+    y=wrapped(m.title,pad,y,width-pad*2,"700 42px Georgia, serif","#172832",48)+8;
+    y=wrapped(m.subtitle,pad,y,width-pad*2,"600 21px system-ui, sans-serif","#71808a",30)+28;
     for(const [k,v] of m.fields){
-      y=wrapped(k.toUpperCase(),pad,y,width-pad*2,"800 16px system-ui, sans-serif","#71808a",28);
-      y=wrapped(v,pad,y,width-pad*2,"700 26px system-ui, sans-serif","#172832",34)+18
+      y=wrapped(k.toUpperCase(),pad,y,width-pad*2,"900 15px system-ui, sans-serif","#71808a",26)+2;
+      y=wrapped(v,pad,y,width-pad*2,"700 27px system-ui, sans-serif","#172832",35)+18;
     }
-    y+=10;
+    y+=6;
     for(const [k,v] of m.amounts){
       ctx.font="600 23px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText(k,pad,y);
-      ctx.textAlign="right";ctx.fillText(v,right,y);ctx.textAlign="left";y+=43
+      ctx.textAlign="right";ctx.font="700 23px system-ui, sans-serif";ctx.fillText(v,right,y);ctx.textAlign="left";y+=43;
     }
-    y+=16;
+    y+=12;
     ctx.font="800 24px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(m.totalLabel,pad,y);
-    ctx.textAlign="right";ctx.font="900 43px system-ui, sans-serif";ctx.fillText(m.total,right,y);ctx.textAlign="left";y+=58;
+    ctx.textAlign="right";ctx.font="900 46px system-ui, sans-serif";ctx.fillText(m.total,right,y);ctx.textAlign="left";y+=62;
     const top=y;
     const boxText=()=>{
-      let by=top+44;
-      by=wrapped(m.status,pad+28,by,width-pad*2-56,"900 21px system-ui, sans-serif",m.paid?"#17643c":"#27485a",30)+12;
-      for(const [k,v] of m.bank)by=wrapped(k+": "+v,pad+28,by,width-pad*2-56,"600 22px system-ui, sans-serif","#27485a",32)+8;
-      return by
+      let by=top+42;
+      by=wrapped(m.status,pad+28,by,width-pad*2-56,"900 20px system-ui, sans-serif",m.paid?"#17643c":"#6d5411",30)+10;
+      for(const [k,v] of m.bank)by=wrapped(k+": "+v,pad+28,by,width-pad*2-56,"600 21px system-ui, sans-serif","#27485a",31)+7;
+      return by;
     };
-    y=boxText()+16;
-    if(draw){canvasRoundRect(ctx,pad,top,width-pad*2,y-top,18,m.paid?"#edf8f1":"#f7fafb",m.paid?"#bfdfca":"#d7e1e6");boxText()}
-    y+=42;
-    y=wrapped(m.impactTitle,pad,y,width-pad*2,"900 16px system-ui, sans-serif","#71808a",28)+10;
-    y=wrapped(m.impact,pad,y,width-pad*2,"500 19px system-ui, sans-serif","#4e6069",30)+30;
-    ctx.strokeStyle="#dbe4e9";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=34;
-    y=wrapped(m.thanksTitle,pad,y,width-pad*2,"900 19px system-ui, sans-serif","#172832",30)+8;
-    y=wrapped(m.footerLead,pad,y,width-pad*2,"700 21px system-ui, sans-serif","#40525a",30)+6;
-    y=wrapped(m.footer,pad,y,width-pad*2,"500 18px system-ui, sans-serif","#647581",28)+18;
-    y=wrapped(m.signature,pad,y,width-pad*2,"900 21px system-ui, sans-serif","#172832",30)+2;
-    y=wrapped(m.tagline,pad,y,width-pad*2,"500 16px system-ui, sans-serif","#7b878d",24);
-    return y+42
+    y=boxText()+15;
+    if(draw){
+      canvasRoundRect(ctx,pad,top,width-pad*2,y-top,18,m.paid?"#edf8f1":"#fff9e9",m.paid?"#bfdfca":"#ead9a4");
+      boxText();
+    }
+    y+=28;
+    y=wrapped(m.footer,pad,y,width-pad*2,"500 17px system-ui, sans-serif","#71808a",26);
+    return y+36;
   }
   const height=Math.ceil(content(false));cv.height=height;ctx=cv.getContext("2d");
   ctx.fillStyle="#fff";ctx.fillRect(0,0,width,height);
   try{await brandLogoImg.decode()}catch{}
-  if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,300*brandLogoImg.naturalHeight/brandLogoImg.naturalWidth);
-  else{ctx.font="900 50px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Vaporeasy",pad,108)}
+  if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,260,260*brandLogoImg.naturalHeight/brandLogoImg.naturalWidth);
+  else{ctx.font="900 44px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Vaporeasy",pad,108)}
   ctx.strokeStyle="#dbe4e9";ctx.beginPath();ctx.moveTo(pad,178);ctx.lineTo(right,178);ctx.stroke();
   content(true);return cv
 }
