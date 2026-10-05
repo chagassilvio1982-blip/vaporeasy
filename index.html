@@ -2596,7 +2596,7 @@ function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
     :(credit>0
       ?'Complemento pago. Mensalidade total de '+esc(money(gross))+' quitada.'
       :'Mensalidade do pacote paga.');
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Cobrança / Pix</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div>'))+'</div>'
+  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Cobrança do pacote / Pix</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Recibo de pagamento</button></div>'))+'</div>'
 }
 async function getPackageChargeShareData(id){
   const cr=await sb.from("package_charges").select("*").eq("id",id).single();if(cr.error)throw cr.error;
@@ -2610,44 +2610,96 @@ async function getPackageChargeShareData(id){
   if(cl.error)throw cl.error;if(vr.error)throw vr.error;if(sv.error)throw sv.error;if(bs.error)throw bs.error;
   return{charge:c,client:cl.data,vehicle:vr.data,service:sv.data,bank:bs.data}
 }
-function packageChargeShareText(d){
-  const c=d.charge,meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),discount=packageChargeCommercialDiscount(c),vehicle=d.vehicle?d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:""):"Veículo";
-  const lines=["Olá, "+(d.client?.name||"")+".","","Segue a cobrança da sua mensalidade Vaporeasy.",vehicle+" · "+(d.service?.name||"Pacote"),freq+" · "+visits+" estéticas/mês"];
-  if(discount>0)lines.push("Valor de tabela: "+money(gross),"Desconto comercial: - "+money(discount));
-  if(credit>0)lines.push("Crédito já pago: - "+money(credit));
-  lines.push("Valor a pagar: *"+money(amount)+"*","Vencimento: "+financePackageDate(c.due_date),"","Chave Pix: "+d.bank.pix_key,d.bank.bank_name+" · Ag. "+d.bank.branch+" · C/C "+d.bank.account_number,"Favorecido: "+d.bank.account_holder,"","Obrigado pela confiança.","Vaporeasy");
-  return lines.join("\n")
+// Package documents only read the existing charge; payment remains in the existing flow.
+function packageDocumentModel(d){
+  const c=d.charge,paid=c.status==="paid",meta=packageFrequencyMeta(c.frequency);
+  if(!["pending","paid"].includes(c.status))throw Error("Esta cobrança não está disponível para emissão.");
+  const gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),discount=packageChargeCommercialDiscount(c);
+  const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Pacote",d.service?.name||"Pacote"],["Frequência",meta?.label||c.frequency||"—"],["Estéticas/mês",String(c.visits_per_month??meta?.visits??"—")],["Vencimento",financePackageDate(c.due_date)]];
+  const amounts=[["Mensalidade",money(gross)]];
+  if(discount>0)amounts.push(["Desconto comercial","− "+money(discount)]);
+  if(credit>0)amounts.push(["Crédito já pago","− "+money(credit)]);
+  const bank=paid?[["Forma de pagamento",c.payment_method||"—"],["Recebido em",financePackageDate(c.paid_at)],["Favorecido",d.bank.account_holder||"Não informado"]]:[["Chave Pix",d.bank.pix_key||"Não cadastrada"],["Banco",d.bank.bank_name||"Não informado"],["Agência",d.bank.branch||"Não informada"],["Conta",d.bank.account_number||"Não informada"],["Favorecido",d.bank.account_holder||"Não informado"]];
+  return{paid,title:paid?"Recibo de pagamento":"Cobrança do pacote",status:paid?"PAGAMENTO RECEBIDO":"PAGAMENTO PENDENTE",fields,amounts,bank,total:money(c.amount||0),totalLabel:paid?"Valor recebido":"Valor a pagar",footer:paid?"Pagamento confirmado. Obrigado pela confiança na Vaporeasy.":"Após a confirmação do pagamento, esta cobrança será registrada como paga no Financeiro."}
+}
+function packageChargeHtml(d){
+  const m=packageDocumentModel(d);
+  return '<div class="receipt-sheet"><div class="receipt-head" style="flex-wrap:wrap"><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:180px;max-width:100%;height:auto"><div class="receipt-title">'+esc(m.title)+'</div></div><div class="receipt-grid">'+m.fields.map(([k,v])=>'<div class="receipt-box" style="overflow-wrap:anywhere"><b>'+esc(k)+'</b>'+esc(v)+'</div>').join("")+'</div><div class="receipt-lines">'+m.amounts.map(([k,v])=>'<div class="receipt-line"><span>'+esc(k)+'</span><b>'+esc(v)+'</b></div>').join("")+'</div><div class="receipt-total"><span>'+m.totalLabel+'</span><span>'+esc(m.total)+'</span></div><div class="receipt-pay" style="overflow-wrap:anywhere"><span class="'+(m.paid?'paid-pill':'pending-pill')+'">'+m.status+'</span>'+m.bank.map(([k,v])=>'<div style="margin-top:8px"><b>'+esc(k)+':</b> '+esc(v)+'</div>').join("")+'</div><p class="receipt-muted" style="margin-top:14px">'+esc(m.footer)+'</p></div>'
 }
 async function packageChargeCanvas(d){
-  const c=d.charge,meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),discount=packageChargeCommercialDiscount(c),vehicle=d.vehicle?d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:""):"Veículo";
-  const width=1080,height=1260,cv=document.createElement("canvas");cv.width=width;cv.height=height;
-  const ctx=cv.getContext("2d"),pad=82,right=width-pad;ctx.fillStyle="#f3f1ec";ctx.fillRect(0,0,width,height);
-  if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,120);else{ctx.font="900 50px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Vaporeasy",pad,110)}
-  ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("COBRANÇA DE MENSALIDADE",right,92);ctx.font="600 17px system-ui, sans-serif";ctx.fillText("Vencimento "+financePackageDate(c.due_date),right,124);ctx.textAlign="left";
-  ctx.strokeStyle="#d4d0c8";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,170);ctx.lineTo(right,170);ctx.stroke();
-  ctx.font="400 44px Georgia, serif";ctx.fillStyle="#172832";ctx.fillText("Pacote Vaporeasy contratado.",pad,238);ctx.fillText("Pagamento pendente.",pad,290);
-  let y=370;
-  const info=[["CLIENTE",d.client?.name||"Cliente"],["VEÍCULO",vehicle],["PACOTE",(d.service?.name||"Pacote")+" · "+freq+" · "+visits+" estéticas/mês"]];
-  for(const [k,v] of info){ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText(k,pad,y);ctx.font="800 27px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(String(v),pad,y+36);y+=92}
-  ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y-14);ctx.lineTo(right,y-14);ctx.stroke();y+=35;
-  if(discount>0){ctx.font="600 22px system-ui, sans-serif";ctx.fillStyle="#5d6b72";ctx.fillText("Valor de tabela",pad,y);ctx.textAlign="right";ctx.fillText(money(gross),right,y);ctx.textAlign="left";y+=38;ctx.fillStyle="#7d4d28";ctx.fillText("Desconto comercial",pad,y);ctx.textAlign="right";ctx.fillText("− "+money(discount),right,y);ctx.textAlign="left";y+=44}
-  if(credit>0){ctx.font="600 22px system-ui, sans-serif";ctx.fillStyle="#5d6b72";ctx.fillText("Crédito já pago",pad,y);ctx.textAlign="right";ctx.fillText("− "+money(credit),right,y);ctx.textAlign="left";y+=44}
-  ctx.font="800 19px system-ui, sans-serif";ctx.fillStyle="#6d797f";ctx.fillText("VALOR A PAGAR",pad,y+15);ctx.font="900 52px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.textAlign="right";ctx.fillText(money(amount),right,y+22);ctx.textAlign="left";y+=100;
-  canvasRoundRect(ctx,pad,y,width-pad*2,205,18,"#fff","#ddd9d1");ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("PAGAMENTO PENDENTE",pad+28,y+36);ctx.font="800 15px system-ui, sans-serif";ctx.fillText("CHAVE PIX",pad+28,y+70);ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#27485a";ctx.fillText(d.bank.pix_key,pad+28,y+108);ctx.font="500 20px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText(d.bank.bank_name+" · Ag. "+d.bank.branch+" · C/C "+d.bank.account_number,pad+28,y+148);ctx.fillText(d.bank.account_holder,pad+28,y+180);
-  ctx.font="500 16px system-ui, sans-serif";ctx.fillStyle="#949da1";ctx.fillText("Vaporeasy · cobrança referente à mensalidade do pacote contratado.",pad,height-55);
-  return cv
+  const m=packageDocumentModel(d),width=1080,pad=82,right=width-pad;
+  // Measure with the same wrapping used to draw, so long client/Pix data never overlap.
+  const cv=document.createElement("canvas");cv.width=width;cv.height=1;let ctx=cv.getContext("2d");
+  function wrapped(text,x,y,w,font,color){
+    // Split oversized tokens (e.g. Pix keys) before using the shared receipt helper.
+    ctx.font=font;const words=String(text).split(/\s+/).flatMap(word=>{
+      const chunks=[];let part="";for(const char of word){if(part&&ctx.measureText(part+char).width>w){chunks.push(part);part=""}part+=char}if(part)chunks.push(part);return chunks;
+    });
+    return canvasText(ctx,words.join(" "),x,y,w,34,font,color)
+  }
+  function content(draw){
+    let y=240;
+    y=wrapped(m.title,pad,y,width-pad*2,"700 40px system-ui, sans-serif","#172832")+32;
+    for(const [k,v] of m.fields){y=wrapped(k.toUpperCase(),pad,y,width-pad*2,"800 17px system-ui, sans-serif","#647581");y=wrapped(v,pad,y,width-pad*2,"700 27px system-ui, sans-serif","#172832")+18}
+    y+=8;
+    for(const [k,v] of m.amounts){ctx.font="600 24px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText(k,pad,y);ctx.textAlign="right";ctx.fillText(v,right,y);ctx.textAlign="left";y+=44}
+    y+=18;ctx.font="800 25px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(m.totalLabel,pad,y);ctx.textAlign="right";ctx.font="900 42px system-ui, sans-serif";ctx.fillText(m.total,right,y);ctx.textAlign="left";y+=52;
+    const top=y;y+=44;
+    // Measure status box independently, then paint its background before its text.
+    const boxText=()=>{let by=top+44;by=wrapped(m.status,pad+28,by,width-pad*2-56,"900 22px system-ui, sans-serif",m.paid?"#17643c":"#825700")+12;for(const [k,v] of m.bank){by=wrapped(k+": "+v,pad+28,by,width-pad*2-56,"600 23px system-ui, sans-serif","#27485a")+10}return by};
+    y=boxText()+14;
+    if(draw){canvasRoundRect(ctx,pad,top,width-pad*2,y-top,18,m.paid?"#edf8f1":"#fff8e9",m.paid?"#bfdfca":"#ebd9ad");boxText()}
+    y+=48;y=wrapped(m.footer,pad,y,width-pad*2,"500 21px system-ui, sans-serif","#647581");return y+48
+  }
+  const height=Math.ceil(content(false));cv.height=height;ctx=cv.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,width,height);
+  await brandLogoImg.decode();
+  ctx.drawImage(brandLogoImg,pad,48,300,300*brandLogoImg.naturalHeight/brandLogoImg.naturalWidth);
+  ctx.strokeStyle="#dbe4e9";ctx.beginPath();ctx.moveTo(pad,178);ctx.lineTo(right,178);ctx.stroke();content(true);return cv
 }
+let currentPackageReceipt=null;
 async function sharePackageCharge(id){
-  if(!financeAllowed())return show("msg","Seu nível de acesso não permite compartilhar cobranças.","error");
+  if(!financeAllowed())return show("msg","Seu nível de acesso não permite visualizar cobranças.","error");
   try{
-    const d=await getPackageChargeShareData(id);
-    if(d.charge.status==="paid"||d.charge.status==="covered")return show("msg","Esta mensalidade já está quitada.","ok");
-    const cv=await packageChargeCanvas(d);await settleCanvas(cv);const blob=await canvasBlob(cv),name=cleanFileName(d.client?.name),file=new File([blob],"cobranca-pacote-vaporeasy-"+name+".png",{type:"image/png"}),txt=packageChargeShareText(d);
-    if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"Cobrança Vaporeasy",text:txt,files:[file]});return}
-    if(navigator.share){try{await navigator.share({title:"Cobrança Vaporeasy",text:txt});return}catch(e){if(e?.name==="AbortError")return}}
-    try{await navigator.clipboard.writeText(txt)}catch{}
-    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);show("msg","Cobrança gerada. A mensagem/Pix também foi copiada.","ok")
-  }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error")}
+    const d=await getPackageChargeShareData(id);packageDocumentModel(d);
+    currentReceipt=null;currentReceiptGroup=null;currentPackageReceipt=d;
+    renderPackageReceipt();$("rd").showModal()
+  }catch(e){show("msg",fail(e),"error")}
+}
+function renderPackageReceipt(){
+  const m=packageDocumentModel(currentPackageReceipt);
+  $("rcontent").innerHTML=packageChargeHtml(currentPackageReceipt);
+  $("rshare").textContent=m.paid?"Compartilhar recibo":"Compartilhar cobrança";
+  $("rprint").textContent="Compartilhar PDF";show("rgroupmsg","");
+  for(const id of ["rgroup","rdiscount","rcharge"])$(id).classList.add("hidden")
+}
+// The same PNG/PDF pipeline is used by grouped receipts and package documents.
+async function shareReceiptCanvasFile(cv,{pdf=false,title,name,text=""}){
+  await settleCanvas(cv);let blob;
+  if(pdf){
+    const {jsPDF}=window.jspdf||{};if(!jsPDF)throw Error("Gerador de PDF indisponível.");
+    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    let pw=180,ph=pw*(cv.height/cv.width);if(ph>270){ph=270;pw=ph*(cv.width/cv.height)}
+    doc.addImage(cv.toDataURL("image/jpeg",0.92),"JPEG",(210-pw)/2,12,pw,ph);blob=doc.output("blob")
+  }else blob=await canvasBlob(cv);
+  const file=new File([blob],name+(pdf?".pdf":".png"),{type:pdf?"application/pdf":"image/png"});
+  if(navigator.share&&navigator.canShare?.({files:[file]})){
+    try{await navigator.share({title,files:[file],...(text?{text}:{})});return}catch(e){if(e?.name==="AbortError")return}
+  }
+  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+  show("rgroupmsg","Arquivo gerado. Você pode enviá-lo pelo WhatsApp.","ok")
+}
+async function sharePackageReceiptFile(pdf=false){
+  if(!financeAllowed())return;
+  const id=currentPackageReceipt?.charge.id;if(!id)return;
+  const buttons=[$("rshare"),$("rprint")];buttons.forEach(b=>b.disabled=true);
+  try{
+    // Re-read status before exporting to avoid sending a pending document already paid.
+    const d=await getPackageChargeShareData(id),m=packageDocumentModel(d);
+    currentPackageReceipt=d;renderPackageReceipt();
+    const cv=await packageChargeCanvas(d);
+    await shareReceiptCanvasFile(cv,{pdf,title:m.title+" · Vaporeasy",name:(m.paid?"recibo-pacote":"cobranca-pacote")+"-vaporeasy-"+cleanFileName(d.client?.name)})
+  }catch(e){if(e?.name!=="AbortError")show("rgroupmsg",fail(e),"error")}
+  finally{buttons.forEach(b=>b.disabled=false)}
 }
 
 async function loadFinance(){
@@ -3783,7 +3835,7 @@ async function openAppointmentDetail(id){
           '<div class="meta" style="margin-top:8px">Uso interno da Vaporeasy. Fotos e justificativas de exceção não são enviadas ao cliente.</div>'+
         '</div>':'')+
       '<div class="actions" style="margin-top:12px">'+
-        (packageVisit&&packageCharge&&packageCharge.status==="pending"&&financeAllowed()?'<button class="primary" type="button" data-detail-package-charge="'+esc(packageCharge.id)+'">Compartilhar cobrança / Pix</button>':'')+
+        (packageVisit&&packageCharge&&["pending","paid"].includes(packageCharge.status)&&financeAllowed()?'<button class="primary" type="button" data-detail-package-charge="'+esc(packageCharge.id)+'">'+(packageCharge.status==="paid"?"Recibo de pagamento":"Cobrança do pacote / Pix")+'</button>':'')+
         (a.status!=="completed"&&a.status!=="cancelled"?'<button class="ghost" type="button" data-detail-edit="'+esc(a.id)+'">Editar agendamento</button>':'')+
       '</div>';
     $("dd").showModal();
@@ -4333,6 +4385,7 @@ function groupReceiptHtml(g){
     '<div style="margin-top:20px;font-size:10px;color:#90999d">Vaporeasy · cuidado automotivo com discrição, conveniência e responsabilidade.</div></div>'
 }
 async function openReceiptGroup(ids){
+  currentPackageReceipt=null;
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite visualizar valores e dados bancários.","error");
   try{
     currentReceipt=null;
@@ -4349,6 +4402,7 @@ async function openReceiptGroup(ids){
   }catch(e){show("msg",fail(e),"error")}
 }
 async function openReceipt(id){
+  currentPackageReceipt=null;
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite visualizar valores e dados bancários.","error");
   try{
     currentReceiptGroup=null;
@@ -4573,7 +4627,7 @@ async function savePayment(e){
       show("msg",q.discount>0?"Desconto aplicado. Valor pendente atualizado para "+money(q.final)+".":"Desconto removido. Valor pendente atualizado.","ok")
     }
     await Promise.all([loadApps(),financeAllowed()?loadFinance():Promise.resolve()]);
-    if(packageReceive)return;
+    if(packageReceive){await sharePackageCharge(id);return;}
     if(groupDiscount)await openReceiptGroup(groupIds);else await openReceipt(id)
   }catch(err){show("paymsg",fail(err),"error")}
   finally{submit.disabled=false;submit.textContent=receive?"Confirmar recebimento":"Salvar desconto"}
@@ -4752,19 +4806,13 @@ function groupChargeText(g){
   return "Olá, "+(g.client?.name||"")+".\n\nSeus "+g.items.length+" atendimentos Vaporeasy foram concluídos:\n"+rows+"\n\nTotal: *"+money(g.total)+"*\n\nChave Pix: "+g.bank.pix_key+"\n"+g.bank.bank_name+" · Ag. "+g.bank.branch+" · C/C "+g.bank.account_number+"\nFavorecido: "+g.bank.account_holder+"\n\nObrigado pela confiança.\nVaporeasy"
 }
 async function shareReceiptVisual(){
+  if(currentPackageReceipt)return sharePackageReceiptFile(false);
   if(!currentReceipt&&!currentReceiptGroup)return;
   try{
     if(currentReceiptGroup){
       const cv=await groupReceiptCanvas(currentReceiptGroup);
-      await settleCanvas(cv);
-      const blob=await canvasBlob(cv),paid=currentReceiptGroup.allPaid,name=cleanFileName(currentReceiptGroup.client?.name);
-      const file=new File([blob],(paid?"recibo-conjunto":"comprovante-conjunto")+"-vaporeasy-"+name+".png",{type:"image/png"});
-      if(navigator.share&&navigator.canShare?.({files:[file]})){
-        await navigator.share({title:paid?"Recibo conjunto Vaporeasy":"Atendimentos Vaporeasy",text:paid?"Segue o recibo conjunto dos atendimentos Vaporeasy.":"Seus atendimentos Vaporeasy foram concluídos. Segue o comprovante conjunto.",files:[file]});
-        return
-      }
-      const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
-      show("msg","O documento conjunto foi gerado.","ok");return
+      const paid=currentReceiptGroup.allPaid;
+      await shareReceiptCanvasFile(cv,{title:paid?"Recibo conjunto Vaporeasy":"Atendimentos Vaporeasy",name:(paid?"recibo-conjunto":"comprovante-conjunto")+"-vaporeasy-"+cleanFileName(currentReceiptGroup.client?.name)});return
     }
     const cv=await receiptVisualCanvas(currentReceipt);
     await settleCanvas(cv);
@@ -4797,19 +4845,14 @@ async function shareChargePix(){
   try{await navigator.clipboard.writeText(txt);show("msg","Mensagem de cobrança/Pix copiada.","ok")}catch(e){show("msg",fail(e),"error")}
 }
 async function generateReceiptPdf(){
+  if(currentPackageReceipt)return sharePackageReceiptFile(true);
   if(!currentReceipt&&!currentReceiptGroup)return;
   try{
     const {jsPDF}=window.jspdf||{};
     if(currentReceiptGroup){
       if(!jsPDF)throw Error("Gerador de PDF indisponível.");
-      const cv=await groupReceiptCanvas(currentReceiptGroup);await settleCanvas(cv);
-      const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"}),img=cv.toDataURL("image/jpeg",0.92);
-      let pw=180,ph=pw*(cv.height/cv.width);if(ph>270){ph=270;pw=ph*(cv.width/cv.height)}
-      doc.addImage(img,"JPEG",(210-pw)/2,12,pw,ph);
-      const name=cleanFileName(currentReceiptGroup.client?.name),file=(currentReceiptGroup.allPaid?"recibo-conjunto":"comprovante-conjunto")+"-vaporeasy-"+name+".pdf";
-      const blob=doc.output("blob"),pdfFile=new File([blob],file,{type:"application/pdf"});
-      if(navigator.share&&navigator.canShare?.({files:[pdfFile]})){await navigator.share({title:currentReceiptGroup.allPaid?"Recibo conjunto Vaporeasy":"Comprovante conjunto Vaporeasy",files:[pdfFile]});return}
-      const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);show("msg","Documento conjunto gerado em PDF.","ok");return
+      const cv=await groupReceiptCanvas(currentReceiptGroup);
+      await shareReceiptCanvasFile(cv,{pdf:true,title:currentReceiptGroup.allPaid?"Recibo conjunto Vaporeasy":"Comprovante conjunto Vaporeasy",name:(currentReceiptGroup.allPaid?"recibo-conjunto":"comprovante-conjunto")+"-vaporeasy-"+cleanFileName(currentReceiptGroup.client?.name)});return
     }
     if(!jsPDF)throw Error("Gerador de PDF indisponível.");
     const paid=currentReceipt.payment?.status==="paid";

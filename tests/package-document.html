@@ -1,0 +1,46 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Validação — cobrança de pacote</title><body><main style="max-width:720px;margin:auto;padding:20px"><h1>Documento de pacote</h1><p>Homologação visual · dados fictícios · sem conexão com banco.</p><div class="actions"><button id="pending">Abrir cobrança</button><button id="paid">Abrir recibo</button><button id="long">Dados longos</button><button id="run">Executar testes</button></div><pre id="results" style="white-space:pre-wrap"></pre><div id="files"></div><div id="visual"></div><div id="msg"></div></main><script src="/api/vendor?lib=jspdf"></script><script>
+(async()=>{
+const source=await(await fetch('/index.html')).text(),parser=new DOMParser(),dom=parser.parseFromString(source,'text/html');
+for(const style of dom.querySelectorAll('style'))document.head.append(style.cloneNode(true));
+for(const id of ['rd','pd'])document.body.append(dom.getElementById(id).cloneNode(true));
+const line=name=>source.split('\n').find(l=>l.startsWith(name));
+const fn=name=>{const re=new RegExp('^(?:async )?function '+name+'\\(','m'),start=source.search(re);if(start<0)throw Error(name);const first=source.indexOf('\n',start);return source.slice(start,source.slice(start,first).endsWith('}')?first:source.indexOf('\n}',start)+2)};
+const names=['show','financePackageDate','packageFrequencyMeta','packageChargeCommercialDiscount','getPackageChargeShareData','packageDocumentModel','packageChargeHtml','packageChargeCanvas','sharePackageCharge','renderPackageReceipt','shareReceiptCanvasFile','sharePackageReceiptFile','cleanFileName','canvasRoundRect','canvasText','canvasBlob','settleCanvas','shareReceiptVisual','generateReceiptPdf','paymentDiscountCalc','savePayment','financePackageChargeCard','financePackageUpgradeTarget'];
+const globals=[line('const BRAND_LOGO='),line('const esc='),line('const money=')].join('\n');
+const code=globals+'\n'+names.map(fn).join('\n')+'\n'+String(fixture).replace(/^function fixture\(\)\{/,'').replace(/\}$/,'');
+Function(code)();
+function fixture(){
+const $=id=>document.getElementById(id),fail=e=>e.message||String(e),financeAllowed=()=>currentRole==='owner';
+let currentRole='owner',currentReceipt=null,currentReceiptGroup=null,currentPackageReceipt=null,currentPaymentQuote=null,currentPaymentMode='package_receive',currentPaymentGroupIds=[];
+const agendaMonthCache=new Map(),loadApps=async()=>{},loadFinance=async()=>{};
+const original={charge:{id:'fixture-charge',client_id:'fixture-client',vehicle_id:'fixture-vehicle',service_id:'fixture-service',status:'pending',frequency:'biweekly',visits_per_month:2,gross_monthly_amount:420,amount:390,credit_applied:0,due_date:'2026-10-05'},client:{name:'Cliente Demonstração'},vehicle:{brand:'Toyota',model:'Corolla Cross',plate:'TESTE00'},service:{name:'Pacote Premium'},bank:{pix_key:'exemplo@teste.invalid',bank_name:'Banco de demonstração',branch:'0000',account_number:'00000-0',account_holder:'Vaporeasy — demonstração'}};
+let data=structuredClone(original),writes=[],shared=[],mode='capture';
+const sb={from(table){return{select(){return this},eq(){return this},async single(){return{data:structuredClone(({package_charges:data.charge,clients:data.client,vehicles:data.vehicle,services:data.service,business_payment_settings:data.bank})[table])}}}},async rpc(name,args){writes.push({name,args});if(name!=='confirm_package_charge')throw Error('Unexpected mutation');data.charge.status='paid';data.charge.payment_method=args.p_payment_method;data.charge.paid_at='2026-10-05T17:30:00Z';return{data:[data.charge]}}};
+Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>mode!=='download'});
+Object.defineProperty(navigator,'share',{configurable:true,value:async payload=>{if(!payload.files?.length)throw Error('Text-only share forbidden');shared.push(payload.files[0]);const a=document.createElement('a');a.href=URL.createObjectURL(payload.files[0]);a.download=payload.files[0].name;a.textContent=payload.files[0].name+' ('+payload.files[0].size+' bytes)';a.style.display='block';$('files').append(a)}});
+$('rshare').onclick=shareReceiptVisual;$('rprint').onclick=generateReceiptPdf;
+$('rd').querySelector('[data-close]').onclick=()=>$('rd').close();
+$('pending').onclick=async()=>{data=structuredClone(original);await sharePackageCharge(data.charge.id)};
+$('paid').onclick=async()=>{data=structuredClone(original);Object.assign(data.charge,{status:'paid',payment_method:'Pix',paid_at:'2026-10-05T17:30:00Z'});await sharePackageCharge(data.charge.id)};
+$('long').onclick=async()=>{data=structuredClone(original);data.client.name='Cliente de demonstração com nome muito longo para verificar quebra de linha';data.bank.pix_key='a'.repeat(150);data.charge.frequency='weekly';data.charge.visits_per_month=4;data.charge.credit_applied=100;data.charge.amount=290;await sharePackageCharge(data.charge.id);const cv=await packageChargeCanvas(data);$('visual').replaceChildren(cv);cv.style.width='100%'};
+$('run').onclick=async()=>{
+$('results').textContent='';$('files').replaceChildren();shared=[];writes=[];data=structuredClone(original);
+const assert=(ok,label)=>{if(!ok)throw Error(label);$('results').textContent+='PASS '+label+'\n'};
+try{
+await sharePackageCharge(data.charge.id);assert($('rd').open&&$('rcontent').textContent.includes('PAGAMENTO PENDENTE'),'modal pendente');assert(shared.length===0,'abrir documento não compartilha automaticamente');assert($('rcontent').textContent.includes('30,00'),'desconto preservado');
+await shareReceiptVisual();assert(shared[0]?.type==='image/png'&&shared[0].size>10000,'PNG anexado no compartilhamento');
+await generateReceiptPdf();assert(shared[1]?.type==='application/pdf'&&(await shared[1].text()).startsWith('%PDF'),'PDF real gerado e anexado');assert(writes.length===0,'visualização/exportação sem escrita financeira');
+$('rd').close();$('payid').value=data.charge.id;$('paymethod').value='Pix';$('paydiscounttype').value='none';currentPaymentQuote={gross:390};$('pd').showModal();
+await savePayment({preventDefault(){},submitter:$('paysubmit')});assert(writes.length===1&&writes[0].name==='confirm_package_charge','confirmação usa apenas RPC existente');assert(currentPackageReceipt.charge.id===original.charge.id&&data.charge.amount===390,'mesma cobrança e valor após pagamento');assert($('rcontent').textContent.includes('PAGAMENTO RECEBIDO')&&!$('rcontent').textContent.includes('PAGAMENTO PENDENTE'),'recibo abre após pagamento');
+await shareReceiptVisual();await generateReceiptPdf();assert(shared[2].name.startsWith('recibo-pacote')&&shared[3].name.endsWith('.pdf'),'arquivos de recibo após pagamento');
+$('rd').close();data=structuredClone(original);await sharePackageCharge(data.charge.id);Object.assign(data.charge,{status:'paid',payment_method:'Pix'});await shareReceiptVisual();assert(shared[4].name.startsWith('recibo-pacote'),'exportação relê pagamento atualizado');
+$('rd').close();data=structuredClone(original);data.charge.status='cancelled';await sharePackageCharge(data.charge.id);assert(!$('rd').open,'cobrança cancelada não emite documento');
+currentRole='collaborator';data=structuredClone(original);await sharePackageCharge(data.charge.id);assert(!$('rd').open,'colaborador sem acesso ao documento financeiro');currentRole='owner';
+const maps={cm:new Map([[data.charge.client_id,data.client]]),vm:new Map([[data.charge.vehicle_id,data.vehicle]]),sm:new Map([[data.charge.service_id,data.service]])};assert(financePackageChargeCard({...data.charge,status:'paid'},maps,true).includes('Recibo de pagamento'),'financeiro oferece recibo pago');
+assert(writes.length===1,'nenhuma nova cobrança criada');
+const cv=await packageChargeCanvas(original);cv.style.width='100%';$('visual').replaceChildren(cv);$('results').textContent+='CONCLUÍDO: teste de interface com API simulada; não é E2E autenticado.\n';
+}catch(e){$('results').textContent+='FAIL '+e.stack;}
+};
+}
+})();
+</script></body></html>
