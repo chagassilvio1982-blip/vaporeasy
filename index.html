@@ -2566,8 +2566,12 @@ function financePackageUpgradeTarget(c,charges=[]){
       &&n.status!=="cancelled")
     .sort((a,b)=>(Date.parse(a.created_at||"")||0)-(Date.parse(b.created_at||"")||0))[0]||null
 }
+function packageChargeCommercialDiscount(c){
+  const gross=Number(c?.gross_monthly_amount??c?.amount??0),credit=Number(c?.credit_applied||0),amount=Number(c?.amount||0);
+  return Math.max(0,gross-credit-amount)
+}
 function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
-  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0);
+  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),commercialDiscount=packageChargeCommercialDiscount(c);
   const baseDetail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
   const targetMeta=upgradeTarget?packageFrequencyMeta(upgradeTarget.frequency):null;
   const targetService=upgradeTarget?maps.sm.get(upgradeTarget.service_id):null;
@@ -2581,6 +2585,10 @@ function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
     adjustment=paid
       ?'<br><span>Mensalidade: '+esc(money(gross))+'<br>Pagamento anterior: '+esc(money(credit))+'<br>Complemento pago: '+esc(money(amount))+'<br>Total quitado: '+esc(money(gross))+'</span>'
       :'<br><span>Mensalidade: '+esc(money(gross))+' • já pago: '+esc(money(credit))+' • saldo a pagar: '+esc(money(amount))+'</span>'
+  }else if(commercialDiscount>0){
+    adjustment=paid
+      ?'<br><span>Valor de tabela: '+esc(money(gross))+'<br>Desconto comercial: − '+esc(money(commercialDiscount))+'<br>Valor pago: '+esc(money(amount))+'</span>'
+      :'<br><span>Valor de tabela: '+esc(money(gross))+' • desconto: − '+esc(money(commercialDiscount))+' • a pagar: '+esc(money(amount))+'</span>'
   }
   const covered=c.status==="covered";
   const paidMessage=upgradeTarget
@@ -2588,8 +2596,60 @@ function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
     :(credit>0
       ?'Complemento pago. Mensalidade total de '+esc(money(gross))+' quitada.'
       :'Mensalidade do pacote paga.');
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div>'))+'</div>'
+  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Cobrança / Pix</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div>'))+'</div>'
 }
+async function getPackageChargeShareData(id){
+  const cr=await sb.from("package_charges").select("*").eq("id",id).single();if(cr.error)throw cr.error;
+  const c=cr.data;
+  const [cl,vr,sv,bs]=await Promise.all([
+    sb.from("clients").select("id,name").eq("id",c.client_id).single(),
+    sb.from("vehicles").select("id,brand,model,plate,package_size").eq("id",c.vehicle_id).single(),
+    sb.from("services").select("id,name").eq("id",c.service_id).single(),
+    sb.from("business_payment_settings").select("*").eq("id",1).single()
+  ]);
+  if(cl.error)throw cl.error;if(vr.error)throw vr.error;if(sv.error)throw sv.error;if(bs.error)throw bs.error;
+  return{charge:c,client:cl.data,vehicle:vr.data,service:sv.data,bank:bs.data}
+}
+function packageChargeShareText(d){
+  const c=d.charge,meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),discount=packageChargeCommercialDiscount(c),vehicle=d.vehicle?d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:""):"Veículo";
+  const lines=["Olá, "+(d.client?.name||"")+".","","Segue a cobrança da sua mensalidade Vaporeasy.",vehicle+" · "+(d.service?.name||"Pacote"),freq+" · "+visits+" estéticas/mês"];
+  if(discount>0)lines.push("Valor de tabela: "+money(gross),"Desconto comercial: - "+money(discount));
+  if(credit>0)lines.push("Crédito já pago: - "+money(credit));
+  lines.push("Valor a pagar: *"+money(amount)+"*","Vencimento: "+financePackageDate(c.due_date),"","Chave Pix: "+d.bank.pix_key,d.bank.bank_name+" · Ag. "+d.bank.branch+" · C/C "+d.bank.account_number,"Favorecido: "+d.bank.account_holder,"","Obrigado pela confiança.","Vaporeasy");
+  return lines.join("\n")
+}
+async function packageChargeCanvas(d){
+  const c=d.charge,meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),discount=packageChargeCommercialDiscount(c),vehicle=d.vehicle?d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:""):"Veículo";
+  const width=1080,height=1260,cv=document.createElement("canvas");cv.width=width;cv.height=height;
+  const ctx=cv.getContext("2d"),pad=82,right=width-pad;ctx.fillStyle="#f3f1ec";ctx.fillRect(0,0,width,height);
+  if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,120);else{ctx.font="900 50px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Vaporeasy",pad,110)}
+  ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("COBRANÇA DE MENSALIDADE",right,92);ctx.font="600 17px system-ui, sans-serif";ctx.fillText("Vencimento "+financePackageDate(c.due_date),right,124);ctx.textAlign="left";
+  ctx.strokeStyle="#d4d0c8";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,170);ctx.lineTo(right,170);ctx.stroke();
+  ctx.font="400 44px Georgia, serif";ctx.fillStyle="#172832";ctx.fillText("Pacote Vaporeasy contratado.",pad,238);ctx.fillText("Pagamento pendente.",pad,290);
+  let y=370;
+  const info=[["CLIENTE",d.client?.name||"Cliente"],["VEÍCULO",vehicle],["PACOTE",(d.service?.name||"Pacote")+" · "+freq+" · "+visits+" estéticas/mês"]];
+  for(const [k,v] of info){ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText(k,pad,y);ctx.font="800 27px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(String(v),pad,y+36);y+=92}
+  ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y-14);ctx.lineTo(right,y-14);ctx.stroke();y+=35;
+  if(discount>0){ctx.font="600 22px system-ui, sans-serif";ctx.fillStyle="#5d6b72";ctx.fillText("Valor de tabela",pad,y);ctx.textAlign="right";ctx.fillText(money(gross),right,y);ctx.textAlign="left";y+=38;ctx.fillStyle="#7d4d28";ctx.fillText("Desconto comercial",pad,y);ctx.textAlign="right";ctx.fillText("− "+money(discount),right,y);ctx.textAlign="left";y+=44}
+  if(credit>0){ctx.font="600 22px system-ui, sans-serif";ctx.fillStyle="#5d6b72";ctx.fillText("Crédito já pago",pad,y);ctx.textAlign="right";ctx.fillText("− "+money(credit),right,y);ctx.textAlign="left";y+=44}
+  ctx.font="800 19px system-ui, sans-serif";ctx.fillStyle="#6d797f";ctx.fillText("VALOR A PAGAR",pad,y+15);ctx.font="900 52px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.textAlign="right";ctx.fillText(money(amount),right,y+22);ctx.textAlign="left";y+=100;
+  canvasRoundRect(ctx,pad,y,width-pad*2,205,18,"#fff","#ddd9d1");ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("PAGAMENTO PENDENTE",pad+28,y+36);ctx.font="800 15px system-ui, sans-serif";ctx.fillText("CHAVE PIX",pad+28,y+70);ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#27485a";ctx.fillText(d.bank.pix_key,pad+28,y+108);ctx.font="500 20px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText(d.bank.bank_name+" · Ag. "+d.bank.branch+" · C/C "+d.bank.account_number,pad+28,y+148);ctx.fillText(d.bank.account_holder,pad+28,y+180);
+  ctx.font="500 16px system-ui, sans-serif";ctx.fillStyle="#949da1";ctx.fillText("Vaporeasy · cobrança referente à mensalidade do pacote contratado.",pad,height-55);
+  return cv
+}
+async function sharePackageCharge(id){
+  if(!financeAllowed())return show("msg","Seu nível de acesso não permite compartilhar cobranças.","error");
+  try{
+    const d=await getPackageChargeShareData(id);
+    if(d.charge.status==="paid"||d.charge.status==="covered")return show("msg","Esta mensalidade já está quitada.","ok");
+    const cv=await packageChargeCanvas(d);await settleCanvas(cv);const blob=await canvasBlob(cv),name=cleanFileName(d.client?.name),file=new File([blob],"cobranca-pacote-vaporeasy-"+name+".png",{type:"image/png"}),txt=packageChargeShareText(d);
+    if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"Cobrança Vaporeasy",text:txt,files:[file]});return}
+    if(navigator.share){try{await navigator.share({title:"Cobrança Vaporeasy",text:txt});return}catch(e){if(e?.name==="AbortError")return}}
+    try{await navigator.clipboard.writeText(txt)}catch{}
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);show("msg","Cobrança gerada. A mensagem/Pix também foi copiada.","ok")
+  }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error")}
+}
+
 async function loadFinance(){
   if(!financeAllowed())return;
   const k=financeMonthKeys();
@@ -2660,7 +2720,7 @@ async function loadFinance(){
     $("fpaid").innerHTML=paidCount?paidHtml:'<div class="empty">Nenhum recebimento confirmado neste mês.</div>';
     $("fexpenses").innerHTML=expenseRows.length?expenseRows.map(e=>'<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(e.description)+'</div><div class="meta">'+esc(e.category)+' • '+esc(new Intl.DateTimeFormat("pt-BR").format(new Date(e.expense_date+"T12:00:00"))) +(e.notes?'<br>'+esc(e.notes):'')+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(e.amount))+'</div></div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-exp-edit="'+e.id+'">Editar</button><button type="button" class="danger" data-exp-del="'+e.id+'">Excluir</button></div></div>').join(""):'<div class="empty">Nenhuma despesa registrada neste mês.</div>';
     document.querySelectorAll("[data-fin-pay]").forEach(b=>b.onclick=()=>openPayment(b.dataset.finPay));
-    document.querySelectorAll("[data-pkg-pay]").forEach(b=>b.onclick=()=>openPackagePayment(b.dataset.pkgPay));
+    document.querySelectorAll("[data-pkg-pay]").forEach(b=>b.onclick=()=>openPackagePayment(b.dataset.pkgPay));document.querySelectorAll("[data-pkg-charge-share]").forEach(b=>b.onclick=()=>sharePackageCharge(b.dataset.pkgChargeShare));
     document.querySelectorAll("[data-fin-receipt]").forEach(b=>b.onclick=()=>openReceipt(b.dataset.finReceipt));
     document.querySelectorAll("[data-fin-group]").forEach(b=>b.onclick=()=>openReceiptGroup((b.dataset.finGroup||"").split(",").filter(Boolean)));
     document.querySelectorAll("[data-exp-edit]").forEach(b=>b.onclick=()=>openExpense(expenseRows.find(e=>e.id===b.dataset.expEdit)));
