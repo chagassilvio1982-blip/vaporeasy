@@ -1436,7 +1436,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div id="avmulti" class="multi-vehicle-list"><div class="empty">Selecione o cliente primeiro.</div></div>
   <div id="avmultisummary" class="meta multi-vehicle-summary">Nenhum veículo selecionado.</div>
 </div>
-<label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label id="appackagesizewrap" class="hidden">Porte do veículo<select id="appackagesize"><option value="">Selecione P/M ou G</option><option value="pm">P/M — hatch ou sedã</option><option value="g">G — SUV, picape, minivan ou 7+ lugares</option></select><span class="meta">O porte fica salvo no veículo e define o preço do pacote.</span></label><label id="apvaluewrap" class="hidden">Valor do atendimento antes do desconto (R$)<input id="apvalue" type="number" min="0" step="0.01" inputmode="decimal"><span class="meta">Você pode ajustar este valor manualmente quando necessário.</span></label><div id="apdiscountblock" class="hidden"><label>Desconto<select id="apdiscounttype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label><label id="apdiscountwrap" class="hidden"><span id="apdiscountlabel">Valor do desconto</span><input id="apdiscountvalue" type="number" min="0" step="0.01" inputmode="decimal"></label><div id="apdiscountpreview" class="payment-preview"></div></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
+<label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label id="appackagesizewrap" class="hidden">Porte do veículo<select id="appackagesize"><option value="">Selecione P/M ou G</option><option value="pm">P/M — hatch ou sedã</option><option value="g">G — SUV, picape, minivan ou 7+ lugares</option></select><span class="meta">O porte fica salvo no veículo e define o preço do pacote.</span></label><label id="apvaluewrap" class="hidden">Valor do atendimento antes do desconto (R$)<input id="apvalue" type="number" min="0" step="0.01" inputmode="decimal"><span class="meta">Você pode ajustar este valor manualmente quando necessário.</span></label><div id="apdiscountblock" class="hidden"><label><span id="apdiscounttitle">Desconto</span><select id="apdiscounttype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label><label id="apdiscountwrap" class="hidden"><span id="apdiscountlabel">Valor do desconto</span><input id="apdiscountvalue" type="number" min="0" step="0.01" inputmode="decimal"></label><div id="apdiscountpreview" class="payment-preview"></div></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
 </div>
 <script>
 (function(){
@@ -3692,6 +3692,7 @@ function updateMultiVehicleSelection(refreshSlots=true){
     const h=$("shelp");
     h.textContent=appointmentServiceHelpText(s);h.classList.remove("hidden")
   }
+  syncPackageCommercialDiscountUI();
   $("apsave").textContent=appointmentSubmitLabel();
   if(refreshSlots)loadAvailableSlots()
 }
@@ -3734,6 +3735,29 @@ function appointmentDiscountCalc(){
   const final=Math.max(0,Math.round((gross-discount)*100)/100);
   return{gross,type,raw,discount,percent,final,error}
 }
+function syncPackageCommercialDiscountUI(){
+  if(!$("apdiscountblock")||$("aid").value)return;
+  const svc=services.find(x=>x.id===$("as").value),ids=selectedBatchVehicleIds();
+  const isPlan=serviceIsPackage(svc),single=isPlan&&ids.length===1,vehicleId=single?ids[0]:"";
+  const size=vehicleId?(appointmentVehicleSizeSelect(vehicleId)?.value||""):"";
+  const freq=vehicleId?($("avmulti").querySelector('[data-avfreq="'+CSS.escape(vehicleId)+'"]')?.value||""):"";
+  const gross=single?packageMonthlyAmount(svc,size,freq):null;
+  const visible=financeAllowed()&&single&&gross!==null;
+  const context=visible?(svc.id+"|"+vehicleId):"";
+  if(context&&window.__packageDiscountContext!==context){
+    $("apdiscounttype").value="none";$("apdiscountvalue").value="";
+  }
+  window.__packageDiscountContext=context;
+  $("apvaluewrap").classList.add("hidden");
+  $("apdiscountblock").classList.toggle("hidden",!visible);
+  if($("apdiscounttitle"))$("apdiscounttitle").textContent="Desconto comercial do plano";
+  if(visible){
+    $("apvalue").value=Number(gross).toFixed(2);
+    updateAppointmentDiscountPreview()
+  }else if(!isPlan||ids.length!==1){
+    $("apdiscounttype").value="none";$("apdiscountvalue").value="";$("apvalue").value=""
+  }
+}
 function updateAppointmentDiscountPreview(){
   if(!$("apdiscountpreview")||$("apdiscountblock").classList.contains("hidden"))return;
   const type=$("apdiscounttype").value,wrap=$("apdiscountwrap"),input=$("apdiscountvalue");
@@ -3742,10 +3766,11 @@ function updateAppointmentDiscountPreview(){
   input.max=type==="percent"?"100":String(Math.max(0,Number($("apvalue").value||0)));
   const q=appointmentDiscountCalc();
   $("apdiscountpreview").className="payment-preview"+(q.error?" has-error":"");
+  const planCommercial=!$("aid").value&&serviceIsPackage(services.find(x=>x.id===$("as").value));
   $("apdiscountpreview").innerHTML=
-    '<div><span>Valor original</span><b>'+esc(money(q.gross))+'</b></div>'+
-    '<div><span>Desconto</span><b>− '+esc(money(q.discount))+'</b></div>'+
-    '<div class="payment-preview-final"><span>Valor final</span><strong>'+esc(money(q.final))+'</strong></div>'+
+    '<div><span>'+(planCommercial?"Mensalidade de tabela":"Valor original")+'</span><b>'+esc(money(q.gross))+'</b></div>'+
+    '<div><span>'+(planCommercial?"Desconto comercial":"Desconto")+'</span><b>− '+esc(money(q.discount))+'</b></div>'+
+    '<div class="payment-preview-final"><span>'+(planCommercial?"Mensalidade contratada":"Valor final")+'</span><strong>'+esc(money(q.final))+'</strong></div>'+
     (q.error?'<div class="meta payment-preview-error">'+esc(q.error)+'</div>':'')
 }
 async function applyServiceRule(){
@@ -3832,7 +3857,7 @@ async function fillVehicles(cid){
   if(!$("aid").value)renderMultiVehiclePicker(list)
 }
 function spDateTime(iso){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(iso)),g=t=>p.find(x=>x.type===t)?.value||"";return{date:g("year")+"-"+g("month")+"-"+g("day"),time:g("hour")+":"+g("minute")}}
-async function openAppt(){try{window.__appointmentIdempotencyKey=crypto.randomUUID();window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";$("apvaluewrap").classList.add("hidden");$("apdiscountblock").classList.add("hidden");$("apvalue").value="";$("apdiscounttype").value="none";$("apdiscountvalue").value="";$("appackagesize").value="";$("appackagesizewrap").classList.add("hidden");show("apmsg","");await refs();fillSelects();setApptVehicleMode(false);clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículos e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Selecione um ou mais veículos, serviço e data.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
+async function openAppt(){try{window.__appointmentIdempotencyKey=crypto.randomUUID();window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__packageDiscountContext="";window.__editingAppointmentAddonValue=0;$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";$("apvaluewrap").classList.add("hidden");$("apdiscountblock").classList.add("hidden");$("apvalue").value="";$("apdiscounttype").value="none";$("apdiscountvalue").value="";$("appackagesize").value="";$("appackagesizewrap").classList.add("hidden");show("apmsg","");await refs();fillSelects();setApptVehicleMode(false);clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículos e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Selecione um ou mais veículos, serviço e data.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
 async function openAppointmentDetail(id){
   try{
     const a=currentApps.find(x=>x.id===id);
@@ -3947,7 +3972,13 @@ async function saveAppt(e){
       const r=await sb.from("appointments").update(p).eq("id",id).select("id,starts_at,base_value,discount_amount,discount_percent,final_value").single();
       if(r.error)throw r.error
     }else{
-      const recurrences=selectedRecurrences;
+      let recurrences=selectedRecurrences;
+      if(serviceIsPackage(s)&&vehicleIds.length===1&&financeAllowed()){
+        syncPackageCommercialDiscountUI();
+        const q=appointmentDiscountCalc();
+        if(q.error)throw Error(q.error);
+        recurrences=recurrences.map(x=>({...x,commercial_discount_type:q.type,commercial_discount_value:q.type==="none"?0:q.raw}))
+      }
       const r=await sb.rpc("create_multi_vehicle_booking_recurring",{
         p_client_id:clientId,
         p_vehicle_ids:vehicleIds,
@@ -3972,10 +4003,12 @@ async function saveAppt(e){
         }
         if(billing.length===1){
           const x=billing[0],meta=packageFrequencyMeta(x.frequency),c=chargeMap.get(x.charge_id),gross=Number(c?.gross_monthly_amount??x.monthly_amount??0),credit=Number(c?.credit_applied||0),due=Number(c?.amount??x.monthly_amount??0);
+          const commercialDiscount=Math.max(0,gross-credit-due);
           if(x.scheduled_change){
             const effective=x.effective_on?new Intl.DateTimeFormat("pt-BR",{month:"long",year:"numeric"}).format(new Date(String(x.effective_on)+"T12:00:00")):"próximo mês";
             msg="Downgrade agendado para "+effective+": "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • nova mensalidade "+money(x.monthly_amount)+"/mês. O pacote atual permanece válido até o fim deste mês e nenhuma cobrança adicional foi criada agora."
           }else if(credit>0)msg="Pacote alterado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • mensalidade "+money(gross)+" • crédito de "+money(credit)+" já pago • cobrança complementar de "+money(due)+" criada no Financeiro.";
+          else if(commercialDiscount>0)msg="Plano contratado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • valor de tabela "+money(gross)+" • desconto comercial "+money(commercialDiscount)+" • mensalidade "+money(due)+". Cobrança criada no Financeiro.";
           else msg="Pacote contratado: "+(meta?.label||"Recorrente")+" • "+Number(x.visits_per_month||meta?.visits||0)+" estéticas/mês • cobrança de "+money(due)+" criada no Financeiro."
         }else{
           const total=billing.reduce((sum,x)=>sum+Number(chargeMap.get(x.charge_id)?.amount??x.monthly_amount??0),0);
