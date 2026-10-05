@@ -4310,10 +4310,29 @@ function cancelPaymentDialog(){
   currentPaymentQuote=null;currentPaymentGroupIds=[];
   if(reopenSingle||reopenGroup)$("rd").showModal()
 }
+async function openPackagePayment(id){
+  if(!financeAllowed())return show("msg","Seu nível de acesso não permite confirmar pagamentos.","error");
+  currentPaymentMode="package_receive";currentPaymentGroupIds=[];
+  $("payf").reset();$("payid").value=id;show("paymsg","");
+  $("paytitle").textContent="Confirmar mensalidade do pacote";
+  $("paydiscountlabelwrap").classList.add("hidden");$("paydiscountwrap").classList.add("hidden");
+  $("payreceivefields").classList.remove("hidden");$("paymethod").required=true;$("paysubmit").textContent="Confirmar recebimento";
+  $("paysummary").innerHTML='<div class="empty">Carregando cobrança...</div>';$("paypreview").innerHTML="";currentPaymentQuote=null;
+  $("pd").showModal();
+  try{
+    const r=await sb.from("package_charges").select("*").eq("id",id).single();
+    if(r.error)throw r.error;
+    const c=r.data,maps=currentFinanceMonthReport?.maps,cl=maps?.cm.get(c.client_id),v=maps?.vm.get(c.vehicle_id),sv=maps?.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency);
+    currentPaymentQuote={id,gross:Number(c.amount||0),status:"package"};
+    $("paysummary").innerHTML='<div><span>'+esc(sv?.name||"Pacote")+' • '+esc(meta?.label||c.frequency)+' • '+Number(c.visits_per_month||meta?.visits||0)+' estéticas/mês</span><b>'+esc(money(c.amount))+'</b></div><div class="meta">'+esc(cl?.name||"Cliente")+' • '+esc(v?(v.brand+" "+v.model):"Veículo")+'</div>';
+    $("paydiscounttype").value="none";$("paydiscountvalue").value="";updatePaymentDiscountPreview()
+  }catch(err){$("paysummary").innerHTML="";show("paymsg",fail(err),"error")}
+}
 async function openPayment(id,mode="receive"){
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite confirmar pagamentos.","error");
   currentPaymentMode=mode==="discount"?"discount":"receive";currentPaymentGroupIds=[];
   $("payf").reset();$("payid").value=id;show("paymsg","");
+  $("paydiscountlabelwrap").classList.remove("hidden");
   $("paytitle").textContent=currentPaymentMode==="discount"?"Aplicar desconto":"Confirmar pagamento";
   $("payreceivefields").classList.toggle("hidden",currentPaymentMode==="discount");
   $("paymethod").required=currentPaymentMode==="receive";
@@ -4372,22 +4391,28 @@ function updatePaymentDiscountPreview(){
 }
 async function savePayment(e){
   e.preventDefault();
-  const id=$("payid").value,receive=currentPaymentMode==="receive",groupDiscount=currentPaymentMode==="group_discount",method=$("paymethod").value,q=paymentDiscountCalc();
-  if(!groupDiscount&&!id)return show("paymsg","Atendimento não identificado.","error");
+  const id=$("payid").value,packageReceive=currentPaymentMode==="package_receive",receive=currentPaymentMode==="receive"||packageReceive,groupDiscount=currentPaymentMode==="group_discount",method=$("paymethod").value,q=paymentDiscountCalc();
+  if(!groupDiscount&&!id)return show("paymsg",packageReceive?"Cobrança de pacote não identificada.":"Atendimento não identificado.","error");
   if(groupDiscount&&currentPaymentGroupIds.length<2)return show("paymsg","Grupo de atendimentos não identificado.","error");
   if(receive&&!method)return show("paymsg","Selecione a forma de pagamento.","error");
   if(!currentPaymentQuote)return show("paymsg","Os valores da cobrança ainda não foram carregados.","error");
   if(q.error)return show("paymsg",q.error,"error");
   const submit=e.submitter;submit.disabled=true;submit.textContent=receive?"Confirmando...":"Salvando...";
   try{
-    const r=receive
-      ?await sb.rpc("confirm_payment_with_discount",{
-        p_appointment_id:id,
+    const r=packageReceive
+      ?await sb.rpc("confirm_package_charge",{
+        p_charge_id:id,
         p_payment_method:method,
-        p_discount_type:q.type,
-        p_discount_value:q.type==="none"?0:q.raw,
         p_notes:$("paynotes").value.trim()
       })
+      :currentPaymentMode==="receive"
+        ?await sb.rpc("confirm_payment_with_discount",{
+          p_appointment_id:id,
+          p_payment_method:method,
+          p_discount_type:q.type,
+          p_discount_value:q.type==="none"?0:q.raw,
+          p_notes:$("paynotes").value.trim()
+        })
       :groupDiscount
         ?await sb.rpc("apply_pending_group_discount",{
           p_appointment_ids:currentPaymentGroupIds,
@@ -4402,7 +4427,9 @@ async function savePayment(e){
     if(r.error)throw r.error;
     const groupIds=groupDiscount?[...currentPaymentGroupIds]:[];
     $("pd").close();currentPaymentQuote=null;currentPaymentGroupIds=[];agendaMonthCache.clear();
-    if(receive){
+    if(packageReceive){
+      show("msg","Mensalidade do pacote confirmada como recebida.","ok")
+    }else if(receive){
       show("msg",q.discount>0?"Pagamento confirmado com desconto de "+money(q.discount)+".":"Pagamento confirmado. O documento agora é um recibo de pagamento.","ok")
     }else if(groupDiscount){
       show("msg",q.discount>0?"Desconto conjunto aplicado. Total pendente atualizado para "+money(q.final)+".":"Desconto conjunto removido. Total pendente atualizado.","ok")
@@ -4410,6 +4437,7 @@ async function savePayment(e){
       show("msg",q.discount>0?"Desconto aplicado. Valor pendente atualizado para "+money(q.final)+".":"Desconto removido. Valor pendente atualizado.","ok")
     }
     await Promise.all([loadApps(),financeAllowed()?loadFinance():Promise.resolve()]);
+    if(packageReceive)return;
     if(groupDiscount)await openReceiptGroup(groupIds);else await openReceipt(id)
   }catch(err){show("paymsg",fail(err),"error")}
   finally{submit.disabled=false;submit.textContent=receive?"Confirmar recebimento":"Salvar desconto"}
