@@ -2565,8 +2565,12 @@ function financePackageUpgradeTarget(c,charges=[]){
       &&n.status!=="cancelled")
     .sort((a,b)=>(Date.parse(a.created_at||"")||0)-(Date.parse(b.created_at||"")||0))[0]||null
 }
+function packageChargeCommercialDiscount(c){
+  const gross=Number(c?.gross_monthly_amount??c?.amount??0),credit=Number(c?.credit_applied||0),amount=Number(c?.amount||0);
+  return Math.max(0,gross-credit-amount)
+}
 function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
-  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0);
+  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),commercialDiscount=packageChargeCommercialDiscount(c);
   const baseDetail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
   const targetMeta=upgradeTarget?packageFrequencyMeta(upgradeTarget.frequency):null;
   const targetService=upgradeTarget?maps.sm.get(upgradeTarget.service_id):null;
@@ -2580,6 +2584,10 @@ function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
     adjustment=paid
       ?'<br><span>Mensalidade: '+esc(money(gross))+'<br>Pagamento anterior: '+esc(money(credit))+'<br>Complemento pago: '+esc(money(amount))+'<br>Total quitado: '+esc(money(gross))+'</span>'
       :'<br><span>Mensalidade: '+esc(money(gross))+' • já pago: '+esc(money(credit))+' • saldo a pagar: '+esc(money(amount))+'</span>'
+  }else if(commercialDiscount>0){
+    adjustment=paid
+      ?'<br><span>Valor de tabela: '+esc(money(gross))+'<br>Desconto comercial: − '+esc(money(commercialDiscount))+'<br>Valor pago: '+esc(money(amount))+'</span>'
+      :'<br><span>Valor de tabela: '+esc(money(gross))+' • desconto: − '+esc(money(commercialDiscount))+' • a pagar: '+esc(money(amount))+'</span>'
   }
   const covered=c.status==="covered";
   const paidMessage=upgradeTarget
@@ -3716,6 +3724,25 @@ async function openAppointmentDetail(id){
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)}
   }catch(e){show("msg",fail(e),"error")}
 }
+async function packageChargeVisualCanvas(d){
+  const c=d.charge,meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),discount=packageChargeCommercialDiscount(c),vehicle=d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:"");
+  const width=1080,height=1260,cv=document.createElement("canvas");cv.width=width;cv.height=height;
+  const ctx=cv.getContext("2d"),pad=82,right=width-pad;ctx.fillStyle="#f3f1ec";ctx.fillRect(0,0,width,height);
+  if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,120);else{ctx.font="900 50px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Vaporeasy",pad,110)}
+  ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("COBRANÇA DE MENSALIDADE",right,92);ctx.font="600 17px system-ui, sans-serif";ctx.fillText("Vencimento "+financePackageDate(c.due_date),right,124);ctx.textAlign="left";
+  ctx.strokeStyle="#d4d0c8";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,170);ctx.lineTo(right,170);ctx.stroke();
+  ctx.font="400 44px Georgia, serif";ctx.fillStyle="#172832";ctx.fillText("Pacote Vaporeasy contratado.",pad,238);ctx.fillText("Pagamento pendente.",pad,290);
+  let y=370;
+  const info=[["CLIENTE",d.client.name],["VEÍCULO",vehicle],["PACOTE",d.service.name+" · "+freq+" · "+visits+" estéticas/mês"]];
+  for(const [k,v] of info){ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText(k,pad,y);ctx.font="800 27px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(String(v),pad,y+36);y+=92}
+  ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y-14);ctx.lineTo(right,y-14);ctx.stroke();y+=35;
+  if(discount>0){ctx.font="600 22px system-ui, sans-serif";ctx.fillStyle="#5d6b72";ctx.fillText("Valor de tabela",pad,y);ctx.textAlign="right";ctx.fillText(money(gross),right,y);ctx.textAlign="left";y+=38;ctx.fillStyle="#7d4d28";ctx.fillText("Desconto comercial",pad,y);ctx.textAlign="right";ctx.fillText("− "+money(discount),right,y);ctx.textAlign="left";y+=44}
+  if(credit>0){ctx.font="600 22px system-ui, sans-serif";ctx.fillStyle="#5d6b72";ctx.fillText("Crédito já pago",pad,y);ctx.textAlign="right";ctx.fillText("− "+money(credit),right,y);ctx.textAlign="left";y+=44}
+  ctx.font="800 19px system-ui, sans-serif";ctx.fillStyle="#6d797f";ctx.fillText("VALOR A PAGAR",pad,y+15);ctx.font="900 52px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.textAlign="right";ctx.fillText(money(amount),right,y+22);ctx.textAlign="left";y+=100;
+  canvasRoundRect(ctx,pad,y,width-pad*2,205,18,"#fff","#ddd9d1");ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("PAGAMENTO PENDENTE",pad+28,y+36);ctx.font="800 15px system-ui, sans-serif";ctx.fillText("CHAVE PIX",pad+28,y+70);ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#27485a";ctx.fillText(d.bank.pix_key,pad+28,y+108);ctx.font="500 20px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText(d.bank.bank_name+" · Ag. "+d.bank.branch+" · C/C "+d.bank.account_number,pad+28,y+148);ctx.fillText(d.bank.account_holder,pad+28,y+180);
+  ctx.font="500 16px system-ui, sans-serif";ctx.fillStyle="#949da1";ctx.fillText("Vaporeasy · cobrança referente à mensalidade do pacote contratado.",pad,height-55);
+  return cv
+}
 async function sharePackageChargeForAppointment(id){
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite visualizar cobranças.","error");
   try{
@@ -3731,6 +3758,7 @@ async function sharePackageChargeForAppointment(id){
     if(cr.error)throw cr.error;
     if(!cr.data)throw Error("Cobrança mensal deste pacote ainda não foi encontrada.");
     const c=cr.data;
+    if(c.status==="paid"||c.status==="covered")return show("msg","Esta mensalidade já está quitada.","ok");
     const [clr,vr,svr,bs]=await Promise.all([
       sb.from("clients").select("name").eq("id",a.client_id).single(),
       sb.from("vehicles").select("brand,model,plate").eq("id",a.vehicle_id).single(),
@@ -3738,23 +3766,26 @@ async function sharePackageChargeForAppointment(id){
       sb.from("business_payment_settings").select("*").eq("id",1).single()
     ]);
     if(clr.error)throw clr.error;if(vr.error)throw vr.error;if(svr.error)throw svr.error;if(bs.error)throw bs.error;
-    const client=clr.data,vehicle=vr.data,service=svr.data,bank=bs.data,meta=packageFrequencyMeta(c.frequency||sr.data.frequency);
+    const client=clr.data,vehicle=vr.data,service=svr.data,bank=bs.data,meta=packageFrequencyMeta(c.frequency||sr.data.frequency),discount=packageChargeCommercialDiscount(c);
     const vehicleLabel=vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"");
     const gross=Number(c.gross_monthly_amount??c.amount??sr.data.monthly_amount??0),credit=Number(c.credit_applied||0),due=Number(c.amount||0);
     const valueLines=credit>0
       ?"Mensalidade: *"+money(gross)+"*\nCrédito já pago: "+money(credit)+"\nSaldo a pagar: *"+money(due)+"*"
-      :"Mensalidade: *"+money(due)+"*";
+      :(discount>0
+        ?"Valor de tabela: "+money(gross)+"\nDesconto comercial: - "+money(discount)+"\nValor a pagar: *"+money(due)+"*"
+        :"Mensalidade: *"+money(due)+"*");
     const txt="Olá, "+client.name+".\n\nSegue a cobrança do seu pacote Vaporeasy.\n"+
       vehicleLabel+"\n"+service.name+" • "+(meta?.label||c.frequency)+" • "+Number(c.visits_per_month||sr.data.visits_per_month||meta?.visits||0)+" estéticas/mês\n"+
       valueLines+"\nVencimento: "+financePackageDate(c.due_date)+"\n\nChave Pix: "+bank.pix_key+"\n"+
       bank.bank_name+" · Ag. "+bank.branch+" · C/C "+bank.account_number+"\nFavorecido: "+bank.account_holder+
       "\n\nApós a confirmação do pagamento, a cobrança ficará registrada como paga no Financeiro.\n\nObrigado por escolher a Vaporeasy.";
-    if(navigator.share){
-      try{await navigator.share({title:"Cobrança do pacote Vaporeasy",text:txt});return}catch(e){if(e?.name==="AbortError")return}
-    }
+    const cv=await packageChargeVisualCanvas({charge:c,client,vehicle,service,bank});await settleCanvas(cv);const blob=await canvasBlob(cv),file=new File([blob],"cobranca-pacote-vaporeasy-"+cleanFileName(client.name)+".png",{type:"image/png"});
+    if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:"Cobrança do pacote Vaporeasy",text:txt,files:[file]});return}
+    if(navigator.share){try{await navigator.share({title:"Cobrança do pacote Vaporeasy",text:txt});return}catch(e){if(e?.name==="AbortError")return}}
     await navigator.clipboard.writeText(txt);
-    show("msg","Cobrança do pacote copiada para compartilhar.","ok")
-  }catch(e){show("msg",fail(e),"error")}
+    const url=URL.createObjectURL(blob),dl=document.createElement("a");dl.href=url;dl.download=file.name;dl.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+    show("msg","Cobrança do pacote gerada e mensagem/Pix copiados.","ok")
+  }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error")}
 }
 async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;const fresh=await sb.from("appointments").select("*").eq("id",id).single();if(fresh.error)throw fresh.error;const x=fresh.data;if(!x)throw Error("Agendamento não encontrado.");const idx=currentApps.findIndex(a=>String(a.id)===String(id));if(idx>=0)currentApps[idx]={...currentApps[idx],...x};if(x.status==="completed"||x.status==="cancelled"){agendaMonthCache.clear();await loadApps();throw Error(x.status==="completed"?"Este agendamento já foi concluído e não pode mais ser editado.":"Este agendamento já foi cancelado e não pode mais ser editado.");}$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";window.__editingAppointmentAddonValue=Number(x.addon_value||0);window.__editingAppointmentDiscountAmount=Number(x.discount_amount||0);window.__editingAppointmentDiscountPercent=Number(x.discount_percent||0);$("apvalue").value=(Number(x.base_value||0)+Number(x.addon_value||0)).toFixed(2);$("apvaluewrap").classList.toggle("hidden",!financeAllowed());$("apdiscountblock").classList.toggle("hidden",!financeAllowed());const existingDiscount=Number(x.discount_amount||0),existingPercent=Number(x.discount_percent||0);if(existingDiscount>0&&existingPercent>0){$("apdiscounttype").value="percent";$("apdiscountvalue").value=existingPercent.toFixed(2)}else if(existingDiscount>0){$("apdiscounttype").value="fixed";$("apdiscountvalue").value=existingDiscount.toFixed(2)}else{$("apdiscounttype").value="none";$("apdiscountvalue").value=""}updateAppointmentDiscountPreview();syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;syncSingleAppointmentPackageSize(false);$("appackagesizewrap").classList.toggle("hidden",!serviceUsesVehicleSizePricing(services.find(q=>q.id===x.service_id)));$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");const expectedBase=s?(serviceUsesVehicleSizePricing(s)?servicePriceByVehicleSize(s,$("appackagesize").value):Number(s.price||0)):null;window.__appointmentValueTouched=!!(s&&expectedBase!==null&&Math.abs(Number(x.base_value||0)-Number(expectedBase||0))>0.009);if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
 async function saveAppt(e){
