@@ -3635,7 +3635,7 @@ async function openAppointmentDetail(id){
   try{
     const a=currentApps.find(x=>x.id===id);
     if(!a)throw Error("Atendimento não encontrado.");
-    const client=clients.find(x=>x.id===a.client_id),vehicle=findVehicleLocal(a.vehicle_id),service=services.find(x=>x.id===a.service_id),responsible=collabs.find(x=>x.id===a.collaborator_id),assignedTeam=teams.find(x=>x.id===a.team_id),responsibleLabel=assignedTeam?teamDisplay(assignedTeam.id):(responsible?.name||"Não definido");
+    const client=clients.find(x=>x.id===a.client_id),vehicle=findVehicleLocal(a.vehicle_id),service=services.find(x=>x.id===a.service_id),responsible=collabs.find(x=>x.id===a.collaborator_id),assignedTeam=teams.find(x=>x.id===a.team_id),responsibleLabel=assignedTeam?teamDisplay(assignedTeam.id):(responsible?.name||"Não definido"),packageVisit=serviceIsPackage(service)&&!!a.recurring_plan_id;
     const [ph,exr]=await Promise.all([
       sb.from("appointment_completion_photos").select("*").eq("appointment_id",id).maybeSingle(),
       sb.from("appointment_completion_exceptions").select("*").eq("appointment_id",id).maybeSingle()
@@ -3662,7 +3662,7 @@ async function openAppointmentDetail(id){
         '<div class="meta"><b>Serviço</b><br>'+esc(service?.name||"Serviço")+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Status</b><br>'+esc(status)+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Agendado para</b><br>'+esc(scheduled.date+" • "+scheduled.time)+'</div>'+
-        '<div class="meta" style="margin-top:10px"><b>Equipe / responsável</b><br>'+esc(responsibleLabel)+'</div>'+(financeAllowed()?'<div class="meta" style="margin-top:10px"><b>Valor</b><br>'+esc(money(a.final_value))+'</div>':'')+
+        '<div class="meta" style="margin-top:10px"><b>Equipe / responsável</b><br>'+esc(responsibleLabel)+'</div>'+(financeAllowed()?'<div class="meta" style="margin-top:10px"><b>'+esc(packageVisit?"Cobrança":"Valor")+'</b><br>'+esc(packageVisit?"Incluído na mensalidade do pacote":money(a.final_value))+'</div>':'')+
         (a.notes?'<div class="meta" style="margin-top:10px"><b>Observações</b><br>'+esc(a.notes)+'</div>':'')+
       '</div>'+
       (a.status==="completed"?
@@ -4806,7 +4806,7 @@ async function loadApps(){
   const rows=currentApps,activeRows=rows.filter(x=>x.status!=="cancelled"&&x.status!=="completed"),completedRows=rows.filter(x=>x.status==="completed"),cancelledRows=rows.filter(x=>x.status==="cancelled");
   const clientMap=new Map(clients.map(c=>[c.id,c])),serviceMap=new Map(services.map(s=>[s.id,s])),collabMap=new Map(collabs.map(c=>[c.id,c])),teamMap=new Map(teams.map(t=>[t.id,t]));
   const card=x=>{
-    const c=clientMap.get(x.client_id),v=vehicleMap.get(x.vehicle_id)||findVehicleLocal(x.vehicle_id),s=serviceMap.get(x.service_id),co=collabMap.get(x.collaborator_id),assignedTeam=teamMap.get(x.team_id);
+    const c=clientMap.get(x.client_id),v=vehicleMap.get(x.vehicle_id)||findVehicleLocal(x.vehicle_id),s=serviceMap.get(x.service_id),co=collabMap.get(x.collaborator_id),assignedTeam=teamMap.get(x.team_id),packageVisit=serviceIsPackage(s)&&!!x.recurring_plan_id;
     let nx=x.status==="requested"?"confirmed":x.status==="scheduled"?"in_progress":x.status==="confirmed"?"in_progress":x.status==="in_progress"?"completed":null,
       team=assignedTeam?teamDisplay(assignedTeam.id):(co?.name||(x.source==="public"?"1 equipe reservada • equipe a definir":"Equipe reservada • responsável a definir")),
       photo=photoMap.get(x.id),payment=paymentMap.get(x.id),
@@ -4815,9 +4815,9 @@ async function loadApps(){
       (nx?(nx==="completed"?'<button class="success" data-finish="'+x.id+'">Concluir</button>':'<button class="success" data-st="'+nx+'" data-id="'+x.id+'">'+esc(primaryActionLabel)+'</button>'):"")+
       (x.status!=="completed"&&x.status!=="cancelled"?'<button class="danger subtle-danger" data-st="cancelled" data-id="'+x.id+'">Cancelar</button>':"")+
       (x.status==="completed"&&financeAllowed()&&!photo?'<button class="ghost" data-legacy-photo="'+x.id+'">Adicionar foto final</button>':"")+
-      (x.status==="completed"&&financeAllowed()?'<button class="ghost" data-receipt="'+x.id+'">'+(payment?.status==="paid"?"Recibo":"Comprovante")+'</button>':"")+
-      (x.status==="completed"&&financeAllowed()&&payment?.status!=="paid"?'<button class="success" data-pay="'+x.id+'">Confirmar pagamento</button>':"");
-    const context='<div class="appt-secondary"><span>'+esc(team)+'</span>'+(financeAllowed()?'<span>'+esc(money(x.final_value))+'</span>':"")+'</div>';
+      (x.status==="completed"&&financeAllowed()&&!packageVisit?'<button class="ghost" data-receipt="'+x.id+'">'+(payment?.status==="paid"?"Recibo":"Comprovante")+'</button>':"")+
+      (x.status==="completed"&&financeAllowed()&&!packageVisit&&payment?.status!=="paid"?'<button class="success" data-pay="'+x.id+'">Confirmar pagamento</button>':"");
+    const context='<div class="appt-secondary"><span>'+esc(team)+'</span>'+(financeAllowed()?'<span>'+esc(packageVisit?"Incluído no pacote":money(x.final_value))+'</span>':"")+'</div>';
     return '<div class="item appt-card" data-detail="'+x.id+'" style="cursor:pointer"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(c?.name||"Cliente")+'</h3><div class="appt-core"><b>'+esc(v?v.brand+" "+v.model:"Veículo")+'</b><span>'+esc(s?.name||"Serviço")+'</span></div><div class="appt-tap-hint">Toque no cartão para ver detalhes</div><details class="appt-actions"><summary>Ações e informações</summary>'+context+'<div class="actions">'+actionButtons+'</div></details></div>'
   };
   let out=activeRows.length?activeRows.map(card).join(""):'<div class="empty">Nenhum atendimento ativo.</div>';
