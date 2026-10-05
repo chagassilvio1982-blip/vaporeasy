@@ -3752,8 +3752,10 @@ const financeAllowed=()=>["owner","admin"].includes(currentRole);
 const receiptDate=i=>new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeStyle:"short"}).format(new Date(i));
 function findVehicleLocal(id){for(const list of vehicles.values()){const v=(list||[]).find(x=>x.id===id);if(v)return v}return null}
 async function getReceiptData(id){
-  let x=currentApps.find(a=>a.id===id);
-  if(!x){const ar=await sb.from("appointments").select("*").eq("id",id).single();if(ar.error)throw ar.error;x=ar.data}
+  const cached=currentApps.find(a=>a.id===id);
+  const ar=await sb.from("appointments").select("*").eq("id",id).single();if(ar.error)throw ar.error;
+  const x={...(cached||{}),...(ar.data||{})};
+  const idx=currentApps.findIndex(a=>a.id===id);if(idx>=0)currentApps[idx]=x
   let client=clients.find(c=>c.id===x.client_id);if(!client){const cr=await sb.from("clients").select("*").eq("id",x.client_id).single();if(!cr.error)client=cr.data}
   let vehicle=findVehicleLocal(x.vehicle_id);if(!vehicle){const vr=await sb.from("vehicles").select("*").eq("id",x.vehicle_id).single();if(!vr.error)vehicle=vr.data}
   let service=services.find(s=>s.id===x.service_id);if(!service){const sr=await sb.from("services").select("*").eq("id",x.service_id).single();if(!sr.error)service=sr.data}
