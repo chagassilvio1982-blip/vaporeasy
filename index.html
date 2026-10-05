@@ -2597,10 +2597,19 @@ function financePackageGroupCard(group,maps,paid=false){
   '</div>'
 }
 function financePackageCards(rows,maps,paid=false,monthRows=[]){
-  return packageChargeGroups(rows).map(group=>{
-    if(group.length>1)return financePackageGroupCard(group,maps,paid);
-    const c=group[0];
-    return financePackageChargeCard(c,maps,paid,paid?financePackageUpgradeTarget(c,monthRows):null)
+  let groups;
+  if(paid){
+    const m=new Map();
+    (rows||[]).forEach(c=>{
+      const key=String(c.client_id||"")+"|"+String(c.competence_month||"")+"|"+String(c.paid_at||"")+"|"+String(c.payment_method||"");
+      if(!m.has(key))m.set(key,[]);
+      m.get(key).push(c)
+    });
+    groups=[...m.values()]
+  }else groups=packageChargeGroups(rows);
+  return groups.map(group=>{
+    if(group.length>1&&new Set(group.map(c=>c.vehicle_id)).size>1)return financePackageGroupCard(group,maps,paid);
+    return group.map(c=>financePackageChargeCard(c,maps,paid,paid?financePackageUpgradeTarget(c,monthRows):null)).join("")
   }).join("")
 }
 function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
