@@ -1,13 +1,13 @@
-# Documento de cobrança de pacote — 05/10/2026
+# Documento de mensalidade do plano — 05/10/2026
 
 ## Implementação
 Base: 9f92d2e (correção de pré-pagamento sobre homologação isolada).
 Branch local: fix/package-visual-document-20261005.
 Backend configurado: wwivmyhlwqyzmaexkmnk, confirmado como Vaporeasy Homologacao Isolada. Produção usa outro projeto.
 
-O botão abre o modal de recibos. A apresentação lê package_charges e dados cadastrais existentes. Compartilhar cobrança/recibo gera PNG; Compartilhar PDF utiliza jsPDF e o mesmo exportador dos recibos agrupados. Sem suporte a compartilhar arquivos, baixa o arquivo. Nenhum fallback para texto. Após a confirmação existente, abre o recibo da mesma cobrança. O status é relido antes de exportar. Canceladas/cobertas não são apresentadas como cobranças pendentes.
+O botão abre o modal de recibos. A apresentação lê package_charges e dados cadastrais existentes. Compartilhar mensalidade/recibo gera PNG; Compartilhar PDF utiliza jsPDF e o mesmo exportador dos recibos agrupados. Sem suporte a compartilhar arquivos, baixa o arquivo. Nenhum fallback para texto. Após a confirmação existente, abre o recibo da mesma mensalidade. O status é relido antes de exportar. Canceladas/cobertas não são apresentadas como mensalidades pendentes.
 
-Não foram alterados banco, preços, cobranças existentes, migrations, RPCs ou produção nesta tarefa. A migration presente na base já existia antes desta alteração.
+Não foram alterados banco, preços, mensalidades existentes, migrations, RPCs ou produção nesta tarefa. A migration presente na base já existia antes desta alteração.
 
 ## Testes executados
 13 verificações de componente aprovadas com DOM e API simulados, usando funções extraídas do index.html real. Geração de PNG e PDF reais, com inspeção visual das imagens pendente/paga e renderização da primeira página do PDF. Verificação sintática dos scripts aprovada.
