@@ -2728,6 +2728,7 @@ async function generateMonthlyFinanceReportPdf(){
     metric("Resultado por competência",money(d.competenceResult),left+w+gap,w);y+=25;
 
     row("Serviços concluídos",d.monthApps.length);
+    row("Mensalidades de pacote faturadas",d.packageMonthRows?.length||0);
     row("Clientes atendidos",d.uniqueClients);
     row("Veículos atendidos",d.uniqueVehicles);
     row("Ticket médio",money(d.ticket));
@@ -2735,7 +2736,7 @@ async function generateMonthlyFinanceReportPdf(){
     row("Margem operacional aproximada",d.margin.toLocaleString("pt-BR",{maximumFractionDigits:1,minimumFractionDigits:1})+"%");
     y+=3;
     doc.setFont("helvetica","normal");doc.setFontSize(7.8);doc.setTextColor(105);
-    const note="Saldo de caixa = recebimentos confirmados no mês menos despesas registradas. Resultado por competência = faturamento dos serviços concluídos no mês menos despesas registradas no mês.";
+    const note="Saldo de caixa = recebimentos confirmados no mês menos despesas registradas. Resultado por competência = faturamento dos serviços avulsos concluídos e mensalidades de pacotes do mês, menos as despesas registradas.";
     y+=financeReportText(doc,note,left,y,width)*4+2;
 
     // Revenue by service
@@ -2763,9 +2764,17 @@ async function generateMonthlyFinanceReportPdf(){
 
     // Pending receivables
     section("Valores a receber");
-    if(!d.pendingApps.length){doc.text("Nenhuma pendência de serviços concluídos neste mês.",left,y);y+=6}
+    if(!d.pendingApps.length&&!(d.pendingPackage?.length)){doc.text("Nenhuma pendência neste mês.",left,y);y+=6}
     else{
       tableHeader([{label:"Cliente / serviço",x:left},{label:"Data",x:158,align:"right"},{label:"Valor",x:right,align:"right"}]);
+      for(const c of (d.pendingPackage||[])){
+        const cl=d.maps.cm.get(c.client_id),sv=d.maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),label=(cl?.name||"Cliente")+" • "+(sv?.name||"Pacote")+" • "+(meta?.label||c.frequency);
+        ensure(10);doc.setFont("helvetica","normal");doc.setFontSize(8.2);doc.setTextColor(45);
+        const lines=doc.splitTextToSize(label,112);doc.text(lines,left,y);
+        doc.text(financePackageDate(c.due_date),158,y,{align:"right"});
+        doc.text(money(c.amount||0),right,y,{align:"right"});
+        y+=Math.max(6,lines.length*4.2)
+      }
       for(const a of d.pendingApps){
         const cl=d.maps.cm.get(a.client_id),sv=d.maps.sm.get(a.service_id),p=d.payMap.get(a.id);
         const label=(cl?.name||"Cliente")+" • "+(sv?.name||"Serviço");
@@ -2780,9 +2789,17 @@ async function generateMonthlyFinanceReportPdf(){
 
     // Cash receipts detail
     section("Recebimentos do mês");
-    if(!d.paidRows.length){doc.text("Nenhum recebimento confirmado no mês.",left,y);y+=6}
+    if(!d.paidRows.length&&!(d.packagePaidRows?.length)){doc.text("Nenhum recebimento confirmado no mês.",left,y);y+=6}
     else{
       tableHeader([{label:"Cliente / serviço",x:left},{label:"Forma",x:151,align:"right"},{label:"Valor",x:right,align:"right"}]);
+      for(const c of (d.packagePaidRows||[])){
+        const cl=d.maps.cm.get(c.client_id),sv=d.maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),label=(cl?.name||"Cliente")+" • "+(sv?.name||"Pacote")+" • "+(meta?.label||c.frequency)+" • "+financeReportDate(c.paid_at);
+        ensure(10);doc.setFont("helvetica","normal");doc.setFontSize(8.1);doc.setTextColor(45);
+        const lines=doc.splitTextToSize(label,108);doc.text(lines,left,y);
+        doc.text(String(c.payment_method||"—"),151,y,{align:"right"});
+        doc.text(money(c.amount||0),right,y,{align:"right"});
+        y+=Math.max(6,lines.length*4.2)
+      }
       for(const p of d.paidRows){
         const a=d.appMap.get(p.appointment_id),cl=a?d.maps.cm.get(a.client_id):null,sv=a?d.maps.sm.get(a.service_id):null;
         const label=(cl?.name||"Cliente")+" • "+(sv?.name||"Serviço")+" • "+financeReportDate(p.paid_at);
