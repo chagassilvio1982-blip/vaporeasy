@@ -2614,8 +2614,8 @@ async function getPackageChargeShareData(id){
 function packageDocumentModel(d){
   const c=d.charge,paid=c.status==="paid",meta=packageFrequencyMeta(c.frequency);
   if(!["pending","paid"].includes(c.status))throw Error("Esta mensalidade não está disponível para emissão.");
-  const gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),discount=packageChargeCommercialDiscount(c);
-  const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Plano",d.service?.name||"Plano Vaporeasy"],["Frequência",meta?.label||c.frequency||"—"],["Atendimentos previstos",String(c.visits_per_month??meta?.visits??"—")+" por mês"],["Vencimento",financePackageDate(c.due_date)]];
+  const gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),discount=packageChargeCommercialDiscount(c);\n  const planName=String(d.service?.name||"Vaporeasy").replace(/^Pacote\\s+/i,"").trim()||"Vaporeasy";
+  const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Plano",planName],["Frequência",meta?.label||c.frequency||"—"],["Atendimentos previstos",String(c.visits_per_month??meta?.visits??"—")+" por mês"],["Vencimento",financePackageDate(c.due_date)]];
   const amounts=[["Mensalidade",money(gross)]];
   if(discount>0)amounts.push(["Desconto comercial","− "+money(discount)]);
   if(credit>0)amounts.push(["Crédito já pago","− "+money(credit)]);
