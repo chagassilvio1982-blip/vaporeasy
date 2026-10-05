@@ -3706,11 +3706,54 @@ async function openAppointmentDetail(id){
           '<div class="meta" style="margin-top:8px">Uso interno da Vaporeasy. Fotos e justificativas de exceção não são enviadas ao cliente.</div>'+
         '</div>':'')+
       '<div class="actions" style="margin-top:12px">'+
+        (packageVisit&&financeAllowed()&&a.status!=="cancelled"?'<button class="primary" type="button" data-detail-package-charge="'+esc(a.id)+'">Cobrança do pacote / Pix</button>':'')+
         (a.status!=="completed"&&a.status!=="cancelled"?'<button class="ghost" type="button" data-detail-edit="'+esc(a.id)+'">Editar agendamento</button>':'')+
       '</div>';
     $("dd").showModal();
+    const cb=$("dd").querySelector("[data-detail-package-charge]");
+    if(cb)cb.onclick=()=>sharePackageChargeForAppointment(id);
     const eb=$("dd").querySelector("[data-detail-edit]");
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)}
+  }catch(e){show("msg",fail(e),"error")}
+}
+async function sharePackageChargeForAppointment(id){
+  if(!financeAllowed())return show("msg","Seu nível de acesso não permite visualizar cobranças.","error");
+  try{
+    const ar=await sb.from("appointments").select("id,client_id,vehicle_id,service_id,recurring_plan_id,starts_at").eq("id",id).single();
+    if(ar.error)throw ar.error;
+    const a=ar.data;
+    if(!a?.recurring_plan_id)throw Error("Este atendimento não está vinculado a um pacote recorrente.");
+    const sr=await sb.from("package_subscriptions").select("id,frequency,visits_per_month,monthly_amount").eq("recurring_plan_id",a.recurring_plan_id).eq("active",true).maybeSingle();
+    if(sr.error)throw sr.error;
+    if(!sr.data)throw Error("Assinatura ativa do pacote não encontrada.");
+    const local=spDateTime(a.starts_at),competence=local.date.slice(0,7)+"-01";
+    const cr=await sb.from("package_charges").select("*").eq("subscription_id",sr.data.id).eq("competence_month",competence).neq("status","cancelled").order("created_at",{ascending:false}).limit(1).maybeSingle();
+    if(cr.error)throw cr.error;
+    if(!cr.data)throw Error("Cobrança mensal deste pacote ainda não foi encontrada.");
+    const c=cr.data;
+    const [clr,vr,svr,bs]=await Promise.all([
+      sb.from("clients").select("name").eq("id",a.client_id).single(),
+      sb.from("vehicles").select("brand,model,plate").eq("id",a.vehicle_id).single(),
+      sb.from("services").select("name").eq("id",a.service_id).single(),
+      sb.from("business_payment_settings").select("*").eq("id",1).single()
+    ]);
+    if(clr.error)throw clr.error;if(vr.error)throw vr.error;if(svr.error)throw svr.error;if(bs.error)throw bs.error;
+    const client=clr.data,vehicle=vr.data,service=svr.data,bank=bs.data,meta=packageFrequencyMeta(c.frequency||sr.data.frequency);
+    const vehicleLabel=vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"");
+    const gross=Number(c.gross_monthly_amount??c.amount??sr.data.monthly_amount??0),credit=Number(c.credit_applied||0),due=Number(c.amount||0);
+    const valueLines=credit>0
+      ?"Mensalidade: *"+money(gross)+"*\nCrédito já pago: "+money(credit)+"\nSaldo a pagar: *"+money(due)+"*"
+      :"Mensalidade: *"+money(due)+"*";
+    const txt="Olá, "+client.name+".\n\nSegue a cobrança do seu pacote Vaporeasy.\n"+
+      vehicleLabel+"\n"+service.name+" • "+(meta?.label||c.frequency)+" • "+Number(c.visits_per_month||sr.data.visits_per_month||meta?.visits||0)+" estéticas/mês\n"+
+      valueLines+"\nVencimento: "+financePackageDate(c.due_date)+"\n\nChave Pix: "+bank.pix_key+"\n"+
+      bank.bank_name+" · Ag. "+bank.branch+" · C/C "+bank.account_number+"\nFavorecido: "+bank.account_holder+
+      "\n\nApós a confirmação do pagamento, a cobrança ficará registrada como paga no Financeiro.\n\nObrigado por escolher a Vaporeasy.";
+    if(navigator.share){
+      try{await navigator.share({title:"Cobrança do pacote Vaporeasy",text:txt});return}catch(e){if(e?.name==="AbortError")return}
+    }
+    await navigator.clipboard.writeText(txt);
+    show("msg","Cobrança do pacote copiada para compartilhar.","ok")
   }catch(e){show("msg",fail(e),"error")}
 }
 async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;const fresh=await sb.from("appointments").select("*").eq("id",id).single();if(fresh.error)throw fresh.error;const x=fresh.data;if(!x)throw Error("Agendamento não encontrado.");const idx=currentApps.findIndex(a=>String(a.id)===String(id));if(idx>=0)currentApps[idx]={...currentApps[idx],...x};if(x.status==="completed"||x.status==="cancelled"){agendaMonthCache.clear();await loadApps();throw Error(x.status==="completed"?"Este agendamento já foi concluído e não pode mais ser editado.":"Este agendamento já foi cancelado e não pode mais ser editado.");}$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";window.__editingAppointmentAddonValue=Number(x.addon_value||0);window.__editingAppointmentDiscountAmount=Number(x.discount_amount||0);window.__editingAppointmentDiscountPercent=Number(x.discount_percent||0);$("apvalue").value=(Number(x.base_value||0)+Number(x.addon_value||0)).toFixed(2);$("apvaluewrap").classList.toggle("hidden",!financeAllowed());$("apdiscountblock").classList.toggle("hidden",!financeAllowed());const existingDiscount=Number(x.discount_amount||0),existingPercent=Number(x.discount_percent||0);if(existingDiscount>0&&existingPercent>0){$("apdiscounttype").value="percent";$("apdiscountvalue").value=existingPercent.toFixed(2)}else if(existingDiscount>0){$("apdiscounttype").value="fixed";$("apdiscountvalue").value=existingDiscount.toFixed(2)}else{$("apdiscounttype").value="none";$("apdiscountvalue").value=""}updateAppointmentDiscountPreview();syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;syncSingleAppointmentPackageSize(false);$("appackagesizewrap").classList.toggle("hidden",!serviceUsesVehicleSizePricing(services.find(q=>q.id===x.service_id)));$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");const expectedBase=s?(serviceUsesVehicleSizePricing(s)?servicePriceByVehicleSize(s,$("appackagesize").value):Number(s.price||0)):null;window.__appointmentValueTouched=!!(s&&expectedBase!==null&&Math.abs(Number(x.base_value||0)-Number(expectedBase||0))>0.009);if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
