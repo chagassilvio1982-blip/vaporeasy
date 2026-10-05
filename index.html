@@ -2554,12 +2554,20 @@ function financePackageDate(d){
   return Number.isNaN(dt.getTime())?raw:new Intl.DateTimeFormat("pt-BR").format(dt)
 }
 function financePackageChargeCard(c,maps,paid=false){
-  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0);
+  const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0);
   const detail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
   const dateLine=paid?("Recebido em "+financePackageDate(c.paid_at)+(c.payment_method?" • "+esc(c.payment_method):"")):("Vencimento "+financePackageDate(c.due_date));
-  const adjustment=credit>0?'<br><span>Mensalidade '+esc(money(gross))+' • já pago '+esc(money(credit))+' • saldo '+esc(money(c.amount))+'</span>':"";
+  let adjustment="";
+  if(credit>0){
+    adjustment=paid
+      ?'<br><span>Mensalidade: '+esc(money(gross))+'<br>Pagamento anterior: '+esc(money(credit))+'<br>Complemento pago: '+esc(money(amount))+'<br>Total quitado: '+esc(money(gross))+'</span>'
+      :'<br><span>Mensalidade: '+esc(money(gross))+' • já pago: '+esc(money(credit))+' • saldo a pagar: '+esc(money(amount))+'</span>'
+  }
   const covered=c.status==="covered";
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+detail+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(c.amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button></div>':'<div class="meta" style="margin-top:8px">Mensalidade do pacote paga.</div>'))+'</div>'
+  const paidMessage=credit>0
+    ?'Complemento pago. Mensalidade total de '+esc(money(gross))+' quitada.'
+    :'Mensalidade do pacote paga.';
+  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+detail+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div>'))+'</div>'
 }
 async function loadFinance(){
   if(!financeAllowed())return;
