@@ -2616,7 +2616,7 @@ function packageDocumentModel(d){
   const gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),discount=packageChargeCommercialDiscount(c);
   const planTier=String(d.service?.name||"").replace(/^Pacote\s+/i,"").trim();
   const planName="Plano Vaporeasy"+(planTier?" "+planTier:"");
-  const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Plano",planName],["Frequência",meta?.label||c.frequency||"—"],["Atendimentos previstos",String(c.visits_per_month??meta?.visits??"—")+" por mês"],["Vencimento",financePackageDate(c.due_date)]];
+  const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Plano",planName],["Frequência",meta?.label||c.frequency||"—"],["Atendimentos previstos",String(c.visits_per_month??meta?.visits??"—")+" por mês"]];
   const amounts=[["Mensalidade",money(gross)]];
   if(discount>0)amounts.push(["Desconto comercial","− "+money(discount)]);
   if(credit>0)amounts.push(["Crédito já pago","− "+money(credit)]);
@@ -2627,6 +2627,7 @@ function packageDocumentModel(d){
     subtitle:paid?"Mensalidade recebida":"Sua mensalidade",
     status:paid?"PAGAMENTO RECEBIDO":"DADOS PARA PAGAMENTO",
     fields,amounts,bank,
+    paymentInstruction:paid?"":"Após o pagamento, envie o comprovante para confirmarmos o recebimento e realizarmos a baixa da mensalidade.",
     total:money(c.amount||0),
     totalLabel:paid?"Valor recebido":"Valor da mensalidade",
     introTitle:paid?"Pagamento confirmado":"Cuidado contínuo, com padrão Vaporeasy",
@@ -2655,7 +2656,7 @@ function packageChargeHtml(d){
     '<div class="receipt-grid" style="margin-top:20px">'+m.fields.map(([k,v])=>'<div class="receipt-box" style="overflow-wrap:anywhere;font-size:14px;font-weight:600;line-height:1.4"><b style="font-size:11px;font-weight:800;color:#53656f;letter-spacing:.15px">'+esc(k)+'</b>'+esc(v)+'</div>').join("")+'</div>'+
     '<div class="receipt-lines" style="font-size:14px">'+m.amounts.map(([k,v])=>'<div class="receipt-line"><span style="font-weight:500">'+esc(k)+'</span><b style="font-weight:700">'+esc(v)+'</b></div>').join("")+'</div>'+
     '<div class="receipt-total" style="font-family:inherit;font-size:17px;font-weight:800"><span>'+esc(m.totalLabel)+'</span><span style="font-size:27px;font-weight:900">'+esc(m.total)+'</span></div>'+
-    '<div class="receipt-pay" style="overflow-wrap:anywhere;font-family:inherit;font-size:13px;line-height:1.45"><span class="'+(m.paid?'paid-pill':'pending-pill')+'" style="font-family:inherit;font-weight:800">'+esc(m.status)+'</span>'+m.bank.map(([k,v])=>'<div style="margin-top:8px"><b style="font-weight:700">'+esc(k)+':</b> '+esc(v)+'</div>').join("")+'</div>'+
+    '<div class="receipt-pay" style="overflow-wrap:anywhere;font-family:inherit;font-size:13px;line-height:1.45"><span class="'+(m.paid?'paid-pill':'pending-pill')+'" style="font-family:inherit;font-weight:800">'+esc(m.status)+'</span>'+m.bank.map(([k,v])=>'<div style="margin-top:8px"><b style="font-weight:700">'+esc(k)+':</b> '+esc(v)+'</div>').join("")+(m.paymentInstruction?'<div style="margin-top:14px;padding-top:12px;border-top:1px solid #d7e1e6;font-weight:600;color:#334b57">'+esc(m.paymentInstruction)+'</div>':'')+'</div>'+
     '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #d7e1e6"><div style="font-size:10px;color:#71808a;font-weight:800;letter-spacing:.8px">'+esc(m.impactTitle)+'</div><p style="margin:8px 0 0;color:#4e6069;font-size:12.5px;font-weight:400;line-height:1.5">'+esc(m.impact)+'</p></div>'+
     '<div style="margin-top:20px;padding-top:15px;border-top:1px solid #d7e1e6;text-align:center;color:#40525a;font-size:13px;font-weight:600;line-height:1.45">Obrigado por escolher a Vaporeasy.</div>'+
   '</div>'
@@ -2696,6 +2697,10 @@ async function packageChargeCanvas(d){
       let by=top+44;
       by=wrapped(m.status,pad+28,by,width-pad*2-56,"800 20px system-ui, sans-serif",m.paid?"#17643c":"#27485a",29)+12;
       for(const [k,v] of m.bank)by=wrapped(k+": "+v,pad+28,by,width-pad*2-56,"600 20px system-ui, sans-serif","#27485a",30)+8;
+      if(m.paymentInstruction){
+        by+=8;
+        by=wrapped(m.paymentInstruction,pad+28,by,width-pad*2-56,"600 19px system-ui, sans-serif","#334b57",29)+8
+      }
       return by
     };
     y=boxText()+16;
