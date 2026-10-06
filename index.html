@@ -2941,7 +2941,7 @@ function packageDocumentModel(d){
   const gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),discount=packageChargeCommercialDiscount(c);
   const planTier=String(d.service?.name||"").replace(/^Pacote\s+/i,"").trim();
   const planName="Plano Vaporeasy"+(planTier?" "+planTier:"");
-  const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Plano",planName],["Frequência",meta?.label||c.frequency||"—"],["Atendimentos previstos",String(c.visits_per_month??meta?.visits??"—")+" por mês"]];
+  const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Plano",planName],["Frequência",meta?.label||c.frequency||"—"]];
   const amounts=(discount>0||credit>0)?[["Valor original",money(gross)]]:[];
   if(discount>0)amounts.push(["Desconto comercial","− "+money(discount)]);
   if(credit>0)amounts.push(["Crédito já pago","− "+money(credit)]);
