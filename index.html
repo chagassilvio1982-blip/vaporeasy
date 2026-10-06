@@ -2691,64 +2691,120 @@ function monthlyServiceSummary(v){
   return (v.services||[]).map(x=>x.name+(x.count>1?" × "+x.count:"")).join(" • ")||"Serviço"
 }
 function monthlyReceiptHtml(g){
-  const status="COMPROVANTE DE ATENDIMENTO";
   const rows=g.vehicles.map(v=>{
     const veh=v.vehicle?([v.vehicle.brand,v.vehicle.model].filter(Boolean).join(" ")+(v.vehicle.plate?" • "+v.vehicle.plate:"")):"Veículo";
     const qty=v.count+" estética"+(v.count===1?"":"s")+" realizada"+(v.count===1?"":"s");
     const dates=v.dates.map(d=>new Intl.DateTimeFormat("pt-BR").format(new Date(d+"T12:00:00"))).join(", ");
-    return '<div style="padding:14px 0;border-bottom:1px solid #dedbd4"><div style="display:flex;justify-content:space-between;gap:12px"><div style="font-weight:900;color:#172832">'+esc(veh)+'</div><b style="color:#172832">'+esc(money(v.total))+'</b></div><div style="margin-top:5px;color:#385665;font-weight:800">'+esc(qty)+'</div><div style="font-size:12px;color:#6b777d;margin-top:4px">'+esc(monthlyServiceSummary(v))+'</div><div style="font-size:11px;color:#7b878d;margin-top:3px">Datas: '+esc(dates)+'</div>'+(v.discount>0?'<div style="font-size:11px;color:#7d4d28;margin-top:3px">Descontos no veículo: − '+esc(money(v.discount))+'</div>':'')+'</div>'
+    const vehicleDiscount=(g.vehicles.length>1&&v.discount>0)?'<div style="margin-top:6px;color:#7d4d28;font-size:12px;font-weight:600">Desconto neste veículo: − '+esc(money(v.discount))+'</div>':'';
+    return '<div class="receipt-box" style="grid-column:1/-1;overflow-wrap:anywhere;font-size:14px;font-weight:600;line-height:1.45">'+
+      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div style="font-size:16px;font-weight:800;color:#172832">'+esc(veh)+'</div><div style="font-size:16px;font-weight:800;color:#172832;white-space:nowrap">'+esc(money(v.total))+'</div></div>'+
+      '<div style="margin-top:8px;color:#385665;font-size:14px;font-weight:800">'+esc(qty)+'</div>'+
+      '<div style="margin-top:5px;color:#53656f;font-size:12px;font-weight:600">'+esc(monthlyServiceSummary(v))+'</div>'+
+      '<div style="margin-top:4px;color:#71808a;font-size:12px;font-weight:500">Datas: '+esc(dates)+'</div>'+vehicleDiscount+
+    '</div>'
   }).join("");
-  const payBlock='<div style="margin-top:20px;background:#fff;border:1px solid #dedbd4;border-radius:13px;padding:15px"><div style="font-size:10px;color:#7b878d;font-weight:900;letter-spacing:1px">PAGAMENTO A CONFIRMAR</div><div style="margin-top:8px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:.8px">CHAVE PIX</div><div style="margin-top:3px;font-size:17px;font-weight:900;color:#27485a">'+esc(g.bank.pix_key||"Não cadastrada")+'</div><div style="font-size:11px;line-height:1.7;color:#5d6b72;margin-top:7px">'+esc(g.bank.bank_name||"")+(g.bank.branch?' · Ag. '+esc(g.bank.branch):'')+(g.bank.account_number?' · C/C '+esc(g.bank.account_number):'')+'<br>'+esc(g.bank.account_holder||"")+'</div></div>';
-  return '<div style="background:#f3f1ec;border:1px solid #dedbd4;border-radius:18px;padding:20px;color:#172832">'+
-    '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #d7d3cb;padding-bottom:14px"><div><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:190px;max-width:48vw;height:auto;display:block"></div><div style="font-size:10px;color:#7b878d;text-align:right;line-height:1.5">'+esc(status)+'<br>REFERÊNCIA · '+esc(g.competenceLabel.toUpperCase())+'</div></div>'+
-
-    '<div style="margin-top:20px;padding:15px 0;border-top:1px solid #d7d3cb"><div style="font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">CLIENTE</div><div style="font-size:17px;font-weight:900;margin-top:4px">'+esc(g.client?.name||"Cliente")+'</div></div>'+
-    '<div>'+rows+'</div>'+
-    (g.discount>0?'<div style="display:flex;justify-content:space-between;margin-top:12px;color:#7d4d28"><span>Descontos concedidos no período</span><b>− '+esc(money(g.discount))+'</b></div>':'')+
-    '<div style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid #d7d3cb;margin-top:14px;padding-top:15px"><span style="font-size:11px;color:#6c797f;font-weight:800;letter-spacing:.8px">TOTAL DO MÊS</span><span style="font-size:27px;font-weight:950;color:#172832">'+esc(money(g.total))+'</span></div>'+
+  const payBlock='<div class="receipt-pay" style="overflow-wrap:anywhere;font-family:inherit;font-size:13px;line-height:1.45">'+
+    '<span class="pending-pill" style="font-family:inherit;font-weight:800">PAGAMENTO A CONFIRMAR</span>'+
+    '<div style="margin-top:10px"><b style="font-weight:700">Chave Pix:</b> '+esc(g.bank.pix_key||"Não cadastrada")+'</div>'+
+    '<div style="margin-top:8px"><b style="font-weight:700">Banco:</b> '+esc(g.bank.bank_name||"Não informado")+'</div>'+
+    (g.bank.branch?'<div style="margin-top:8px"><b style="font-weight:700">Agência:</b> '+esc(g.bank.branch)+'</div>':'')+
+    (g.bank.account_number?'<div style="margin-top:8px"><b style="font-weight:700">Conta:</b> '+esc(g.bank.account_number)+'</div>':'')+
+    '<div style="margin-top:8px"><b style="font-weight:700">Favorecido:</b> '+esc(g.bank.account_holder||"Não informado")+'</div>'+
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #d7e1e6;font-weight:600;color:#334b57">Após o pagamento, envie o comprovante para confirmarmos o recebimento.</div>'+
+  '</div>';
+  const impactText=g.apps.length===1
+    ?'Este atendimento representa uma economia estimada de <b>'+esc(new Intl.NumberFormat("pt-BR").format(g.waterForGroup))+' litros de água</b>.'
+    :'Os '+g.apps.length+' atendimentos deste mês representam uma economia estimada de <b>'+esc(new Intl.NumberFormat("pt-BR").format(g.waterForGroup))+' litros de água</b>.';
+  return '<div class="receipt-sheet" style="font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">'+
+    '<div class="receipt-head" style="flex-wrap:wrap;align-items:flex-start">'+
+      '<img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:180px;max-width:100%;height:auto">'+
+      '<div style="text-align:right"><div class="receipt-title" style="font-family:inherit;font-size:20px;font-weight:800;line-height:1.25">COMPROVANTE DE ATENDIMENTO</div><div class="receipt-muted" style="margin-top:4px;font-family:inherit;font-size:12px;font-weight:500">Referência · '+esc(g.competenceLabel)+'</div></div>'+
+    '</div>'+
+    '<div class="receipt-grid" style="margin-top:18px">'+
+      '<div class="receipt-box" style="grid-column:1/-1;overflow-wrap:anywhere;font-size:14px;font-weight:600;line-height:1.4"><b style="font-size:11px;font-weight:800;color:#53656f;letter-spacing:.15px">CLIENTE</b>'+esc(g.client?.name||"Cliente")+'</div>'+
+      rows+
+    '</div>'+
+    '<div class="receipt-lines" style="font-size:14px">'+
+      (g.discount>0?'<div class="receipt-line"><span style="font-weight:500">Descontos concedidos no período</span><b style="font-weight:700;color:#7d4d28">− '+esc(money(g.discount))+'</b></div>':'')+
+    '</div>'+
+    '<div class="receipt-total" style="font-family:inherit;font-size:17px;font-weight:800"><span>Total do mês</span><span style="font-size:27px;font-weight:900">'+esc(money(g.total))+'</span></div>'+
     payBlock+
-    '<div style="margin-top:18px;padding-top:15px;border-top:1px solid #d7d3cb"><div style="font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">IMPACTO POSITIVO</div><div style="margin-top:6px;color:#3f5159;line-height:1.55">Os '+g.apps.length+' atendimentos deste mês representam uma economia estimada de <b>'+esc(new Intl.NumberFormat("pt-BR").format(g.waterForGroup))+' litros de água</b>.</div></div>'+
-    '<div style="margin-top:20px;font-size:10px;color:#90999d">Vaporeasy · documento por competência mensal · '+esc(g.month)+'.</div></div>'
+    '<div class="receipt-water" style="margin-top:20px"><div style="font-size:10px;color:#71808a;font-weight:800;letter-spacing:.8px">IMPACTO POSITIVO</div><div style="margin-top:8px;color:#4e6069;font-size:12.5px;font-weight:400;line-height:1.5">'+impactText+'</div></div>'+
+    '<div style="margin-top:20px;padding-top:15px;border-top:1px solid #d7e1e6;text-align:center;color:#40525a;font-size:13px;font-weight:600;line-height:1.45">Obrigado por escolher a Vaporeasy.</div>'+
+  '</div>'
 }
 async function monthlyReceiptCanvas(g){
-  const rows=g.vehicles, width=1080, height=1040+rows.length*150, cv=document.createElement("canvas");cv.width=width;cv.height=height;
-  const ctx=cv.getContext("2d"),pad=82,right=width-pad;
-  ctx.fillStyle="#f3f1ec";ctx.fillRect(0,0,width,height);
-  if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,120);
-  else{ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Vaporeasy",pad,110)}
-  ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("COMPROVANTE DE ATENDIMENTO",right,92);
-  ctx.font="600 17px system-ui, sans-serif";ctx.fillText("REFERÊNCIA · "+g.competenceLabel.toUpperCase(),right,124);ctx.textAlign="left";
-  ctx.strokeStyle="#d4d0c8";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,170);ctx.lineTo(right,170);ctx.stroke();
-
-
-  let y=225;
-  ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("CLIENTE",pad,y);
-  ctx.font="900 30px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(g.client?.name||"Cliente",pad,y+40);y+=95;
-  for(const v of rows){
-    const veh=v.vehicle?([v.vehicle.brand,v.vehicle.model].filter(Boolean).join(" ")+(v.vehicle.plate?" • "+v.vehicle.plate:"")):"Veículo";
-    ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=35;
-    ctx.font="800 25px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(veh,pad,y);
-    ctx.textAlign="right";ctx.font="900 25px system-ui, sans-serif";ctx.fillText(money(v.total),right,y);ctx.textAlign="left";
-    ctx.font="800 20px system-ui, sans-serif";ctx.fillStyle="#385665";ctx.fillText(v.count+" estética"+(v.count===1?"":"s")+" realizada"+(v.count===1?"":"s"),pad,y+34);
-    ctx.font="500 17px system-ui, sans-serif";ctx.fillStyle="#6b777d";ctx.fillText(monthlyServiceSummary(v).slice(0,85),pad,y+62);
-    const dates=v.dates.map(d=>new Intl.DateTimeFormat("pt-BR").format(new Date(d+"T12:00:00"))).join(", ");
-    ctx.font="500 16px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("Datas: "+dates.slice(0,100),pad,y+88);y+=125;
+  const width=1080,pad=82,right=width-pad,cv=document.createElement("canvas");cv.width=width;cv.height=1;let ctx=cv.getContext("2d");
+  function wrapped(text,x,y,w,font,color,lineHeight=34){
+    ctx.font=font;
+    const words=String(text).split(/\s+/).flatMap(word=>{
+      const chunks=[];let part="";
+      for(const char of word){if(part&&ctx.measureText(part+char).width>w){chunks.push(part);part=""}part+=char}
+      if(part)chunks.push(part);return chunks
+    });
+    return canvasText(ctx,words.join(" "),x,y,w,lineHeight,font,color)
   }
-  ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=42;
-  if(g.discount>0){
-    ctx.font="700 18px system-ui, sans-serif";ctx.fillStyle="#7d4d28";ctx.fillText("DESCONTOS CONCEDIDOS NO PERÍODO",pad,y);
-    ctx.textAlign="right";ctx.font="800 21px system-ui, sans-serif";ctx.fillText("− "+money(g.discount),right,y);ctx.textAlign="left";
-    y+=48;ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=42
-  }else y+=16;
-  ctx.font="800 19px system-ui, sans-serif";ctx.fillStyle="#6d797f";ctx.fillText("TOTAL DO MÊS",pad,y);
-  ctx.font="900 52px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.textAlign="right";ctx.fillText(money(g.total),right,y+8);ctx.textAlign="left";y+=95;
-  canvasRoundRect(ctx,pad,y,width-pad*2,180,18,"#fff","#ddd9d1");
-  ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("PAGAMENTO A CONFIRMAR",pad+28,y+36);
-  ctx.font="800 15px system-ui, sans-serif";ctx.fillText("CHAVE PIX",pad+28,y+70);
-  ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#27485a";ctx.fillText(g.bank.pix_key||"Não cadastrada",pad+28,y+108);
-  ctx.font="500 19px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText([g.bank.bank_name,g.bank.branch&&"Ag. "+g.bank.branch,g.bank.account_number&&"C/C "+g.bank.account_number].filter(Boolean).join(" · "),pad+28,y+148);y+=220
-  ctx.font="600 16px system-ui, sans-serif";ctx.fillStyle="#949da1";ctx.fillText("Vaporeasy · referência "+g.competenceLabel+" · somente serviços concluídos no período.",pad,height-48);
-  return cv
+  function content(draw){
+    let y=238;
+    y=wrapped("COMPROVANTE DE ATENDIMENTO",pad,y,width-pad*2,"800 40px system-ui, sans-serif","#172832",46)+10;
+    y=wrapped("Referência · "+g.competenceLabel,pad,y,width-pad*2,"500 22px system-ui, sans-serif","#647581",30)+26;
+    y=wrapped("CLIENTE",pad,y,width-pad*2,"800 15px system-ui, sans-serif","#71808a",27);
+    y=wrapped(g.client?.name||"Cliente",pad,y,width-pad*2,"700 25px system-ui, sans-serif","#172832",33)+24;
+    for(const v of g.vehicles){
+      const veh=v.vehicle?([v.vehicle.brand,v.vehicle.model].filter(Boolean).join(" ")+(v.vehicle.plate?" • "+v.vehicle.plate:"")):"Veículo";
+      const qty=v.count+" estética"+(v.count===1?"":"s")+" realizada"+(v.count===1?"":"s");
+      const dates=v.dates.map(d=>new Intl.DateTimeFormat("pt-BR").format(new Date(d+"T12:00:00"))).join(", ");
+      ctx.strokeStyle="#dbe4e9";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=28;
+      y=wrapped(veh,pad,y,width-pad*2-210,"800 25px system-ui, sans-serif","#172832",33);
+      ctx.textAlign="right";ctx.font="800 25px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(money(v.total),right,y-8);ctx.textAlign="left";
+      y=wrapped(qty,pad,y+4,width-pad*2,"800 20px system-ui, sans-serif","#385665",29)+3;
+      y=wrapped(monthlyServiceSummary(v),pad,y,width-pad*2,"600 18px system-ui, sans-serif","#53656f",28)+3;
+      y=wrapped("Datas: "+dates,pad,y,width-pad*2,"500 17px system-ui, sans-serif","#71808a",27)+8;
+      if(g.vehicles.length>1&&v.discount>0)y=wrapped("Desconto neste veículo: − "+money(v.discount),pad,y,width-pad*2,"600 17px system-ui, sans-serif","#7d4d28",27)+8;
+      y+=10
+    }
+    ctx.strokeStyle="#dbe4e9";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=34;
+    if(g.discount>0){
+      ctx.font="500 21px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText("Descontos concedidos no período",pad,y);
+      ctx.textAlign="right";ctx.font="700 22px system-ui, sans-serif";ctx.fillStyle="#7d4d28";ctx.fillText("− "+money(g.discount),right,y);ctx.textAlign="left";y+=46
+    }
+    ctx.font="800 23px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Total do mês",pad,y);
+    ctx.textAlign="right";ctx.font="900 42px system-ui, sans-serif";ctx.fillText(money(g.total),right,y);ctx.textAlign="left";y+=62;
+    const top=y;
+    const boxText=()=>{
+      let by=top+44;
+      by=wrapped("PAGAMENTO A CONFIRMAR",pad+28,by,width-pad*2-56,"800 20px system-ui, sans-serif","#27485a",29)+12;
+      const bankRows=[
+        ["Chave Pix",g.bank.pix_key||"Não cadastrada"],
+        ["Banco",g.bank.bank_name||"Não informado"],
+        ["Agência",g.bank.branch||"Não informada"],
+        ["Conta",g.bank.account_number||"Não informada"],
+        ["Favorecido",g.bank.account_holder||"Não informado"]
+      ];
+      for(const [k,v] of bankRows)by=wrapped(k+": "+v,pad+28,by,width-pad*2-56,"600 20px system-ui, sans-serif","#27485a",30)+8;
+      by+=8;
+      by=wrapped("Após o pagamento, envie o comprovante para confirmarmos o recebimento.",pad+28,by,width-pad*2-56,"600 19px system-ui, sans-serif","#334b57",29)+8;
+      return by
+    };
+    y=boxText()+16;
+    if(draw){canvasRoundRect(ctx,pad,top,width-pad*2,y-top,18,"#f7fafb","#d7e1e6");boxText()}
+    y+=42;
+    y=wrapped("IMPACTO POSITIVO",pad,y,width-pad*2,"800 15px system-ui, sans-serif","#71808a",27)+10;
+    const impact=g.apps.length===1
+      ?"Este atendimento representa uma economia estimada de "+new Intl.NumberFormat("pt-BR").format(g.waterForGroup)+" litros de água."
+      :"Os "+g.apps.length+" atendimentos deste mês representam uma economia estimada de "+new Intl.NumberFormat("pt-BR").format(g.waterForGroup)+" litros de água.";
+    y=wrapped(impact,pad,y,width-pad*2,"400 18px system-ui, sans-serif","#4e6069",28)+30;
+    ctx.strokeStyle="#dbe4e9";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=32;
+    y=wrapped("Obrigado por escolher a Vaporeasy.",pad,y,width-pad*2,"600 18px system-ui, sans-serif","#40525a",28);
+    return y+34
+  }
+  const height=Math.ceil(content(false));cv.height=height;ctx=cv.getContext("2d");
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,width,height);
+  try{await brandLogoImg.decode()}catch{}
+  if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,300*brandLogoImg.naturalHeight/brandLogoImg.naturalWidth);
+  else{ctx.font="900 50px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText("Vaporeasy",pad,108)}
+  ctx.strokeStyle="#dbe4e9";ctx.beginPath();ctx.moveTo(pad,178);ctx.lineTo(right,178);ctx.stroke();
+  content(true);return cv
 }
 function monthlyChargeText(g){
   const lines=["Vaporeasy — "+g.competenceLabel,"Cliente: "+(g.client?.name||"Cliente"),""];
