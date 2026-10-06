@@ -2565,8 +2565,8 @@ function financeMonthlyClientCards(apps,maps,k){
     const g=groups.get(a.client_id)||[];g.push(a);groups.set(a.client_id,g)
   });
   return [...groups.entries()].sort((a,b)=>(maps.cm.get(a[0])?.name||"").localeCompare(maps.cm.get(b[0])?.name||"","pt-BR")).map(([clientId,rows])=>{
-    const cl=maps.cm.get(clientId),vehicles=new Set(rows.map(x=>x.vehicle_id).filter(Boolean)).size,total=rows.reduce((sum,a)=>sum+Number(a.final_value||0),0);
-    return '<div class="item" style="margin-top:8px;border-color:#31576a"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950;font-size:16px">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+rows.length+' serviço'+(rows.length===1?"":"s")+' concluído'+(rows.length===1?"":"s")+' • '+vehicles+' veículo'+(vehicles===1?"":"s")+' • '+esc(monthlyCompetenceLabel(k.month))+'</div></div><div style="font-weight:900">'+esc(money(total))+'</div></div><button type="button" class="ghost" style="width:100%;margin-top:9px" data-fin-month-client="'+esc(clientId)+'" data-fin-month="'+esc(k.month)+'">Documento mensal deste cliente</button></div>'
+    const cl=maps.cm.get(clientId),total=rows.reduce((sum,a)=>sum+Number(a.final_value||0),0);
+    return '<div class="item" style="margin-top:8px;border-color:#31576a"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950;font-size:16px">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+rows.length+' serviço'+(rows.length===1?"":"s")+' concluído'+(rows.length===1?"":"s")+' • '+esc(monthlyCompetenceLabel(k.month))+'</div></div><div style="font-weight:900">'+esc(money(total))+'</div></div><button type="button" class="ghost" style="width:100%;margin-top:9px" data-fin-month-client="'+esc(clientId)+'" data-fin-month="'+esc(k.month)+'">Documento mensal deste cliente</button></div>'
   }).join("")
 }
 function monthlyReceiptSnapshotModel(row){
