@@ -2699,8 +2699,8 @@ function monthlyReceiptHtml(g){
     return '<div style="padding:14px 0;border-bottom:1px solid #dedbd4"><div style="display:flex;justify-content:space-between;gap:12px"><div style="font-weight:900;color:#172832">'+esc(veh)+'</div><b style="color:#172832">'+esc(money(v.total))+'</b></div><div style="margin-top:5px;color:#385665;font-weight:800">'+esc(qty)+'</div><div style="font-size:12px;color:#6b777d;margin-top:4px">'+esc(monthlyServiceSummary(v))+'</div><div style="font-size:11px;color:#7b878d;margin-top:3px">Datas: '+esc(dates)+'</div>'+(v.discount>0?'<div style="font-size:11px;color:#7d4d28;margin-top:3px">Descontos no veículo: − '+esc(money(v.discount))+'</div>':'')+'</div>'
   }).join("");
   let payBlock;
-  if(g.allPaid)payBlock='<div style="margin-top:20px;background:#edf8f1;border:1px solid #bfdfca;border-radius:13px;padding:15px"><div style="font-size:10px;color:#437157;font-weight:900;letter-spacing:1px">PAGAMENTO RECEBIDO</div><div style="margin-top:7px;color:#36584a"><b>Forma:</b> '+esc(g.methods.join(", ")||"—")+(g.paidAt?'<br><b>Último recebimento:</b> '+esc(receiptDate(g.paidAt)):'')+'</div></div>';
-  else payBlock='<div style="margin-top:20px;background:#fff;border:1px solid #dedbd4;border-radius:13px;padding:15px"><div style="font-size:10px;color:#7b878d;font-weight:900;letter-spacing:1px">'+(g.mixed?"PAGAMENTO PARCIAL":"PAGAMENTO PENDENTE")+'</div><div style="margin-top:8px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:.8px">CHAVE PIX</div><div style="margin-top:3px;font-size:17px;font-weight:900;color:#27485a">'+esc(g.bank.pix_key||"Não cadastrada")+'</div><div style="font-size:11px;line-height:1.7;color:#5d6b72;margin-top:7px">'+esc(g.bank.bank_name||"")+(g.bank.branch?' · Ag. '+esc(g.bank.branch):'')+(g.bank.account_number?' · C/C '+esc(g.bank.account_number):'')+'<br>'+esc(g.bank.account_holder||"")+'</div></div>';
+  if(g.allPaid)payBlock='<div style="margin-top:20px;background:#edf8f1;border:1px solid #bfdfca;border-radius:13px;padding:15px"><div style="font-size:10px;color:#437157;font-weight:900;letter-spacing:1px">PAGAMENTO CONFIRMADO</div><div style="margin-top:7px;color:#36584a"><b>Forma:</b> '+esc(g.methods.join(", ")||"—")+(g.paidAt?'<br><b>Confirmado em:</b> '+esc(receiptDate(g.paidAt)):'')+'</div></div>';
+  else payBlock='<div style="margin-top:20px;background:#fff;border:1px solid #dedbd4;border-radius:13px;padding:15px"><div style="font-size:10px;color:#7b878d;font-weight:900;letter-spacing:1px">PAGAMENTO A CONFIRMAR</div><div style="margin-top:8px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:.8px">CHAVE PIX</div><div style="margin-top:3px;font-size:17px;font-weight:900;color:#27485a">'+esc(g.bank.pix_key||"Não cadastrada")+'</div><div style="font-size:11px;line-height:1.7;color:#5d6b72;margin-top:7px">'+esc(g.bank.bank_name||"")+(g.bank.branch?' · Ag. '+esc(g.bank.branch):'')+(g.bank.account_number?' · C/C '+esc(g.bank.account_number):'')+'<br>'+esc(g.bank.account_holder||"")+'</div></div>';
   return '<div style="background:#f3f1ec;border:1px solid #dedbd4;border-radius:18px;padding:20px;color:#172832">'+
     '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #d7d3cb;padding-bottom:14px"><div><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:190px;max-width:48vw;height:auto;display:block"></div><div style="font-size:10px;color:#7b878d;text-align:right;line-height:1.5">'+esc(status)+'<br>REFERÊNCIA · '+esc(g.competenceLabel.toUpperCase())+'</div></div>'+
 
@@ -2736,16 +2736,23 @@ async function monthlyReceiptCanvas(g){
     const dates=v.dates.map(d=>new Intl.DateTimeFormat("pt-BR").format(new Date(d+"T12:00:00"))).join(", ");
     ctx.font="500 16px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("Datas: "+dates.slice(0,100),pad,y+88);y+=125;
   }
-  ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=58;
+  ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=42;
+  if(g.discount>0){
+    ctx.font="700 18px system-ui, sans-serif";ctx.fillStyle="#7d4d28";ctx.fillText("DESCONTOS CONCEDIDOS NO PERÍODO",pad,y);
+    ctx.textAlign="right";ctx.font="800 21px system-ui, sans-serif";ctx.fillText("− "+money(g.discount),right,y);ctx.textAlign="left";
+    y+=48;ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=42
+  }else y+=16;
   ctx.font="800 19px system-ui, sans-serif";ctx.fillStyle="#6d797f";ctx.fillText("TOTAL DO MÊS",pad,y);
   ctx.font="900 52px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.textAlign="right";ctx.fillText(money(g.total),right,y+8);ctx.textAlign="left";y+=95;
   if(g.allPaid){
     canvasRoundRect(ctx,pad,y,width-pad*2,125,18,"#edf8f1","#bfdfca");
-    ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#437157";ctx.fillText("PAGAMENTO RECEBIDO",pad+28,y+38);
-    ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#36584a";ctx.fillText("Forma: "+(g.methods.join(", ")||"—"),pad+28,y+78);y+=165
+    ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#437157";ctx.fillText("PAGAMENTO CONFIRMADO",pad+28,y+38);
+    ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#36584a";ctx.fillText("Forma: "+(g.methods.join(", ")||"—"),pad+28,y+78);
+    if(g.paidAt){ctx.font="500 18px system-ui, sans-serif";ctx.fillText("Confirmado em: "+receiptDate(g.paidAt),pad+28,y+108)}
+    y+=165
   }else{
     canvasRoundRect(ctx,pad,y,width-pad*2,180,18,"#fff","#ddd9d1");
-    ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText(g.mixed?"PAGAMENTO PARCIAL":"PAGAMENTO PENDENTE",pad+28,y+36);
+    ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("PAGAMENTO A CONFIRMAR",pad+28,y+36);
     ctx.font="800 15px system-ui, sans-serif";ctx.fillText("CHAVE PIX",pad+28,y+70);
     ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#27485a";ctx.fillText(g.bank.pix_key||"Não cadastrada",pad+28,y+108);
     ctx.font="500 19px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText([g.bank.bank_name,g.bank.branch&&"Ag. "+g.bank.branch,g.bank.account_number&&"C/C "+g.bank.account_number].filter(Boolean).join(" · "),pad+28,y+148);y+=220
@@ -2764,8 +2771,8 @@ async function openMonthlyClientReceipt(clientId,month){
   try{
     currentMonthlyReceipt=await getMonthlyClientReceiptData(clientId,month);
     $("rcontent").innerHTML=monthlyReceiptHtml(currentMonthlyReceipt);
-    $("rshare").textContent=currentMonthlyReceipt.allPaid?"Compartilhar recibo mensal":"Compartilhar documento mensal";
-    show("rgroupmsg",currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt?"Recibo emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.":"","ok");
+    $("rshare").textContent="Compartilhar comprovante";
+    show("rgroupmsg",currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt?"Comprovante emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.":"","ok");
     $("rgroup").classList.add("hidden");$("rdiscount").classList.add("hidden");
     $("rcharge").classList.toggle("hidden",currentMonthlyReceipt.allPaid);
     $("rprint").textContent="Compartilhar PDF";
@@ -5365,9 +5372,9 @@ async function shareReceiptVisual(){
     try{
       currentMonthlyReceipt=await ensureMonthlyReceiptSnapshot(currentMonthlyReceipt);
       $("rcontent").innerHTML=monthlyReceiptHtml(currentMonthlyReceipt);
-      if(currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt)show("rgroupmsg","Recibo emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.","ok");
+      if(currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt)show("rgroupmsg","Comprovante emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.","ok");
       const cv=await monthlyReceiptCanvas(currentMonthlyReceipt);
-      await shareReceiptCanvasFile(cv,{title:currentMonthlyReceipt.allPaid?"Recibo mensal Vaporeasy":"Atendimentos mensais Vaporeasy",name:(currentMonthlyReceipt.allPaid?"recibo-mensal":"atendimentos-mensais")+"-vaporeasy-"+cleanFileName(currentMonthlyReceipt.client?.name)+"-"+currentMonthlyReceipt.month});
+      await shareReceiptCanvasFile(cv,{title:"Comprovante de atendimento Vaporeasy",name:"comprovante-atendimento-vaporeasy-"+cleanFileName(currentMonthlyReceipt.client?.name)+"-"+currentMonthlyReceipt.month});
       return
     }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error");return}
   }
@@ -5422,9 +5429,9 @@ async function generateReceiptPdf(){
     try{
       currentMonthlyReceipt=await ensureMonthlyReceiptSnapshot(currentMonthlyReceipt);
       $("rcontent").innerHTML=monthlyReceiptHtml(currentMonthlyReceipt);
-      if(currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt)show("rgroupmsg","Recibo emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.","ok");
+      if(currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt)show("rgroupmsg","Comprovante emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.","ok");
       const cv=await monthlyReceiptCanvas(currentMonthlyReceipt);
-      await shareReceiptCanvasFile(cv,{pdf:true,title:currentMonthlyReceipt.allPaid?"Recibo mensal Vaporeasy":"Atendimentos mensais Vaporeasy",name:(currentMonthlyReceipt.allPaid?"recibo-mensal":"atendimentos-mensais")+"-vaporeasy-"+cleanFileName(currentMonthlyReceipt.client?.name)+"-"+currentMonthlyReceipt.month});
+      await shareReceiptCanvasFile(cv,{pdf:true,title:"Comprovante de atendimento Vaporeasy",name:"comprovante-atendimento-vaporeasy-"+cleanFileName(currentMonthlyReceipt.client?.name)+"-"+currentMonthlyReceipt.month});
       return
     }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error");return}
   }
