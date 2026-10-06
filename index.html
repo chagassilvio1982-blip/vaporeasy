@@ -2974,7 +2974,7 @@ function packageDocumentModel(d){
 function packageChargeHtml(d){
   const m=packageDocumentModel(d);
   return '<div class="receipt-sheet" style="font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">'+
-    '<div class="receipt-head" style="flex-wrap:wrap;align-items:flex-start"><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:180px;max-width:100%;height:auto"><div style="text-align:right"><div class="receipt-title" style="font-family:inherit;font-size:20px;font-weight:800;line-height:1.25">'+esc(m.title)+'</div><div class="receipt-muted" style="margin-top:4px;font-family:inherit;font-size:12px;font-weight:500">'+esc(m.subtitle)+'</div></div></div>'+
+    '<div class="receipt-head" style="flex-wrap:wrap;align-items:flex-start"><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:180px;max-width:100%;height:auto"><div style="text-align:left;flex:1;min-width:220px"><div class="receipt-title" style="font-family:inherit;font-size:20px;font-weight:800;line-height:1.25">'+esc(m.title)+'</div><div class="receipt-muted" style="margin-top:4px;font-family:inherit;font-size:12px;font-weight:500">'+esc(m.subtitle)+'</div></div></div>'+
     '<div style="margin-top:22px;font-family:inherit;font-size:18px;font-weight:700;line-height:1.35;color:#172832">'+esc(m.introTitle)+'</div>'+
     '<p style="margin:10px 0 0;color:#334b57;font-size:14px;font-weight:500;line-height:1.55">'+esc(m.intro)+'</p>'+
     '<p style="margin:8px 0 0;color:#405863;font-size:14px;font-weight:500;line-height:1.55">'+esc(m.intro2)+'</p>'+
