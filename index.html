@@ -2698,9 +2698,7 @@ function monthlyReceiptHtml(g){
     const dates=v.dates.map(d=>new Intl.DateTimeFormat("pt-BR").format(new Date(d+"T12:00:00"))).join(", ");
     return '<div style="padding:14px 0;border-bottom:1px solid #dedbd4"><div style="display:flex;justify-content:space-between;gap:12px"><div style="font-weight:900;color:#172832">'+esc(veh)+'</div><b style="color:#172832">'+esc(money(v.total))+'</b></div><div style="margin-top:5px;color:#385665;font-weight:800">'+esc(qty)+'</div><div style="font-size:12px;color:#6b777d;margin-top:4px">'+esc(monthlyServiceSummary(v))+'</div><div style="font-size:11px;color:#7b878d;margin-top:3px">Datas: '+esc(dates)+'</div>'+(v.discount>0?'<div style="font-size:11px;color:#7d4d28;margin-top:3px">Descontos no veículo: − '+esc(money(v.discount))+'</div>':'')+'</div>'
   }).join("");
-  let payBlock;
-  if(g.allPaid)payBlock='<div style="margin-top:20px;background:#edf8f1;border:1px solid #bfdfca;border-radius:13px;padding:15px"><div style="font-size:10px;color:#437157;font-weight:900;letter-spacing:1px">PAGAMENTO CONFIRMADO</div><div style="margin-top:7px;color:#36584a"><b>Forma:</b> '+esc(g.methods.join(", ")||"—")+(g.paidAt?'<br><b>Confirmado em:</b> '+esc(receiptDate(g.paidAt)):'')+'</div></div>';
-  else payBlock='<div style="margin-top:20px;background:#fff;border:1px solid #dedbd4;border-radius:13px;padding:15px"><div style="font-size:10px;color:#7b878d;font-weight:900;letter-spacing:1px">PAGAMENTO A CONFIRMAR</div><div style="margin-top:8px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:.8px">CHAVE PIX</div><div style="margin-top:3px;font-size:17px;font-weight:900;color:#27485a">'+esc(g.bank.pix_key||"Não cadastrada")+'</div><div style="font-size:11px;line-height:1.7;color:#5d6b72;margin-top:7px">'+esc(g.bank.bank_name||"")+(g.bank.branch?' · Ag. '+esc(g.bank.branch):'')+(g.bank.account_number?' · C/C '+esc(g.bank.account_number):'')+'<br>'+esc(g.bank.account_holder||"")+'</div></div>';
+  const payBlock='<div style="margin-top:20px;background:#fff;border:1px solid #dedbd4;border-radius:13px;padding:15px"><div style="font-size:10px;color:#7b878d;font-weight:900;letter-spacing:1px">PAGAMENTO A CONFIRMAR</div><div style="margin-top:8px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:.8px">CHAVE PIX</div><div style="margin-top:3px;font-size:17px;font-weight:900;color:#27485a">'+esc(g.bank.pix_key||"Não cadastrada")+'</div><div style="font-size:11px;line-height:1.7;color:#5d6b72;margin-top:7px">'+esc(g.bank.bank_name||"")+(g.bank.branch?' · Ag. '+esc(g.bank.branch):'')+(g.bank.account_number?' · C/C '+esc(g.bank.account_number):'')+'<br>'+esc(g.bank.account_holder||"")+'</div></div>';
   return '<div style="background:#f3f1ec;border:1px solid #dedbd4;border-radius:18px;padding:20px;color:#172832">'+
     '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #d7d3cb;padding-bottom:14px"><div><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:190px;max-width:48vw;height:auto;display:block"></div><div style="font-size:10px;color:#7b878d;text-align:right;line-height:1.5">'+esc(status)+'<br>REFERÊNCIA · '+esc(g.competenceLabel.toUpperCase())+'</div></div>'+
 
@@ -2744,19 +2742,11 @@ async function monthlyReceiptCanvas(g){
   }else y+=16;
   ctx.font="800 19px system-ui, sans-serif";ctx.fillStyle="#6d797f";ctx.fillText("TOTAL DO MÊS",pad,y);
   ctx.font="900 52px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.textAlign="right";ctx.fillText(money(g.total),right,y+8);ctx.textAlign="left";y+=95;
-  if(g.allPaid){
-    canvasRoundRect(ctx,pad,y,width-pad*2,125,18,"#edf8f1","#bfdfca");
-    ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#437157";ctx.fillText("PAGAMENTO CONFIRMADO",pad+28,y+38);
-    ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#36584a";ctx.fillText("Forma: "+(g.methods.join(", ")||"—"),pad+28,y+78);
-    if(g.paidAt){ctx.font="500 18px system-ui, sans-serif";ctx.fillText("Confirmado em: "+receiptDate(g.paidAt),pad+28,y+108)}
-    y+=165
-  }else{
-    canvasRoundRect(ctx,pad,y,width-pad*2,180,18,"#fff","#ddd9d1");
-    ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("PAGAMENTO A CONFIRMAR",pad+28,y+36);
-    ctx.font="800 15px system-ui, sans-serif";ctx.fillText("CHAVE PIX",pad+28,y+70);
-    ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#27485a";ctx.fillText(g.bank.pix_key||"Não cadastrada",pad+28,y+108);
-    ctx.font="500 19px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText([g.bank.bank_name,g.bank.branch&&"Ag. "+g.bank.branch,g.bank.account_number&&"C/C "+g.bank.account_number].filter(Boolean).join(" · "),pad+28,y+148);y+=220
-  }
+  canvasRoundRect(ctx,pad,y,width-pad*2,180,18,"#fff","#ddd9d1");
+  ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("PAGAMENTO A CONFIRMAR",pad+28,y+36);
+  ctx.font="800 15px system-ui, sans-serif";ctx.fillText("CHAVE PIX",pad+28,y+70);
+  ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#27485a";ctx.fillText(g.bank.pix_key||"Não cadastrada",pad+28,y+108);
+  ctx.font="500 19px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText([g.bank.bank_name,g.bank.branch&&"Ag. "+g.bank.branch,g.bank.account_number&&"C/C "+g.bank.account_number].filter(Boolean).join(" · "),pad+28,y+148);y+=220
   ctx.font="600 16px system-ui, sans-serif";ctx.fillStyle="#949da1";ctx.fillText("Vaporeasy · referência "+g.competenceLabel+" · somente serviços concluídos no período.",pad,height-48);
   return cv
 }
