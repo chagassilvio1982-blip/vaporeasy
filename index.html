@@ -2691,7 +2691,7 @@ function monthlyServiceSummary(v){
   return (v.services||[]).map(x=>x.name+(x.count>1?" × "+x.count:"")).join(" • ")||"Serviço"
 }
 function monthlyReceiptHtml(g){
-  const status=g.allPaid?"RECIBO MENSAL":(g.mixed?"ATENDIMENTOS CONCLUÍDOS · PAGAMENTO PARCIAL":"ATENDIMENTOS CONCLUÍDOS");
+  const status="COMPROVANTE DE ATENDIMENTO";
   const rows=g.vehicles.map(v=>{
     const veh=v.vehicle?([v.vehicle.brand,v.vehicle.model].filter(Boolean).join(" ")+(v.vehicle.plate?" • "+v.vehicle.plate:"")):"Veículo";
     const qty=v.count+" estética"+(v.count===1?"":"s")+" realizada"+(v.count===1?"":"s");
@@ -2703,7 +2703,7 @@ function monthlyReceiptHtml(g){
   else payBlock='<div style="margin-top:20px;background:#fff;border:1px solid #dedbd4;border-radius:13px;padding:15px"><div style="font-size:10px;color:#7b878d;font-weight:900;letter-spacing:1px">'+(g.mixed?"PAGAMENTO PARCIAL":"PAGAMENTO PENDENTE")+'</div><div style="margin-top:8px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:.8px">CHAVE PIX</div><div style="margin-top:3px;font-size:17px;font-weight:900;color:#27485a">'+esc(g.bank.pix_key||"Não cadastrada")+'</div><div style="font-size:11px;line-height:1.7;color:#5d6b72;margin-top:7px">'+esc(g.bank.bank_name||"")+(g.bank.branch?' · Ag. '+esc(g.bank.branch):'')+(g.bank.account_number?' · C/C '+esc(g.bank.account_number):'')+'<br>'+esc(g.bank.account_holder||"")+'</div></div>';
   return '<div style="background:#f3f1ec;border:1px solid #dedbd4;border-radius:18px;padding:20px;color:#172832">'+
     '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #d7d3cb;padding-bottom:14px"><div><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:190px;max-width:48vw;height:auto;display:block"></div><div style="font-size:10px;color:#7b878d;text-align:right;line-height:1.5">'+esc(status)+'<br>REFERÊNCIA · '+esc(g.competenceLabel.toUpperCase())+'</div></div>'+
-    '<div style="margin-top:22px;font-family:Georgia,serif;font-size:24px;line-height:1.25;color:#172832">'+g.apps.length+' estética'+(g.apps.length===1?"":"s")+' realizada'+(g.apps.length===1?"":"s")+' em '+g.vehicles.length+' veículo'+(g.vehicles.length===1?"":"s")+'.<br>Obrigado pela confiança.</div>'+
+
     '<div style="margin-top:20px;padding:15px 0;border-top:1px solid #d7d3cb"><div style="font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">CLIENTE</div><div style="font-size:17px;font-weight:900;margin-top:4px">'+esc(g.client?.name||"Cliente")+'</div></div>'+
     '<div>'+rows+'</div>'+
     (g.discount>0?'<div style="display:flex;justify-content:space-between;margin-top:12px;color:#7d4d28"><span>Descontos concedidos no período</span><b>− '+esc(money(g.discount))+'</b></div>':'')+
@@ -2718,12 +2718,12 @@ async function monthlyReceiptCanvas(g){
   ctx.fillStyle="#f3f1ec";ctx.fillRect(0,0,width,height);
   if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,120);
   else{ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Vaporeasy",pad,110)}
-  ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText(g.allPaid?"RECIBO MENSAL":"ATENDIMENTOS CONCLUÍDOS",right,92);
+  ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("COMPROVANTE DE ATENDIMENTO",right,92);
   ctx.font="600 17px system-ui, sans-serif";ctx.fillText("REFERÊNCIA · "+g.competenceLabel.toUpperCase(),right,124);ctx.textAlign="left";
   ctx.strokeStyle="#d4d0c8";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,170);ctx.lineTo(right,170);ctx.stroke();
-  ctx.font="400 42px Georgia, serif";ctx.fillStyle="#172832";ctx.fillText(g.apps.length+" estética"+(g.apps.length===1?"":"s")+" realizada"+(g.apps.length===1?"":"s")+".",pad,238);
-  ctx.fillText("Obrigado pela confiança.",pad,288);
-  let y=350;
+
+
+  let y=225;
   ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("CLIENTE",pad,y);
   ctx.font="900 30px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(g.client?.name||"Cliente",pad,y+40);y+=95;
   for(const v of rows){
