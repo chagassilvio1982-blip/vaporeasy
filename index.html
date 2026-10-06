@@ -2569,9 +2569,86 @@ function financeMonthlyClientCards(apps,maps,k){
     return '<div class="item" style="margin-top:8px;border-color:#31576a"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950;font-size:16px">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+rows.length+' serviço'+(rows.length===1?"":"s")+' concluído'+(rows.length===1?"":"s")+' • '+vehicles+' veículo'+(vehicles===1?"":"s")+' • '+esc(monthlyCompetenceLabel(k.month))+'</div></div><div style="font-weight:900">'+esc(money(total))+'</div></div><button type="button" class="ghost" style="width:100%;margin-top:9px" data-fin-month-client="'+esc(clientId)+'" data-fin-month="'+esc(k.month)+'">Documento mensal deste cliente</button></div>'
   }).join("")
 }
+function monthlyReceiptSnapshotModel(row){
+  const s=row?.snapshot;
+  if(!s||typeof s!=="object"||Number(s.snapshotVersion||0)!==1)return null;
+  return {...s,isMonthly:true,isSnapshot:true,snapshotId:row.id||null,issuedAt:row.issued_at||s.issuedAt||null}
+}
+async function getMonthlyReceiptSnapshot(clientId,month){
+  const r=await sb.from("monthly_receipt_snapshots")
+    .select("id,client_id,competence_month,snapshot,issued_at,issued_by")
+    .eq("client_id",clientId)
+    .eq("competence_month",month+"-01")
+    .maybeSingle();
+  if(r.error)throw r.error;
+  return monthlyReceiptSnapshotModel(r.data)
+}
+function monthlyReceiptSnapshotPayload(g){
+  const bank=g.bank||{};
+  return{
+    snapshotVersion:1,
+    isMonthly:true,
+    client:{id:g.client?.id||null,name:g.client?.name||"Cliente"},
+    bank:{
+      business_name:bank.business_name||"Vaporeasy",
+      account_holder:bank.account_holder||"",
+      bank_name:bank.bank_name||"",
+      branch:bank.branch||"",
+      account_number:bank.account_number||"",
+      pix_key:bank.pix_key||"",
+      pix_key_type:bank.pix_key_type||"",
+      receipt_footer:bank.receipt_footer||""
+    },
+    month:g.month,
+    competenceLabel:g.competenceLabel,
+    apps:(g.apps||[]).map(a=>({id:a.id})),
+    vehicles:(g.vehicles||[]).map(v=>({
+      vehicle:v.vehicle?{id:v.vehicle.id||null,brand:v.vehicle.brand||"",model:v.vehicle.model||"",plate:v.vehicle.plate||""}:null,
+      count:Number(v.count||0),
+      dates:[...(v.dates||[])],
+      services:(v.services||[]).map(s=>({name:s.name||"Serviço",count:Number(s.count||0)})),
+      total:Number(v.total||0),
+      gross:Number(v.gross||0),
+      discount:Number(v.discount||0)
+    })),
+    total:Number(g.total||0),
+    gross:Number(g.gross||0),
+    discount:Number(g.discount||0),
+    allPaid:true,
+    nonePaid:false,
+    mixed:false,
+    methods:[...(g.methods||[])],
+    paidAt:g.paidAt?(g.paidAt instanceof Date?g.paidAt.toISOString():String(g.paidAt)):null,
+    waterForGroup:Number(g.waterForGroup||0)
+  }
+}
+async function ensureMonthlyReceiptSnapshot(g){
+  if(!g?.allPaid||g.isSnapshot)return g;
+  const clientId=g.client?.id;
+  if(!clientId||!currentUserId)throw Error("Não foi possível identificar o cliente ou o usuário para emitir o recibo mensal.");
+  const existing=await getMonthlyReceiptSnapshot(clientId,g.month);
+  if(existing)return existing;
+  const payload=monthlyReceiptSnapshotPayload(g);
+  const r=await sb.from("monthly_receipt_snapshots").insert({
+    client_id:clientId,
+    competence_month:g.month+"-01",
+    snapshot:payload,
+    issued_by:currentUserId
+  }).select("id,client_id,competence_month,snapshot,issued_at,issued_by").single();
+  if(r.error){
+    if(r.error.code==="23505"){
+      const concurrent=await getMonthlyReceiptSnapshot(clientId,g.month);
+      if(concurrent)return concurrent
+    }
+    throw r.error
+  }
+  return monthlyReceiptSnapshotModel(r.data)||{...payload,isMonthly:true,isSnapshot:true,issuedAt:r.data?.issued_at||new Date().toISOString()}
+}
 async function getMonthlyClientReceiptData(clientId,month){
   if(!financeAllowed())throw Error("Seu nível de acesso não permite visualizar documentos financeiros.");
   const k=monthKeysFromValue(month);
+  const frozen=await getMonthlyReceiptSnapshot(clientId,k.month);
+  if(frozen)return frozen;
   const ar=await sb.from("appointments")
     .select("id,client_id,vehicle_id,service_id,completed_at,starts_at,base_value,addon_value,discount_amount,final_value")
     .eq("client_id",clientId)
@@ -2605,7 +2682,7 @@ async function getMonthlyClientReceiptData(clientId,month){
   const statuses=apps.map(a=>pm.get(a.id)?.status==="paid"),allPaid=statuses.every(Boolean),nonePaid=statuses.every(x=>!x),methods=[...new Set(apps.map(a=>pm.get(a.id)?.payment_method).filter(Boolean))];
   const paidDates=apps.map(a=>pm.get(a.id)?.paid_at).filter(Boolean).map(x=>new Date(x)).sort((a,b)=>b-a);
   return{
-    isMonthly:true,client:cr.data,bank:bs.data,month:k.month,competenceLabel:monthlyCompetenceLabel(k.month),startIso:k.startIso,nextIso:k.nextIso,
+    isMonthly:true,isSnapshot:false,client:cr.data,bank:bs.data,month:k.month,competenceLabel:monthlyCompetenceLabel(k.month),startIso:k.startIso,nextIso:k.nextIso,
     apps,vehicles,total,gross,discount,allPaid,nonePaid,mixed:!allPaid&&!nonePaid,methods,paidAt:paidDates[0]||null,
     waterForGroup:apps.length*WATER_PER_COMPLETED_SERVICE
   }
@@ -2688,7 +2765,7 @@ async function openMonthlyClientReceipt(clientId,month){
     currentMonthlyReceipt=await getMonthlyClientReceiptData(clientId,month);
     $("rcontent").innerHTML=monthlyReceiptHtml(currentMonthlyReceipt);
     $("rshare").textContent=currentMonthlyReceipt.allPaid?"Compartilhar recibo mensal":"Compartilhar documento mensal";
-    show("rgroupmsg","");
+    show("rgroupmsg",currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt?"Recibo emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.":"","ok");
     $("rgroup").classList.add("hidden");$("rdiscount").classList.add("hidden");
     $("rcharge").classList.toggle("hidden",currentMonthlyReceipt.allPaid);
     $("rprint").textContent="Compartilhar PDF";
@@ -5285,7 +5362,14 @@ function groupChargeText(g){
 async function shareReceiptVisual(){
   if(currentPackageGroup)return sharePackageGroupReceiptFile(false);
   if(currentMonthlyReceipt){
-    try{const cv=await monthlyReceiptCanvas(currentMonthlyReceipt);await shareReceiptCanvasFile(cv,{title:currentMonthlyReceipt.allPaid?"Recibo mensal Vaporeasy":"Atendimentos mensais Vaporeasy",name:(currentMonthlyReceipt.allPaid?"recibo-mensal":"atendimentos-mensais")+"-vaporeasy-"+cleanFileName(currentMonthlyReceipt.client?.name)+"-"+currentMonthlyReceipt.month});return}catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error");return}
+    try{
+      currentMonthlyReceipt=await ensureMonthlyReceiptSnapshot(currentMonthlyReceipt);
+      $("rcontent").innerHTML=monthlyReceiptHtml(currentMonthlyReceipt);
+      if(currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt)show("rgroupmsg","Recibo emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.","ok");
+      const cv=await monthlyReceiptCanvas(currentMonthlyReceipt);
+      await shareReceiptCanvasFile(cv,{title:currentMonthlyReceipt.allPaid?"Recibo mensal Vaporeasy":"Atendimentos mensais Vaporeasy",name:(currentMonthlyReceipt.allPaid?"recibo-mensal":"atendimentos-mensais")+"-vaporeasy-"+cleanFileName(currentMonthlyReceipt.client?.name)+"-"+currentMonthlyReceipt.month});
+      return
+    }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error");return}
   }
   if(currentPackageReceipt)return sharePackageReceiptFile(false);
   if(!currentReceipt&&!currentReceiptGroup)return;
@@ -5335,7 +5419,14 @@ async function shareChargePix(){
 async function generateReceiptPdf(){
   if(currentPackageGroup)return sharePackageGroupReceiptFile(true);
   if(currentMonthlyReceipt){
-    try{const cv=await monthlyReceiptCanvas(currentMonthlyReceipt);await shareReceiptCanvasFile(cv,{pdf:true,title:currentMonthlyReceipt.allPaid?"Recibo mensal Vaporeasy":"Atendimentos mensais Vaporeasy",name:(currentMonthlyReceipt.allPaid?"recibo-mensal":"atendimentos-mensais")+"-vaporeasy-"+cleanFileName(currentMonthlyReceipt.client?.name)+"-"+currentMonthlyReceipt.month});return}catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error");return}
+    try{
+      currentMonthlyReceipt=await ensureMonthlyReceiptSnapshot(currentMonthlyReceipt);
+      $("rcontent").innerHTML=monthlyReceiptHtml(currentMonthlyReceipt);
+      if(currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt)show("rgroupmsg","Recibo emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.","ok");
+      const cv=await monthlyReceiptCanvas(currentMonthlyReceipt);
+      await shareReceiptCanvasFile(cv,{pdf:true,title:currentMonthlyReceipt.allPaid?"Recibo mensal Vaporeasy":"Atendimentos mensais Vaporeasy",name:(currentMonthlyReceipt.allPaid?"recibo-mensal":"atendimentos-mensais")+"-vaporeasy-"+cleanFileName(currentMonthlyReceipt.client?.name)+"-"+currentMonthlyReceipt.month});
+      return
+    }catch(e){if(e?.name!=="AbortError")show("msg",fail(e),"error");return}
   }
   if(currentPackageReceipt)return sharePackageReceiptFile(true);
   if(!currentReceipt&&!currentReceiptGroup)return;
