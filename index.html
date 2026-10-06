@@ -2942,7 +2942,7 @@ function packageDocumentModel(d){
   const planTier=String(d.service?.name||"").replace(/^Pacote\s+/i,"").trim();
   const planName="Plano Vaporeasy"+(planTier?" "+planTier:"");
   const fields=[["Cliente",d.client?.name||"Cliente"],["Veículo",d.vehicle?[d.vehicle.brand,d.vehicle.model].filter(Boolean).join(" ")+(d.vehicle.plate?" • "+d.vehicle.plate:""):"—"],["Plano",planName],["Frequência",meta?.label||c.frequency||"—"],["Atendimentos previstos",String(c.visits_per_month??meta?.visits??"—")+" por mês"]];
-  const amounts=[["Mensalidade",money(gross)]];
+  const amounts=(discount>0||credit>0)?[["Valor original",money(gross)]]:[];
   if(discount>0)amounts.push(["Desconto comercial","− "+money(discount)]);
   if(credit>0)amounts.push(["Crédito já pago","− "+money(credit)]);
   const bank=paid?[["Forma de pagamento",c.payment_method||"—"],["Recebido em",financePackageDate(c.paid_at)],["Favorecido",d.bank.account_holder||"Não informado"]]:[["Chave Pix",d.bank.pix_key||"Não cadastrada"],["Banco",d.bank.bank_name||"Não informado"],["Agência",d.bank.branch||"Não informada"],["Conta",d.bank.account_number||"Não informada"],["Favorecido",d.bank.account_holder||"Não informado"]];
@@ -2950,7 +2950,7 @@ function packageDocumentModel(d){
     paid,
     title:paid?"Recibo Vaporeasy":planName,
     subtitle:paid?"Mensalidade recebida":"Sua mensalidade",
-    status:paid?"PAGAMENTO RECEBIDO":"DADOS PARA PAGAMENTO",
+    status:paid?"PAGAMENTO RECEBIDO":"PAGAMENTO A CONFIRMAR",
     fields,amounts,bank,
     paymentInstruction:paid?"":"Após o pagamento, envie o comprovante para confirmarmos o recebimento e realizarmos a baixa da mensalidade.",
     total:money(c.amount||0),
