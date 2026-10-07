@@ -5092,8 +5092,24 @@ function openGroupDiscount(ids,g){
     }).join("");
     return '<div style="border:1px solid #d7e1e6;border-radius:12px;padding:12px;margin:8px 0"><label style="display:flex;gap:10px;align-items:center;margin:0;font-weight:800"><input class="group-discount-vehicle" type="checkbox" data-vehicle="'+esc(v.key)+'" checked><span>'+esc(v.vehicle)+'</span></label><div data-vehicle-items="'+esc(v.key)+'" style="padding-left:8px;margin-top:6px">'+itemRows+'</div></div>'
   }).join("");
-  $("paysummary").innerHTML='<div class="meta" style="margin-bottom:8px">Marque o carro inteiro ou apenas as estéticas que receberão o desconto.</div>'+cards;
+  $("paysummary").innerHTML='<div style="border:1px solid #31576a;border-radius:12px;padding:12px;margin-bottom:10px"><div style="font-weight:900;margin-bottom:8px">Onde aplicar o desconto?</div><div class="actions" style="gap:7px"><button type="button" class="primary" id="discScopeAll">Documento inteiro</button><button type="button" class="ghost" id="discScopeVehicle">Por veículo</button><button type="button" class="ghost" id="discScopeItem">Por estética</button></div><div id="discScopeHelp" class="meta" style="margin-top:8px">Todas as estéticas deste documento estão selecionadas.</div></div>'+cards;
   $("paypreview").innerHTML="";$("paydiscountwrap").classList.add("hidden");
+  let discountScope="all";
+  const setScope=scope=>{
+    discountScope=scope;
+    const allBtn=$("discScopeAll"),vehBtn=$("discScopeVehicle"),itemBtn=$("discScopeItem"),help=$("discScopeHelp");
+    [[allBtn,"all"],[vehBtn,"vehicle"],[itemBtn,"item"]].forEach(([b,key])=>{if(b)b.className=key===scope?"primary":"ghost"});
+    document.querySelectorAll(".group-discount-item").forEach(x=>{
+      if(scope==="all")x.checked=true;
+      x.disabled=scope==="all"||scope==="vehicle";
+      x.closest("label").style.opacity=scope==="vehicle"?"0.55":"1"
+    });
+    document.querySelectorAll(".group-discount-vehicle").forEach(x=>{
+      if(scope==="all")x.checked=true;
+      x.disabled=scope==="all"||scope==="item";
+    });
+    if(help)help.textContent=scope==="all"?"Todas as estéticas deste documento receberão o desconto.":scope==="vehicle"?"Marque um ou mais veículos. O desconto será aplicado às estéticas desses carros.":"Marque somente as estéticas específicas que receberão o desconto.";
+  };
   const sync=()=>{
     const selected=[...document.querySelectorAll(".group-discount-item:checked")];
     currentPaymentGroupIds=selected.map(x=>x.value);
@@ -5109,7 +5125,18 @@ function openGroupDiscount(ids,g){
   document.querySelectorAll(".group-discount-vehicle").forEach(x=>x.addEventListener("change",()=>{
     document.querySelectorAll('[data-vehicle-items="'+CSS.escape(x.dataset.vehicle)+'"] .group-discount-item').forEach(i=>i.checked=x.checked);sync()
   }));
-  $("paydiscounttype").value="none";$("paydiscountvalue").value="";sync();$("pd").showModal()
+  $("discScopeAll").onclick=()=>{setScope("all");sync()};
+  $("discScopeVehicle").onclick=()=>{
+    document.querySelectorAll(".group-discount-vehicle").forEach(x=>x.checked=false);
+    document.querySelectorAll(".group-discount-item").forEach(x=>x.checked=false);
+    setScope("vehicle");sync()
+  };
+  $("discScopeItem").onclick=()=>{
+    document.querySelectorAll(".group-discount-vehicle").forEach(x=>x.checked=false);
+    document.querySelectorAll(".group-discount-item").forEach(x=>x.checked=false);
+    setScope("item");sync()
+  };
+  $("paydiscounttype").value="none";$("paydiscountvalue").value="";setScope("all");sync();$("pd").showModal()
 }
 function cancelPaymentDialog(){
   const reopenSingle=currentPaymentMode==="discount"&&currentReceipt&&!currentReceiptGroup;
