@@ -4946,24 +4946,49 @@ async function getReceiptGroupData(ids){
     totalWater:Math.max(...items.map(d=>Number(d.totalWater||0)))
   }
 }
+function groupReceiptVehicleGroups(g){
+  const map=new Map();
+  for(const d of g.items){
+    const key=d.x?.vehicle_id||"unknown",a=receiptAmounts(d);
+    let row=map.get(key);
+    if(!row){
+      const veh=d.vehicle?(d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:"")):"Veículo";
+      row={key,vehicle:veh,items:[],gross:0,discount:0,total:0};
+      map.set(key,row)
+    }
+    row.items.push(d);row.gross+=a.gross;row.discount+=a.discount;row.total+=a.final
+  }
+  return [...map.values()].map(row=>({
+    ...row,
+    dates:row.items.map(d=>agendaLocalDateKey(d.x?.starts_at||d.x?.completed_at)).filter(Boolean).sort(),
+    services:[...new Set(row.items.map(d=>d.service?.name||"Serviço"))]
+  }))
+}
 function groupReceiptHtml(g){
-  const paid=g.allPaid,dateLabel=new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00"));
-  const rows=g.items.map(d=>{
-    const a=receiptAmounts(d),veh=d.vehicle?(d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:"")):"Veículo";
-    return '<div style="padding:12px 0;border-bottom:1px solid #dedbd4"><div style="font-weight:900;color:#172832">'+esc(veh)+'</div><div style="display:flex;justify-content:space-between;gap:12px;margin-top:4px;color:#5d6b72"><span>'+esc(d.service?.name||"Serviço")+'</span><b style="color:#172832">'+esc(money(a.final))+'</b></div>'+(a.discount>0?'<div style="font-size:11px;color:#7d4d28;margin-top:3px">Valor original '+esc(money(a.gross))+' · desconto − '+esc(money(a.discount))+'</div>':'')+'</div>'
+  const paid=g.allPaid,dateLabel=new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00")),groups=groupReceiptVehicleGroups(g);
+  const rows=groups.map(v=>{
+    const dates=v.dates.map(x=>new Intl.DateTimeFormat("pt-BR").format(new Date(x+"T12:00:00"))).join(" · ");
+    const services=v.services.join(" + ");
+    return '<div style="padding:15px 0;border-bottom:1px solid #dedbd4">'+
+      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div style="font-weight:900;color:#172832">'+esc(v.vehicle)+'</div><b style="color:#172832;white-space:nowrap">'+esc(money(v.total))+'</b></div>'+
+      '<div style="margin-top:5px;color:#5d6b72;font-weight:700">'+v.items.length+' estética'+(v.items.length===1?"":"s")+' realizada'+(v.items.length===1?"":"s")+'</div>'+
+      '<div style="font-size:12px;color:#71808a;margin-top:4px">'+esc(services)+'</div>'+
+      '<div style="font-size:11px;color:#71808a;margin-top:4px">Datas: '+esc(dates)+'</div>'+
+      (v.discount>0?'<div style="font-size:11px;color:#7d4d28;margin-top:5px">Valor original '+esc(money(v.gross))+' · descontos − '+esc(money(v.discount))+'</div>':'')+
+      '</div>'
   }).join("");
   const statusBlock=paid
     ?'<div style="margin-top:20px;background:#edf8f1;border:1px solid #bfdfca;border-radius:13px;padding:15px"><div style="font-size:10px;color:#437157;font-weight:900;letter-spacing:1px">PAGAMENTO RECEBIDO</div><div style="margin-top:7px;color:#36584a"><b>Forma:</b> '+esc(g.methods.join(", ")||"—")+(g.paidAt?'<br><b>Último recebimento:</b> '+esc(receiptDate(g.paidAt)):'')+'</div></div>'
     :'<div style="margin-top:20px;background:#fff;border:1px solid #dedbd4;border-radius:13px;padding:15px"><div style="font-size:10px;color:#7b878d;font-weight:900;letter-spacing:1px">PAGAMENTO PENDENTE</div><div style="margin-top:8px;font-size:10px;color:#7b878d;font-weight:800;letter-spacing:.8px">CHAVE PIX</div><div style="margin-top:3px;font-size:17px;font-weight:900;color:#27485a">'+esc(g.bank.pix_key)+'</div><div style="font-size:11px;line-height:1.7;color:#5d6b72;margin-top:7px">'+esc(g.bank.bank_name)+' · Ag. '+esc(g.bank.branch)+' · C/C '+esc(g.bank.account_number)+'<br>'+esc(g.bank.account_holder)+'</div></div>';
   return '<div style="background:#f3f1ec;border:1px solid #dedbd4;border-radius:18px;padding:20px;color:#172832">'+
     '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #d7d3cb;padding-bottom:14px"><div><img src="'+BRAND_LOGO+'" alt="Vaporeasy" style="width:190px;max-width:48vw;height:auto;display:block"></div><div style="font-size:10px;color:#7b878d;text-align:right;line-height:1.5">'+(paid?'RECIBO DE PAGAMENTO':'ATENDIMENTOS CONCLUÍDOS')+'<br>'+esc(dateLabel)+'</div></div>'+
-    '<div style="margin-top:22px;font-family:Georgia,serif;font-size:24px;line-height:1.25;color:#172832">'+g.items.length+' veículos atendidos.<br>Obrigado pela confiança.</div>'+
+    '<div style="margin-top:22px;font-family:Georgia,serif;font-size:24px;line-height:1.25;color:#172832">'+g.items.length+' estética'+(g.items.length===1?"":"s")+' realizada'+(g.items.length===1?"":"s")+' em '+groups.length+' veículo'+(groups.length===1?"":"s")+'.<br>Obrigado pela confiança.</div>'+
     '<div style="margin-top:20px;padding:15px 0;border-top:1px solid #d7d3cb"><div style="font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">CLIENTE</div><div style="font-size:17px;font-weight:900;margin-top:4px">'+esc(g.client?.name||"Cliente")+'</div></div>'+
     '<div>'+rows+'</div>'+
     (g.discount>0?'<div style="display:flex;justify-content:space-between;margin-top:12px;color:#7d4d28"><span>Descontos concedidos</span><b>− '+esc(money(g.discount))+'</b></div>':'')+
     '<div style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid #d7d3cb;margin-top:14px;padding-top:15px"><span style="font-size:11px;color:#6c797f;font-weight:800;letter-spacing:.8px">TOTAL '+(paid?'RECEBIDO':'DO ATENDIMENTO')+'</span><span style="font-size:27px;font-weight:950;color:#172832">'+esc(money(g.total))+'</span></div>'+
     statusBlock+
-    '<div style="margin-top:18px;padding-top:15px;border-top:1px solid #d7d3cb"><div style="font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">IMPACTO POSITIVO</div><div style="margin-top:6px;color:#3f5159;line-height:1.55">Estes '+g.items.length+' atendimentos representam uma economia estimada de <b>'+esc(new Intl.NumberFormat("pt-BR").format(g.waterForGroup))+' litros de água</b>.<br><span style="font-size:11px;color:#7b878d">Economia acumulada estimada da Vaporeasy: '+esc(new Intl.NumberFormat("pt-BR").format(g.totalWater))+' litros.</span></div></div>'+
+    '<div style="margin-top:18px;padding-top:15px;border-top:1px solid #d7d3cb"><div style="font-size:10px;color:#7b878d;font-weight:800;letter-spacing:1px">IMPACTO POSITIVO</div><div style="margin-top:6px;color:#3f5159;line-height:1.55">Estas '+g.items.length+' estéticas representam uma economia estimada de <b>'+esc(new Intl.NumberFormat("pt-BR").format(g.waterForGroup))+' litros de água</b>.<br><span style="font-size:11px;color:#7b878d">Economia acumulada estimada da Vaporeasy: '+esc(new Intl.NumberFormat("pt-BR").format(g.totalWater))+' litros.</span></div></div>'+
     '<div style="margin-top:20px;font-size:10px;color:#90999d">Vaporeasy · cuidado automotivo com discrição, conveniência e responsabilidade.</div></div>'
 }
 async function openReceiptGroup(ids){
@@ -5055,25 +5080,36 @@ function openReceiptDiscount(){
 function openGroupDiscount(ids,g){
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite aplicar descontos.","error");
   currentPaymentMode="group_discount";
-  currentPaymentGroupIds=[...new Set((ids||[]).filter(Boolean))];
+  const eligible=g.items.filter(d=>ids.includes(d.x?.id)&&d.payment?.status!=="paid"),groups=groupReceiptVehicleGroups({...g,items:eligible});
+  currentPaymentGroupIds=eligible.map(d=>d.x.id);
   $("payf").reset();$("payid").value="";show("paymsg","");
-  $("paytitle").textContent="Aplicar desconto no total";
-  $("payreceivefields").classList.add("hidden");
-  $("paymethod").required=false;
-  $("paysubmit").textContent="Salvar desconto";
-  $("paysummary").innerHTML='<div><span>Total dos '+g.items.length+' atendimentos</span><b>'+esc(money(g.gross))+'</b></div>';
-  $("paypreview").innerHTML="";
-  $("paydiscountwrap").classList.add("hidden");
-  currentPaymentQuote={id:null,gross:Number(g.gross||0),status:"completed"};
-  if(Number(g.discount||0)>0){
-    $("paydiscounttype").value="fixed";
-    $("paydiscountvalue").value=Number(g.discount).toFixed(2);
-  }else{
-    $("paydiscounttype").value="none";
-    $("paydiscountvalue").value="";
-  }
-  updatePaymentDiscountPreview();
-  $("pd").showModal()
+  $("paytitle").textContent="Escolher estéticas para desconto";
+  $("payreceivefields").classList.add("hidden");$("paymethod").required=false;$("paysubmit").textContent="Salvar desconto";
+  const cards=groups.map(v=>{
+    const itemRows=v.items.map(d=>{
+      const a=receiptAmounts(d),id=d.x.id,date=agendaLocalDateKey(d.x.starts_at||d.x.completed_at),label=new Intl.DateTimeFormat("pt-BR").format(new Date(date+"T12:00:00"));
+      return '<label style="display:flex;gap:10px;align-items:center;padding:7px 0;margin:0"><input class="group-discount-item" type="checkbox" value="'+esc(id)+'" data-gross="'+esc(String(a.gross))+'" checked><span style="flex:1">'+esc(label)+' · '+esc(d.service?.name||"Serviço")+'</span><b>'+esc(money(a.gross))+'</b></label>'
+    }).join("");
+    return '<div style="border:1px solid #d7e1e6;border-radius:12px;padding:12px;margin:8px 0"><label style="display:flex;gap:10px;align-items:center;margin:0;font-weight:800"><input class="group-discount-vehicle" type="checkbox" data-vehicle="'+esc(v.key)+'" checked><span>'+esc(v.vehicle)+'</span></label><div data-vehicle-items="'+esc(v.key)+'" style="padding-left:8px;margin-top:6px">'+itemRows+'</div></div>'
+  }).join("");
+  $("paysummary").innerHTML='<div class="meta" style="margin-bottom:8px">Marque o carro inteiro ou apenas as estéticas que receberão o desconto.</div>'+cards;
+  $("paypreview").innerHTML="";$("paydiscountwrap").classList.add("hidden");
+  const sync=()=>{
+    const selected=[...document.querySelectorAll(".group-discount-item:checked")];
+    currentPaymentGroupIds=selected.map(x=>x.value);
+    const gross=selected.reduce((s,x)=>s+Number(x.dataset.gross||0),0);
+    currentPaymentQuote={id:null,gross,status:"completed"};
+    document.querySelectorAll(".group-discount-vehicle").forEach(v=>{
+      const boxes=[...document.querySelectorAll('[data-vehicle-items="'+CSS.escape(v.dataset.vehicle)+'"] .group-discount-item')];
+      v.checked=boxes.length>0&&boxes.every(x=>x.checked);v.indeterminate=boxes.some(x=>x.checked)&&!v.checked
+    });
+    updatePaymentDiscountPreview()
+  };
+  document.querySelectorAll(".group-discount-item").forEach(x=>x.addEventListener("change",sync));
+  document.querySelectorAll(".group-discount-vehicle").forEach(x=>x.addEventListener("change",()=>{
+    document.querySelectorAll('[data-vehicle-items="'+CSS.escape(x.dataset.vehicle)+'"] .group-discount-item').forEach(i=>i.checked=x.checked);sync()
+  }));
+  $("paydiscounttype").value="none";$("paydiscountvalue").value="";sync();$("pd").showModal()
 }
 function cancelPaymentDialog(){
   const reopenSingle=currentPaymentMode==="discount"&&currentReceipt&&!currentReceiptGroup;
@@ -5185,7 +5221,7 @@ async function savePayment(e){
   const id=$("payid").value,packageReceive=currentPaymentMode==="package_receive",packageGroupReceive=currentPaymentMode==="package_group_receive",receive=currentPaymentMode==="receive"||packageReceive||packageGroupReceive,groupDiscount=currentPaymentMode==="group_discount",method=$("paymethod").value,q=paymentDiscountCalc();
   if(!groupDiscount&&!packageGroupReceive&&!id)return show("paymsg",packageReceive?"Cobrança de pacote não identificada.":"Atendimento não identificado.","error");
   if(packageGroupReceive&&currentPaymentGroupIds.length<2)return show("paymsg","Grupo de mensalidades não identificado.","error");
-  if(groupDiscount&&currentPaymentGroupIds.length<2)return show("paymsg","Grupo de atendimentos não identificado.","error");
+  if(groupDiscount&&currentPaymentGroupIds.length<1)return show("paymsg","Selecione pelo menos uma estética para aplicar o desconto.","error");
   if(receive&&!method)return show("paymsg","Selecione a forma de pagamento.","error");
   if(!currentPaymentQuote)return show("paymsg","Os valores da cobrança ainda não foram carregados.","error");
   if(q.error)return show("paymsg",q.error,"error");
