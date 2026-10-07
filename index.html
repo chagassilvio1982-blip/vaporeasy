@@ -5396,11 +5396,16 @@ async function savePayment(e){
     }else{
       show("msg",q.discount>0?"Desconto aplicado. Valor pendente atualizado para "+money(q.final)+".":"Desconto removido. Valor pendente atualizado.","ok")
     }
+    if(monthlyReturn?.clientId&&monthlyReturn?.month){
+      currentMonthlyReceipt=null;
+      await openMonthlyClientReceipt(monthlyReturn.clientId,monthlyReturn.month);
+      await Promise.all([loadApps(),financeAllowed()?loadFinance():Promise.resolve()]);
+      return
+    }
     await Promise.all([loadApps(),financeAllowed()?loadFinance():Promise.resolve()]);
     if(packageGroupReceive){await sharePackageChargeGroup(groupIds);return;}
     if(packageReceive){await sharePackageCharge(id);return;}
-    if(monthlyReturn?.clientId&&monthlyReturn?.month)await openMonthlyClientReceipt(monthlyReturn.clientId,monthlyReturn.month);
-    else if(groupDiscount)await openReceiptGroup(groupIds);else await openReceipt(id)
+    if(groupDiscount)await openReceiptGroup(groupIds);else await openReceipt(id)
   }catch(err){show("paymsg",fail(err),"error")}
   finally{submit.disabled=false;submit.textContent=receive?"Confirmar recebimento":"Salvar desconto"}
 }
