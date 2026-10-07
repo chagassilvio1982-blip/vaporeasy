@@ -3306,7 +3306,7 @@ async function loadFinance(){
     const sync=await sb.rpc("ensure_current_package_charges");
     if(sync.error)throw sync.error;
     const [ar,paid,ex,pkgMonth,pkgPaid,subs]=await Promise.all([
-      sb.from("appointments").select("id,client_id,vehicle_id,service_id,recurring_plan_id,completed_at,base_value,addon_value,discount_amount,final_value").eq("status","completed").is("deleted_at",null).gte("completed_at",k.startIso).lt("completed_at",k.nextIso).order("completed_at",{ascending:false}),
+      sb.from("appointments").select("id,client_id,vehicle_id,service_id,recurring_plan_id,completed_at,starts_at,base_value,addon_value,discount_amount,final_value").eq("status","completed").is("deleted_at",null).gte("starts_at",k.startIso).lt("starts_at",k.nextIso).order("starts_at",{ascending:false}),
       sb.from("appointment_payments").select("*").eq("status","paid").gte("paid_at",k.startIso).lt("paid_at",k.nextIso).order("paid_at",{ascending:false}),
       sb.from("finance_expenses").select("*").gte("expense_date",k.startDate).lt("expense_date",k.nextDate).order("expense_date",{ascending:false}).order("created_at",{ascending:false}),
       sb.from("package_charges").select("*").eq("competence_month",k.startDate).neq("status","cancelled").order("created_at",{ascending:false}),
