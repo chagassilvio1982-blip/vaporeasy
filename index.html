@@ -65,6 +65,21 @@ dialog::backdrop{background:rgba(0,0,0,.72)}@media(max-width:470px){.receipt-gri
 .login-ready{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;font-size:11px;color:var(--m)}
 .login-ready::before{content:"";width:7px;height:7px;border-radius:50%;background:#7893a2}
 .login-ready.is-ready::before{background:var(--g)}
+
+#pd.discount-picker .discount-scope-box{display:block!important}
+#pd.discount-picker .discount-scope-box>div:first-child{margin-bottom:8px!important}
+#pd.discount-picker .discount-scope-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+#pd.discount-picker .discount-scope-actions button{width:100%!important;min-height:46px!important;padding:8px 4px!important;font-size:12px!important;line-height:1.12!important;white-space:normal!important}
+#pd.discount-picker .discount-scope-help{display:block!important;width:100%!important;margin-top:8px!important}
+#pd.discount-picker .discount-vehicle-card{display:block!important}
+#pd.discount-picker .discount-vehicle-head{width:100%!important;padding:2px 0 8px!important;border-bottom:1px solid #23485a}
+#pd.discount-picker .discount-item-list{width:100%!important;padding-left:0!important;margin-top:2px!important}
+#pd.discount-picker .discount-item-row{width:100%!important;grid-template-columns:22px minmax(0,1fr) auto!important;padding:8px 0!important}
+@media(max-width:470px){
+ #pd.discount-picker .discount-scope-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #pd.discount-picker .discount-scope-actions button:first-child{grid-column:auto!important}
+ #pd.discount-picker .discount-scope-actions button{font-size:11px!important;min-height:48px!important}
+}
 </style>
 <!-- VAPOREASY_BUILD: staging-v2-classic-login-bootstrap-2026-09-28-06 -->
 <!-- VAPOREASY_BUILD: android-contact-import-v1-2026-09-28 -->
