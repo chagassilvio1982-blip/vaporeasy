@@ -2693,9 +2693,9 @@ async function getMonthlyClientReceiptData(clientId,month){
     .eq("client_id",clientId)
     .eq("status","completed")
     .is("deleted_at",null)
-    .gte("completed_at",k.startIso)
-    .lt("completed_at",k.nextIso)
-    .order("completed_at",{ascending:true});
+    .gte("starts_at",k.startIso)
+    .lt("starts_at",k.nextIso)
+    .order("starts_at",{ascending:true});
   if(ar.error)throw ar.error;
   const apps=ar.data||[];
   if(!apps.length)throw Error("Não há serviços concluídos para este cliente no mês selecionado.");
@@ -2714,7 +2714,7 @@ async function getMonthlyClientReceiptData(clientId,month){
     const p=pm.get(a.id),final=Number(p?.status==="paid"?(p.amount??a.final_value):a.final_value||0),disc=Number(a.discount_amount||0),g=Number(a.base_value||0)+Number(a.addon_value||0);
     total+=final;gross+=g;discount+=disc;
     const key=a.vehicle_id||"unknown",row=vg.get(key)||{vehicle:vm.get(a.vehicle_id)||null,count:0,dates:[],serviceCounts:new Map(),total:0,gross:0,discount:0};
-    row.count++;row.total+=final;row.gross+=g;row.discount+=disc;row.dates.push(agendaLocalDateKey(a.completed_at||a.starts_at));
+    row.count++;row.total+=final;row.gross+=g;row.discount+=disc;row.dates.push(agendaLocalDateKey(a.starts_at));
     const service=sm.get(a.service_id)?.name||"Serviço";row.serviceCounts.set(service,(row.serviceCounts.get(service)||0)+1);vg.set(key,row)
   }
   const vehicles=[...vg.values()].map(row=>({...row,dates:[...new Set(row.dates)].sort(),services:[...row.serviceCounts.entries()].map(([name,count])=>({name,count}))}));
