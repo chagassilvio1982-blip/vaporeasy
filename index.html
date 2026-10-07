@@ -2856,19 +2856,32 @@ function monthlyChargeText(g){
   return lines.join("\n")
 }
 async function openMonthlyClientReceipt(clientId,month){
-  currentPackageReceipt=null;currentPackageGroup=null;currentReceipt=null;currentReceiptGroup=null;
+  currentPackageReceipt=null;currentPackageGroup=null;currentReceipt=null;currentReceiptGroup=null;currentMonthlyReceipt=null;
+  const modal=$("rd");
+  $("rcontent").innerHTML='<div class="notice" style="margin:10px 0">Carregando documento mensal…</div>';
+  $("rgroup").classList.add("hidden");
+  $("rdiscount").classList.add("hidden");
+  $("rcharge").classList.add("hidden");
+  $("rshare").classList.add("hidden");
+  $("rprint").classList.add("hidden");
+  show("rgroupmsg","","ok");
+  if(!modal.open)modal.showModal();
   try{
     currentMonthlyReceipt=await getMonthlyClientReceiptData(clientId,month);
     $("rcontent").innerHTML=monthlyReceiptHtml(currentMonthlyReceipt);
     $("rshare").textContent="Compartilhar comprovante";
+    $("rshare").classList.remove("hidden");
+    $("rprint").textContent="Compartilhar PDF";
+    $("rprint").classList.remove("hidden");
     show("rgroupmsg",currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt?"Comprovante emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.":"","ok");
-    $("rgroup").classList.add("hidden");
     $("rdiscount").textContent="Aplicar desconto";
     $("rdiscount").classList.toggle("hidden",currentMonthlyReceipt.allPaid||currentMonthlyReceipt.isSnapshot);
     $("rcharge").classList.toggle("hidden",currentMonthlyReceipt.allPaid);
-    $("rprint").textContent="Compartilhar PDF";
-    $("rd").showModal()
-  }catch(e){show("msg",fail(e),"error")}
+  }catch(e){
+    const message=fail(e);
+    $("rcontent").innerHTML='<div class="notice error" style="margin:10px 0"><b>Não foi possível abrir este documento.</b><br>'+esc(message)+'</div>';
+    show("rgroupmsg",message,"error");
+  }
 }
 
 function financeApptCard(a,p,maps,paid=false){
