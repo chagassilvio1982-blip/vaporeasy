@@ -5248,11 +5248,17 @@ async function savePayment(e){
           p_notes:$("paynotes").value.trim()
         })
       :groupDiscount
-        ?await sb.rpc("apply_pending_group_discount",{
-          p_appointment_ids:currentPaymentGroupIds,
-          p_discount_type:q.type,
-          p_discount_value:q.type==="none"?0:q.raw
-        })
+        ?(currentPaymentGroupIds.length===1
+          ?await sb.rpc("apply_pending_discount",{
+            p_appointment_id:currentPaymentGroupIds[0],
+            p_discount_type:q.type,
+            p_discount_value:q.type==="none"?0:q.raw
+          })
+          :await sb.rpc("apply_pending_group_discount",{
+            p_appointment_ids:currentPaymentGroupIds,
+            p_discount_type:q.type,
+            p_discount_value:q.type==="none"?0:q.raw
+          }))
         :await sb.rpc("apply_pending_discount",{
           p_appointment_id:id,
           p_discount_type:q.type,
@@ -5402,8 +5408,8 @@ async function paidReceiptCanvas(d){
 }
 function canvasBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error("Não foi possível gerar a imagem.")),"image/png",0.96))}
 async function groupReceiptCanvas(g){
-  const paid=g.allPaid,rows=g.items.map(d=>({d,amt:receiptAmounts(d),veh:d.vehicle?(d.vehicle.brand+" "+d.vehicle.model+(d.vehicle.plate?" • "+d.vehicle.plate:"")):"Veículo"}));
-  const width=1080,height=1080+rows.length*120,cv=document.createElement("canvas");cv.width=width;cv.height=height;
+  const paid=g.allPaid,groups=groupReceiptVehicleGroups(g);
+  const width=1080,height=Math.max(1450,1080+groups.length*165),cv=document.createElement("canvas");cv.width=width;cv.height=height;
   const ctx=cv.getContext("2d"),pad=82,right=width-pad;
   ctx.fillStyle="#f3f1ec";ctx.fillRect(0,0,width,height);
   if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,120);
@@ -5411,18 +5417,27 @@ async function groupReceiptCanvas(g){
   ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText(paid?"RECIBO DE PAGAMENTO":"ATENDIMENTOS CONCLUÍDOS",right,92);
   ctx.font="600 17px system-ui, sans-serif";ctx.fillText(new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00")),right,124);ctx.textAlign="left";
   ctx.strokeStyle="#d4d0c8";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,170);ctx.lineTo(right,170);ctx.stroke();
-  ctx.font="400 44px Georgia, serif";ctx.fillStyle="#172832";ctx.fillText(rows.length+" veículos atendidos.",pad,238);
+  ctx.font="400 39px Georgia, serif";ctx.fillStyle="#172832";ctx.fillText(g.items.length+" estética"+(g.items.length===1?"":"s")+" realizada"+(g.items.length===1?"":"s")+" em "+groups.length+" veículo"+(groups.length===1?"":"s")+".",pad,238);
   ctx.fillText("Obrigado pela confiança.",pad,288);
   let y=355;
   ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("CLIENTE",pad,y);
   ctx.font="900 30px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(g.client?.name||"Cliente",pad,y+40);y+=92;
   ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=45;
-  for(const row of rows){
-    ctx.font="800 25px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(row.veh,pad,y);
-    ctx.font="500 21px system-ui, sans-serif";ctx.fillStyle="#5d6b72";ctx.fillText(row.d.service?.name||"Serviço",pad,y+34);
-    ctx.font="900 25px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.textAlign="right";ctx.fillText(money(row.amt.final),right,y+20);ctx.textAlign="left";
-    if(row.amt.discount>0){ctx.font="500 17px system-ui, sans-serif";ctx.fillStyle="#7d4d28";ctx.fillText("Desconto: − "+money(row.amt.discount),pad,y+60);y+=18}
-    y+=92;
+  for(const v of groups){
+    ctx.font="800 25px system-ui, sans-serif";ctx.fillStyle="#172832";ctx.fillText(v.vehicle,pad,y);
+    ctx.font="900 25px system-ui, sans-serif";ctx.textAlign="right";ctx.fillText(money(v.total),right,y);ctx.textAlign="left";
+    ctx.font="700 20px system-ui, sans-serif";ctx.fillStyle="#5d6b72";ctx.fillText(v.items.length+" estética"+(v.items.length===1?"":"s")+" realizada"+(v.items.length===1?"":"s"),pad,y+35);
+    ctx.font="500 17px system-ui, sans-serif";ctx.fillStyle="#71808a";ctx.fillText(v.services.join(" + "),pad,y+65);
+    const dates=v.dates.map(x=>new Intl.DateTimeFormat("pt-BR").format(new Date(x+"T12:00:00"))).join(" · ");
+    ctx.fillText("Datas: "+dates,pad,y+92);
+    let extra=0;
+    if(v.discount>0){ctx.font="600 17px system-ui, sans-serif";ctx.fillStyle="#7d4d28";ctx.fillText("Valor original "+money(v.gross)+" · descontos − "+money(v.discount),pad,y+119);extra=27}
+    y+=145+extra;
+    ctx.strokeStyle="#dedbd4";ctx.beginPath();ctx.moveTo(pad,y-20);ctx.lineTo(right,y-20);ctx.stroke()
+  }
+  if(g.discount>0){
+    ctx.font="600 20px system-ui, sans-serif";ctx.fillStyle="#7d4d28";ctx.fillText("Descontos concedidos",pad,y);
+    ctx.textAlign="right";ctx.font="800 22px system-ui, sans-serif";ctx.fillText("− "+money(g.discount),right,y);ctx.textAlign="left";y+=48
   }
   ctx.strokeStyle="#d4d0c8";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(right,y);ctx.stroke();y+=58;
   ctx.font="800 19px system-ui, sans-serif";ctx.fillStyle="#6d797f";ctx.fillText(paid?"TOTAL RECEBIDO":"TOTAL DO ATENDIMENTO",pad,y);
@@ -5430,18 +5445,16 @@ async function groupReceiptCanvas(g){
   if(paid){
     canvasRoundRect(ctx,pad,y,width-pad*2,125,18,"#edf8f1","#bfdfca");
     ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#437157";ctx.fillText("PAGAMENTO RECEBIDO",pad+28,y+38);
-    ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#36584a";ctx.fillText("Forma: "+(g.methods.join(", ")||"—"),pad+28,y+78);
-    y+=165
+    ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#36584a";ctx.fillText("Forma: "+(g.methods.join(", ")||"—"),pad+28,y+78);y+=165
   }else{
     canvasRoundRect(ctx,pad,y,width-pad*2,205,18,"#fff","#ddd9d1");
     ctx.font="900 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("PAGAMENTO PENDENTE",pad+28,y+36);
     ctx.font="800 15px system-ui, sans-serif";ctx.fillText("CHAVE PIX",pad+28,y+70);
     ctx.font="900 29px system-ui, sans-serif";ctx.fillStyle="#27485a";ctx.fillText(g.bank.pix_key,pad+28,y+108);
-    ctx.font="500 20px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText(g.bank.bank_name+" · Ag. "+g.bank.branch+" · C/C "+g.bank.account_number,pad+28,y+148);ctx.fillText(g.bank.account_holder,pad+28,y+180);
-    y+=245
+    ctx.font="500 20px system-ui, sans-serif";ctx.fillStyle="#596970";ctx.fillText(g.bank.bank_name+" · Ag. "+g.bank.branch+" · C/C "+g.bank.account_number,pad+28,y+148);ctx.fillText(g.bank.account_holder,pad+28,y+180);y+=245
   }
   ctx.font="800 17px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText("IMPACTO POSITIVO",pad,y);
-  ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#40525a";ctx.fillText("Economia estimada nestes atendimentos: "+new Intl.NumberFormat("pt-BR").format(g.waterForGroup)+" litros de água",pad,y+38);
+  ctx.font="600 21px system-ui, sans-serif";ctx.fillStyle="#40525a";ctx.fillText("Economia estimada nestas estéticas: "+new Intl.NumberFormat("pt-BR").format(g.waterForGroup)+" litros de água",pad,y+38);
   ctx.font="500 16px system-ui, sans-serif";ctx.fillStyle="#949da1";ctx.fillText("Vaporeasy · cuidado automotivo com discrição, conveniência e responsabilidade.",pad,height-48);
   return cv
 }
