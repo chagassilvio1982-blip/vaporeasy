@@ -2823,7 +2823,9 @@ async function openMonthlyClientReceipt(clientId,month){
     $("rcontent").innerHTML=monthlyReceiptHtml(currentMonthlyReceipt);
     $("rshare").textContent="Compartilhar comprovante";
     show("rgroupmsg",currentMonthlyReceipt.isSnapshot&&currentMonthlyReceipt.issuedAt?"Comprovante emitido em "+receiptDate(currentMonthlyReceipt.issuedAt)+". Histórico deste documento preservado.":"","ok");
-    $("rgroup").classList.add("hidden");$("rdiscount").classList.add("hidden");
+    $("rgroup").classList.add("hidden");
+    $("rdiscount").textContent="Aplicar desconto";
+    $("rdiscount").classList.toggle("hidden",currentMonthlyReceipt.allPaid||currentMonthlyReceipt.isSnapshot);
     $("rcharge").classList.toggle("hidden",currentMonthlyReceipt.allPaid);
     $("rprint").textContent="Compartilhar PDF";
     $("rd").showModal()
@@ -5063,6 +5065,12 @@ async function openSameClientReceiptGroup(){
   }catch(e){show("rgroupmsg",fail(e),"error")}
 }
 function openReceiptDiscount(){
+  if(currentMonthlyReceipt){
+    if(currentMonthlyReceipt.allPaid||currentMonthlyReceipt.isSnapshot)return;
+    if($("rd").open)$("rd").close();
+    openMonthlyDiscount(currentMonthlyReceipt);
+    return
+  }
   if(currentReceiptGroup){
     if(currentReceiptGroup.allPaid)return;
     const ids=currentReceiptGroup.items.map(d=>d.x?.id).filter(Boolean);
@@ -5077,9 +5085,30 @@ function openReceiptDiscount(){
   if($("rd").open)$("rd").close();
   openPayment(id,"discount")
 }
-function openGroupDiscount(ids,g){
+async function openMonthlyDiscount(g){
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite aplicar descontos.","error");
-  currentPaymentMode="group_discount";
+  try{
+    const ids=(g.apps||[]).map(a=>a.id).filter(Boolean);
+    if(!ids.length)throw Error("Nenhum atendimento encontrado neste documento.");
+    const details=await Promise.all(ids.map(id=>getReceiptData(id)));
+    const eligible=details.filter(d=>d.payment?.status!=="paid");
+    if(!eligible.length)throw Error("Não há estética pendente disponível para desconto.");
+    const monthlyGroup={
+      isGroup:true,items:eligible,client:g.client,bank:g.bank,dateKey:g.month+"-01",
+      allPaid:false,nonePaid:true,total:eligible.reduce((s,d)=>s+receiptAmounts(d).final,0),
+      gross:eligible.reduce((s,d)=>s+receiptAmounts(d).gross,0),
+      discount:eligible.reduce((s,d)=>s+receiptAmounts(d).discount,0),
+      methods:[],paidAt:null,waterForGroup:eligible.length*WATER_PER_COMPLETED_SERVICE,totalWater:g.waterForGroup
+    };
+    openGroupDiscount(eligible.map(d=>d.x.id),monthlyGroup,"monthly_discount")
+  }catch(e){
+    show("msg",fail(e),"error");
+    if(!$("rd").open)$("rd").showModal()
+  }
+}
+function openGroupDiscount(ids,g,mode="group_discount"){
+  if(!financeAllowed())return show("msg","Seu nível de acesso não permite aplicar descontos.","error");
+  currentPaymentMode=mode;
   const eligible=g.items.filter(d=>ids.includes(d.x?.id)&&d.payment?.status!=="paid"),groups=groupReceiptVehicleGroups({...g,items:eligible});
   currentPaymentGroupIds=eligible.map(d=>d.x.id);
   $("payf").reset();$("payid").value="";show("paymsg","");
@@ -5141,9 +5170,10 @@ function openGroupDiscount(ids,g){
 function cancelPaymentDialog(){
   const reopenSingle=currentPaymentMode==="discount"&&currentReceipt&&!currentReceiptGroup;
   const reopenGroup=currentPaymentMode==="group_discount"&&currentReceiptGroup;
+  const reopenMonthly=currentPaymentMode==="monthly_discount"&&currentMonthlyReceipt;
   if($("pd").open)$("pd").close();
   currentPaymentQuote=null;currentPaymentGroupIds=[];
-  if(reopenSingle||reopenGroup)$("rd").showModal()
+  if(reopenSingle||reopenGroup||reopenMonthly)$("rd").showModal()
 }
 async function openPackageGroupPayment(ids){
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite confirmar pagamentos.","error");
@@ -5245,7 +5275,7 @@ function updatePaymentDiscountPreview(){
 }
 async function savePayment(e){
   e.preventDefault();
-  const id=$("payid").value,packageReceive=currentPaymentMode==="package_receive",packageGroupReceive=currentPaymentMode==="package_group_receive",receive=currentPaymentMode==="receive"||packageReceive||packageGroupReceive,groupDiscount=currentPaymentMode==="group_discount",method=$("paymethod").value,q=paymentDiscountCalc();
+  const id=$("payid").value,packageReceive=currentPaymentMode==="package_receive",packageGroupReceive=currentPaymentMode==="package_group_receive",receive=currentPaymentMode==="receive"||packageReceive||packageGroupReceive,monthlyDiscount=currentPaymentMode==="monthly_discount",groupDiscount=currentPaymentMode==="group_discount"||monthlyDiscount,method=$("paymethod").value,q=paymentDiscountCalc();
   if(!groupDiscount&&!packageGroupReceive&&!id)return show("paymsg",packageReceive?"Cobrança de pacote não identificada.":"Atendimento não identificado.","error");
   if(packageGroupReceive&&currentPaymentGroupIds.length<2)return show("paymsg","Grupo de mensalidades não identificado.","error");
   if(groupDiscount&&currentPaymentGroupIds.length<1)return show("paymsg","Selecione pelo menos uma estética para aplicar o desconto.","error");
@@ -5275,17 +5305,23 @@ async function savePayment(e){
           p_notes:$("paynotes").value.trim()
         })
       :groupDiscount
-        ?(currentPaymentGroupIds.length===1
-          ?await sb.rpc("apply_pending_discount",{
-            p_appointment_id:currentPaymentGroupIds[0],
-            p_discount_type:q.type,
-            p_discount_value:q.type==="none"?0:q.raw
-          })
-          :await sb.rpc("apply_pending_group_discount",{
+        ?(monthlyDiscount
+          ?await sb.rpc("apply_pending_monthly_discount",{
             p_appointment_ids:currentPaymentGroupIds,
             p_discount_type:q.type,
             p_discount_value:q.type==="none"?0:q.raw
-          }))
+          })
+          :currentPaymentGroupIds.length===1
+            ?await sb.rpc("apply_pending_discount",{
+              p_appointment_id:currentPaymentGroupIds[0],
+              p_discount_type:q.type,
+              p_discount_value:q.type==="none"?0:q.raw
+            })
+            :await sb.rpc("apply_pending_group_discount",{
+              p_appointment_ids:currentPaymentGroupIds,
+              p_discount_type:q.type,
+              p_discount_value:q.type==="none"?0:q.raw
+            }))
         :await sb.rpc("apply_pending_discount",{
           p_appointment_id:id,
           p_discount_type:q.type,
@@ -5293,6 +5329,7 @@ async function savePayment(e){
         });
     if(r.error)throw r.error;
     const groupIds=(groupDiscount||packageGroupReceive)?[...currentPaymentGroupIds]:[];
+    const monthlyReturn=monthlyDiscount&&currentMonthlyReceipt?{clientId:currentMonthlyReceipt.client?.id,month:currentMonthlyReceipt.month}:null;
     $("pd").close();currentPaymentQuote=null;currentPaymentGroupIds=[];agendaMonthCache.clear();
     if(packageGroupReceive){
       show("msg","Mensalidades confirmadas em uma única baixa.","ok")
@@ -5308,7 +5345,8 @@ async function savePayment(e){
     await Promise.all([loadApps(),financeAllowed()?loadFinance():Promise.resolve()]);
     if(packageGroupReceive){await sharePackageChargeGroup(groupIds);return;}
     if(packageReceive){await sharePackageCharge(id);return;}
-    if(groupDiscount)await openReceiptGroup(groupIds);else await openReceipt(id)
+    if(monthlyReturn?.clientId&&monthlyReturn?.month)await openMonthlyClientReceipt(monthlyReturn.clientId,monthlyReturn.month);
+    else if(groupDiscount)await openReceiptGroup(groupIds);else await openReceipt(id)
   }catch(err){show("paymsg",fail(err),"error")}
   finally{submit.disabled=false;submit.textContent=receive?"Confirmar recebimento":"Salvar desconto"}
 }
