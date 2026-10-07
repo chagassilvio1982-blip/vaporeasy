@@ -5146,13 +5146,13 @@ async function openMonthlyDiscount(g){
     const eligible=details.filter(d=>d.payment?.status!=="paid");
     if(!eligible.length)throw Error("Não há estética pendente disponível para desconto.");
     const monthlyGroup={
-      isGroup:true,items:eligible,client:g.client,bank:g.bank,dateKey:g.month+"-01",
-      allPaid:false,nonePaid:true,total:eligible.reduce((s,d)=>s+receiptAmounts(d).final,0),
+      isGroup:true,items:details,client:g.client,bank:g.bank,dateKey:g.month+"-01",
+      allPaid:false,nonePaid:false,total:eligible.reduce((s,d)=>s+receiptAmounts(d).final,0),
       gross:eligible.reduce((s,d)=>s+receiptAmounts(d).gross,0),
       discount:eligible.reduce((s,d)=>s+receiptAmounts(d).discount,0),
-      methods:[],paidAt:null,waterForGroup:eligible.length*WATER_PER_COMPLETED_SERVICE,totalWater:g.waterForGroup
+      methods:[],paidAt:null,waterForGroup:details.length*WATER_PER_COMPLETED_SERVICE,totalWater:g.waterForGroup
     };
-    openGroupDiscount(eligible.map(d=>d.x.id),monthlyGroup,"monthly_discount")
+    openGroupDiscount(ids,monthlyGroup,"monthly_discount")
   }catch(e){
     show("msg",fail(e),"error");
     if(!$("rd").open)$("rd").showModal()
@@ -5161,7 +5161,7 @@ async function openMonthlyDiscount(g){
 function openGroupDiscount(ids,g,mode="group_discount"){
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite aplicar descontos.","error");
   currentPaymentMode=mode;
-  const eligible=g.items.filter(d=>ids.includes(d.x?.id)&&d.payment?.status!=="paid"),groups=groupReceiptVehicleGroups({...g,items:eligible});
+  const visible=mode==="monthly_discount"?g.items.filter(d=>ids.includes(d.x?.id)):g.items.filter(d=>ids.includes(d.x?.id)&&d.payment?.status!=="paid"),eligible=visible.filter(d=>d.payment?.status!=="paid"),groups=groupReceiptVehicleGroups({...g,items:visible});
   currentPaymentGroupIds=eligible.map(d=>d.x.id);
   $("payf").reset();$("payid").value="";show("paymsg","");
   $("paytitle").textContent="Escolher estéticas para desconto";
@@ -5169,7 +5169,8 @@ function openGroupDiscount(ids,g,mode="group_discount"){
   const cards=groups.map(v=>{
     const itemRows=v.items.map(d=>{
       const a=receiptAmounts(d),id=d.x.id,date=agendaLocalDateKey(d.x.starts_at||d.x.completed_at),label=new Intl.DateTimeFormat("pt-BR").format(new Date(date+"T12:00:00"));
-      return '<label class="discount-item-row"><input class="group-discount-item" type="checkbox" value="'+esc(id)+'" data-gross="'+esc(String(a.gross))+'" checked><span class="discount-item-text"><b>'+esc(label)+'</b><br><span class="meta">'+esc(d.service?.name||"Serviço")+'</span></span><b class="discount-item-value">'+esc(money(a.gross))+'</b></label>'
+      const paid=d.payment?.status==="paid";
+      return '<label class="discount-item-row" style="'+(paid?'opacity:.55':'')+'"><input class="group-discount-item" type="checkbox" value="'+esc(id)+'" data-gross="'+esc(String(a.gross))+'" '+(paid?'disabled':'checked')+'><span class="discount-item-text"><b>'+esc(label)+'</b><br><span class="meta">'+esc(d.service?.name||"Serviço")+(paid?' · Pago — desconto bloqueado':'')+'</span></span><b class="discount-item-value">'+esc(money(a.gross))+'</b></label>'
     }).join("");
     return '<div class="discount-vehicle-card" style="border:1px solid #31576a;border-radius:12px;margin:8px 0"><label class="discount-vehicle-head"><input class="group-discount-vehicle" type="checkbox" data-vehicle="'+esc(v.key)+'" checked><span>'+esc(v.vehicle)+'</span></label><div data-vehicle-items="'+esc(v.key)+'" class="discount-item-list">'+itemRows+'</div></div>'
   }).join("");
