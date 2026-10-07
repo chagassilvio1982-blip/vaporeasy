@@ -330,7 +330,20 @@ dialog .card{
 #pd.discount-picker .discount-item-row input{width:20px;height:20px;margin:0}
 #pd.discount-picker .discount-item-text{min-width:0;font-size:12px;line-height:1.3}
 #pd.discount-picker .discount-item-value{font-size:13px;font-weight:900;white-space:nowrap}
-@media(max-width:470px){#pd.discount-picker{width:calc(100% - 16px);padding:10px}#pd.discount-picker #paytitle{font-size:18px}#pd.discount-picker .discount-scope-actions{grid-template-columns:1fr 1fr}#pd.discount-picker .discount-scope-actions button:first-child{grid-column:1/-1}#pd.discount-picker .discount-item-list{padding-left:0!important}}
+@media(max-width:470px){
+#pd.discount-picker{width:calc(100% - 16px);padding:10px}
+#pd.discount-picker #paytitle{font-size:18px}
+#pd.discount-picker .discount-scope-box{padding:10px!important}
+#pd.discount-picker .discount-scope-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+#pd.discount-picker .discount-scope-actions button,
+#pd.discount-picker .discount-scope-actions button:first-child{grid-column:auto!important;width:100%;min-width:0;padding:9px 3px;font-size:11px;line-height:1.15;white-space:normal}
+#pd.discount-picker .discount-scope-help{display:block;width:100%;margin-top:8px!important;font-size:11px;line-height:1.35}
+#pd.discount-picker .discount-vehicle-card{padding:9px!important}
+#pd.discount-picker .discount-vehicle-head{width:100%;padding:2px 0 8px;border-bottom:1px solid #244759}
+#pd.discount-picker .discount-vehicle-head span{font-size:14px;line-height:1.2}
+#pd.discount-picker .discount-item-list{padding-left:0!important;margin-top:4px!important}
+#pd.discount-picker .discount-item-row{width:100%;grid-template-columns:20px minmax(0,1fr) auto!important;padding:7px 0!important}
+}
 #public>.card,#auth>.card{
   max-width:560px;
   margin-left:auto;
