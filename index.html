@@ -10,7 +10,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="/vaporeasy-icon-official.svg">
 <link rel="apple-touch-icon" href="/vaporeasy-icon-official.svg">
-<title>Vaporeasy — HOMOLOGAÇÃO</title>
+<title>Vaporeasy</title>
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="vaporeasy-environment" content="homologacao-isolada">
 <meta name="description" content="Agende seu atendimento Vaporeasy de forma rápida e segura.">
@@ -1111,7 +1111,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/main-menu.css?v=20261001">\n<link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 </head>
 <body>
-<div id="vaporeasy-staging-banner" aria-label="Ambiente de homologação" style="position:fixed;top:8px;right:8px;z-index:2147483647;background:#7a1f1f;color:#fff;padding:6px 10px;border-radius:8px;font:700 12px/1.2 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none">HOMOLOGAÇÃO · DADOS DE TESTE</div>
+
 <div class="app">
 <header id="hdr" class="hidden"><div><img data-brand-logo class="brand-logo brand-logo-header" src="/vaporeasy-logo-original.svg?v=20260928-05" loading="eager" decoding="sync" alt="Vaporeasy"></div><div class="headright"><button id="bell" class="bell" type="button" aria-label="Notificações">🔔<span id="nbadge" class="badge hidden">0</span></button><div class="profile"><b id="pname">—</b><div id="prole">—</div></div></div></header>
 <main>
@@ -2777,8 +2777,8 @@ async function monthlyReceiptCanvas(g){
       const bankRows=[
         ["Chave Pix",g.bank.pix_key||"Não cadastrada"],
         ["Banco",g.bank.bank_name||"Não informado"],
-        ["Agência",g.bank.branch||"Não informada"],
-        ["Conta",g.bank.account_number||"Não informada"],
+        ...(g.bank.branch?[["Agência",g.bank.branch]]:[]),
+        ...(g.bank.account_number?[["Conta",g.bank.account_number]]:[]),
         ["Favorecido",g.bank.account_holder||"Não informado"]
       ];
       for(const [k,v] of bankRows)by=wrapped(k+": "+v,pad+28,by,width-pad*2-56,"600 20px system-ui, sans-serif","#27485a",30)+8;
