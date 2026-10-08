@@ -1,0 +1,26 @@
+const fs=require('fs'),assert=require('assert/strict');
+const {JSDOM}=require(process.env.VAPOREASY_TEST_MODULES+'/jsdom');
+(async()=>{
+ const html=fs.readFileSync('index.html','utf8'),dom=new JSDOM(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,''),{url:'https://test.vaporeasy.local',runScripts:'outside-only'}),w=dom.window;
+ const functions=html.slice(html.indexOf('function adminScheduleOverrideAllowed()'),html.indexOf('async function fillVehicles(cid)'));
+ const save=html.slice(html.indexOf('async function saveAppt(e)'),html.indexOf('function realizedVehicleIds()'));
+ w.$=id=>w.document.getElementById(id);w.currentRole='owner';w.services=[{id:'service',category:'Estética',duration_minutes:90,price:150}];w.slotRequestSeq=0;
+ w.selectedAssignment=()=>({team_id:'team',collaborator_id:null});w.selectedBatchVehicleIds=()=>['vehicle'];w.selectedBatchRecurrences=()=>[{vehicle_id:'vehicle',frequency:'once'}];
+ w.serviceIsPackage=s=>String(s?.category||'').startsWith('Pacote');w.serviceUsesVehicleSizePricing=()=>false;w.appointmentSubmitLabel=()=> 'Agendar';w.esc=String;w.fail=e=>e.message;w.today=()=> '2026-10-08';w.financeAllowed=()=>false;w.agendaMonthCache=new Map();w.tab=()=>{};w.messages=[];w.show=(id,text)=>w.messages.push(text);
+ w.calls=[];w.sb={rpc:async(name,args)=>{w.calls.push({name,args});return {data:name.includes('slots')?[]:{count:1,appointment_ids:['test'],package_billing:[]}}}};
+ w.__appointmentIdempotencyKey='test-key';w.__appointmentSaveInFlight=false;
+ w.$('as').innerHTML='<option value="service">Estética</option>';w.$('ac').innerHTML='<option value="client">Client</option>';w.$('adt').value='2026-10-09';w.$('aid').value='';w.$('ad').close=()=>{};
+ w.eval(functions+'\n'+save);
+ await w.loadAvailableSlots();assert.equal(w.$('apsave').disabled,true);
+ w.$('apoverride').checked=true;await w.loadAvailableSlots();assert.equal(w.$('apsave').disabled,false);assert.equal(w.$('atm').required,false);
+ w.$('apoverridetime').value='10:10';w.$('apoverridereason').value='Equipe confirmou capacidade extra.';w.confirm=()=>true;
+ await w.saveAppt({preventDefault(){}});
+ const saved=w.calls.find(x=>x.name==='create_admin_schedule_override');assert.ok(saved,JSON.stringify(w.messages));assert.equal(saved.args.p_local_time,'10:10');assert.equal(saved.args.p_reason,'Equipe confirmou capacidade extra.');assert.equal('p_recurrences' in saved.args,false);
+ w.calls.length=0;w.confirm=()=>false;w.__appointmentIdempotencyKey='test-2';await w.saveAppt({preventDefault(){}});assert.equal(w.calls.length,0);
+ w.confirm=()=>true;w.selectedBatchRecurrences=()=>[{vehicle_id:'vehicle',frequency:'weekly'}];await w.saveAppt({preventDefault(){}});assert.equal(w.calls.length,0);
+ w.currentRole='operator';w.syncAdminScheduleOverride();assert.ok(w.$('apoverridewrap').classList.contains('hidden'));assert.equal(w.$('apoverride').checked,false);
+ w.currentRole='owner';w.services[0].category='Pacote Premium';w.syncAdminScheduleOverride();assert.ok(w.$('apoverridewrap').classList.contains('hidden'));
+ w.services[0].category='Estética';w.$('aid').value='existing';w.syncAdminScheduleOverride();assert.ok(w.$('apoverridewrap').classList.contains('hidden'));
+ console.log('PASS: DOM tests — full day unlock, manual time/RPC, cancel confirmation, recurrence guard, unauthorized/plan/edit hidden.');
+ dom.window.close();
+})().catch(e=>{console.error(e);process.exit(1)});
