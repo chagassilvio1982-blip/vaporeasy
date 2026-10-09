@@ -1,0 +1,14 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const source=fs.readFileSync(require('path').join(__dirname,'../../special-care.js'),'utf8');
+const ctx=vm.createContext({});vm.runInContext(source.slice(0,source.indexOf('/* Internal pilot:')),ctx);
+const calculate=ctx.calculateCareDraft;
+const base={base:100,hour:60,overhead:20,fees:10,margin:30,items:[{quantity:1,period:3,material_cost:30,minutes:30}]};
+assert.equal(calculate(base).cost,140);assert.equal(calculate(base).price,233.34);
+assert.equal(calculate({...base,items:[{...base.items[0],quantity:2,period:1}]}).cost,240);
+assert.throws(()=>calculate({...base,fees:70}));
+assert.throws(()=>calculate({...base,items:[{...base.items[0],material_cost:null}]}));
+assert.throws(()=>calculate({...base,items:[{...base.items[0],period:0}]}));
+assert.throws(()=>calculate({...base,hour:-1}));
+assert.throws(()=>calculate({...base,hour:Infinity}));
+assert.equal(calculate({...base,items:[{quantity:0,period:1,material_cost:null,minutes:null}]}).cost,120);
+console.log('PASS: quarterly/monthly frequency, price margin, incomplete and invalid costs, excluded unpriced care.');
