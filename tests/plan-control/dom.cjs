@@ -1,0 +1,21 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
+const {JSDOM}=require(path.join(process.env.VAPOREASY_TEST_MODULES||'/tmp/vaporeasy-test-runtime/node_modules','jsdom'));
+(async()=>{
+ const dom=new JSDOM('<body><div id="msg"></div></body>',{runScripts:'outside-only',url:'https://example.test'}),w=dom.window;
+ w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};
+ let response={subscriptions:[{id:'sub1',vehicle_id:'car1',vehicle:'TEST <img src=x onerror=alert(1)>',plan:'Plano mensal',active:true,starts_on:'2026-09-01',limit_visits:4,limit_source:'month_snapshot',completed:2,scheduled:1,visits:[{id:'appt1',date:'2026-10-01'}],services:[{id:'event1',date:'2026-10-01',label:'Hidrorrepelente',notes:'<script>alert(1)</script>'}]}]};
+ const calls=[];let failNext=false,release;
+ w.currentRole='owner';w.clients=[{id:'client',name:'Teste'}];w.today=()=> '2026-10-09';w.esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));w.fail=e=>e.message;w.show=()=>{};
+ w.sb={rpc:async(name,args)=>{calls.push({name,args});if(name==='get_client_plan_control')return {data:response};if(name==='register_package_service'){if(failNext){failNext=false;return {error:{message:'Falha de rede'}}}if(release==='wait')await new Promise(r=>release=r);return {data:'event2'}}return {data:'event1'}}};
+ w.eval(fs.readFileSync('plan-control.js','utf8'));await w.openPlanControl('client');
+ const el=id=>w.document.getElementById(id);
+ assert.match(el('pc-summary').textContent,/2 de 4 estéticas concluídas/);assert.match(el('pc-summary').textContent,/2 restantes no mês • 1 agendada/);assert.equal(el('pc-summary').querySelector('img'),null);assert.equal(el('pc-history').querySelector('script'),null);
+ el('pc-date').value='2026-10-01';el('pc-kind').value='Enceramento manual';failNext=true;
+ await el('pc-form').onsubmit({preventDefault(){}});const first=calls.at(-1).args;assert.equal(first.p_service_label,'Enceramento manual');assert.equal(first.p_performed_on,'2026-10-01');assert.match(el('pc-msg').textContent,/Falha de rede/);
+ release='wait';const saving=el('pc-form').onsubmit({preventDefault(){}});assert.equal(el('pc-month').disabled,true);assert.equal(el('pc-kind').disabled,true);await Promise.resolve();release();await saving;
+ const writes=calls.filter(x=>x.name==='register_package_service');assert.equal(writes[0].args.p_request_key,writes[1].args.p_request_key);assert.equal(el('pc-month').disabled,false);assert.match(el('pc-msg').textContent,/sem cobrança adicional/);
+ w.prompt=()=> 'Lançamento incorreto';await el('pc-history').querySelector('button').onclick();assert.equal(calls.find(x=>x.name==='void_package_service').args.p_event_id,'event1');
+ response={subscriptions:[]};el('pc-month').value='2026-09';await el('pc-month').onchange();assert.match(el('pc-summary').textContent,/Nenhum plano/);assert.equal(el('pc-body').classList.contains('hidden'),true);
+ const count=calls.length;w.currentRole='operator';await w.openPlanControl('client');assert.equal(calls.length,count);
+ console.log('PASS: count, remaining, scheduled, escaping, save/date, retry idempotency, write locking, void, empty month, operator guard');dom.window.close();
+})().catch(e=>{console.error(e);process.exit(1)});
