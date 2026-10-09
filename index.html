@@ -1477,7 +1477,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div id="avmulti" class="multi-vehicle-list"><div class="empty">Selecione o cliente primeiro.</div></div>
   <div id="avmultisummary" class="meta multi-vehicle-summary">Nenhum veículo selecionado.</div>
 </div>
-<label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label id="appackagesizewrap" class="hidden">Porte do veículo<select id="appackagesize"><option value="">Selecione P/M ou G</option><option value="pm">P/M — hatch ou sedã</option><option value="g">G — SUV, picape, minivan ou 7+ lugares</option></select><span class="meta">O porte fica salvo no veículo e define o preço do pacote.</span></label><label id="apvaluewrap" class="hidden">Valor do atendimento antes do desconto (R$)<input id="apvalue" type="number" min="0" step="0.01" inputmode="decimal"><span class="meta">Você pode ajustar este valor manualmente quando necessário.</span></label><div id="apdiscountblock" class="hidden"><label><span id="apdiscounttitle">Desconto</span><select id="apdiscounttype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label><label id="apdiscountwrap" class="hidden"><span id="apdiscountlabel">Valor do desconto</span><input id="apdiscountvalue" type="number" min="0" step="0.01" inputmode="decimal"></label><div id="apdiscountpreview" class="payment-preview"></div></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
+<label>Serviço<select id="as" required></select></label><div id="shelp" class="meta hidden"></div><label id="appackagesizewrap" class="hidden">Porte do veículo<select id="appackagesize"><option value="">Selecione P/M ou G</option><option value="pm">P/M — hatch ou sedã</option><option value="g">G — SUV, picape, minivan ou 7+ lugares</option></select><span class="meta">O porte fica salvo no veículo e define o preço do pacote.</span></label><label id="apvaluewrap" class="hidden">Valor do atendimento antes do desconto (R$)<input id="apvalue" type="number" min="0" step="0.01" inputmode="decimal"><span class="meta">Você pode ajustar este valor manualmente quando necessário.</span></label><div id="apdiscountblock" class="hidden"><label><span id="apdiscounttitle">Desconto</span><select id="apdiscounttype"><option value="none">Sem desconto</option><option value="percent">Desconto em %</option><option value="fixed">Desconto em R$</option></select></label><label id="apdiscountwrap" class="hidden"><span id="apdiscountlabel">Valor do desconto</span><input id="apdiscountvalue" type="number" min="0" step="0.01" inputmode="decimal"></label><div id="apdiscountpreview" class="payment-preview"></div></div><label>Equipe / responsável<select id="acol"><option value="">Equipe não definida</option></select></label><div class="row"><label>Data<input id="adt" type="date" required></label><label>Horário<select id="atm" required disabled><option value="">Selecione serviço, veículo e data</option></select></label></div><div id="slothelp" class="meta">Os horários disponíveis aparecerão conforme a duração do serviço e a agenda da equipe.</div><div id="apoverridewrap" class="notice hidden"><label style="display:flex;align-items:center;gap:8px"><input id="apoverride" type="checkbox" style="width:20px;min-height:20px">Encaixe autorizado pelo ADM</label><div class="meta">Permite um atendimento pontual mesmo com equipe ocupada ou dia lotado. Não cria recorrência.</div><div id="apoverridefields" class="hidden"><label>Horário do encaixe<input id="apoverridetime" type="time"></label><label>Justificativa<textarea id="apoverridereason" placeholder="Ex.: equipe confirmou capacidade para este encaixe"></textarea></label></div></div><label>Observações<textarea id="an"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="apsave" class="primary" type="submit">Agendar</button></div></form></dialog>
 </div>
 <script>
 (function(){
@@ -4336,8 +4336,31 @@ async function applyServiceRule(){
   if(!$("aid").value)updateMultiVehicleSelection(false);
   await loadAvailableSlots()
 }
+function adminScheduleOverrideAllowed(){return ["owner","admin"].includes(currentRole)&&!$("aid").value&&!serviceIsPackage(services.find(x=>x.id===$("as").value))}
+function adminScheduleOverrideSelected(){return adminScheduleOverrideAllowed()&&$("apoverride").checked}
+function syncAdminScheduleOverride(){
+  const allowed=adminScheduleOverrideAllowed();
+  $("apoverridewrap").classList.toggle("hidden",!allowed);
+  if(!allowed)$("apoverride").checked=false;
+  const active=allowed&&$("apoverride").checked;
+  $("apoverridefields").classList.toggle("hidden",!active);
+  $("apoverridetime").required=active;$("apoverridereason").required=active;
+  $("atm").required=!active;
+  $("atm").closest("label").classList.toggle("hidden",active);
+  return active;
+}
+$("apoverride").addEventListener("change",()=>loadAvailableSlots());
 async function loadAvailableSlots(preferred=""){
   const req=++slotRequestSeq,t=$("atm"),help=$("slothelp"),service=$("as").value,date=$("adt").value,assignment=selectedAssignment(),collab=assignment.collaborator_id,team=assignment.team_id,id=$("aid").value||null,b=$("apsave"),vehicleIds=selectedBatchVehicleIds();
+  const override=syncAdminScheduleOverride();
+  if(override){
+    ++slotRequestSeq;t.disabled=true;t.innerHTML='<option value="">Encaixe manual</option>';
+    if(!$("apoverridetime").value)$("apoverridetime").value=preferred||"08:00";
+    b.textContent="Confirmar encaixe";
+    b.disabled=!service||!vehicleIds.length||!date;
+    help.textContent="Atenção: este encaixe pode sobrepor atendimentos da equipe e ultrapassar a capacidade do dia. Confirme a capacidade real antes de salvar.";
+    return;
+  }
   t.disabled=true;t.innerHTML='<option value="">Verificando disponibilidade...</option>';b.disabled=true;b.textContent="Verificando...";
   if(!service||!vehicleIds.length||!date){
     if(req!==slotRequestSeq)return;
@@ -4400,7 +4423,7 @@ async function fillVehicles(cid){
   if(!$("aid").value)renderMultiVehiclePicker(list)
 }
 function spDateTime(iso){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(iso)),g=t=>p.find(x=>x.type===t)?.value||"";return{date:g("year")+"-"+g("month")+"-"+g("day"),time:g("hour")+":"+g("minute")}}
-async function openAppt(){try{window.__appointmentIdempotencyKey=crypto.randomUUID();window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__packageDiscountContext="";window.__editingAppointmentAddonValue=0;$("apf").reset();$("aid").value="";$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";$("apvaluewrap").classList.add("hidden");$("apdiscountblock").classList.add("hidden");$("apvalue").value="";$("apdiscounttype").value="none";$("apdiscountvalue").value="";$("appackagesize").value="";$("appackagesizewrap").classList.add("hidden");show("apmsg","");await refs();fillSelects();setApptVehicleMode(false);clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículos e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Selecione um ou mais veículos, serviço e data.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
+async function openAppt(){try{window.__appointmentIdempotencyKey=crypto.randomUUID();window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__packageDiscountContext="";window.__editingAppointmentAddonValue=0;$("apf").reset();$("aid").value="";syncAdminScheduleOverride();$("aptitle").textContent="Novo agendamento";$("apsave").textContent="Agendar";$("apvaluewrap").classList.add("hidden");$("apdiscountblock").classList.add("hidden");$("apvalue").value="";$("apdiscounttype").value="none";$("apdiscountvalue").value="";$("appackagesize").value="";$("appackagesizewrap").classList.add("hidden");show("apmsg","");await refs();fillSelects();setApptVehicleMode(false);clearApptClientPicker();$("adt").value=$("date").value||today();$("atm").innerHTML='<option value="">Selecione serviço, veículos e data</option>';$("atm").disabled=true;$("apsave").disabled=true;$("slothelp").textContent="Selecione um ou mais veículos, serviço e data.";$("shelp").textContent="";$("shelp").classList.add("hidden");$("ad").showModal()}catch(e){show("msg",fail(e),"error")}}
 async function openAppointmentDetail(id){
   try{
     const a=currentApps.find(x=>x.id===id);
@@ -4471,11 +4494,11 @@ async function openAppointmentDetail(id){
     if(cb)cb.onclick=()=>sharePackageCharge(cb.dataset.detailPackageCharge)
   }catch(e){show("msg",fail(e),"error")}
 }
-async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;const fresh=await sb.from("appointments").select("*").eq("id",id).single();if(fresh.error)throw fresh.error;const x=fresh.data;if(!x)throw Error("Agendamento não encontrado.");const idx=currentApps.findIndex(a=>String(a.id)===String(id));if(idx>=0)currentApps[idx]={...currentApps[idx],...x};if(x.status==="completed"||x.status==="cancelled"){agendaMonthCache.clear();await loadApps();throw Error(x.status==="completed"?"Este agendamento já foi concluído e não pode mais ser editado.":"Este agendamento já foi cancelado e não pode mais ser editado.");}$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";window.__editingAppointmentAddonValue=Number(x.addon_value||0);window.__editingAppointmentDiscountAmount=Number(x.discount_amount||0);window.__editingAppointmentDiscountPercent=Number(x.discount_percent||0);$("apvalue").value=(Number(x.base_value||0)+Number(x.addon_value||0)).toFixed(2);$("apvaluewrap").classList.toggle("hidden",!financeAllowed());$("apdiscountblock").classList.toggle("hidden",!financeAllowed());const existingDiscount=Number(x.discount_amount||0),existingPercent=Number(x.discount_percent||0);if(existingDiscount>0&&existingPercent>0){$("apdiscounttype").value="percent";$("apdiscountvalue").value=existingPercent.toFixed(2)}else if(existingDiscount>0){$("apdiscounttype").value="fixed";$("apdiscountvalue").value=existingDiscount.toFixed(2)}else{$("apdiscounttype").value="none";$("apdiscountvalue").value=""}updateAppointmentDiscountPreview();syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;syncSingleAppointmentPackageSize(false);$("appackagesizewrap").classList.toggle("hidden",!serviceUsesVehicleSizePricing(services.find(q=>q.id===x.service_id)));$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");const expectedBase=s?(serviceUsesVehicleSizePricing(s)?servicePriceByVehicleSize(s,$("appackagesize").value):Number(s.price||0)):null;window.__appointmentValueTouched=!!(s&&expectedBase!==null&&Math.abs(Number(x.base_value||0)-Number(expectedBase||0))>0.009);if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
+async function openEditAppt(id){try{window.__appointmentIdempotencyKey="";window.__appointmentSaveInFlight=false;window.__appointmentValueTouched=false;window.__editingAppointmentAddonValue=0;const fresh=await sb.from("appointments").select("*").eq("id",id).single();if(fresh.error)throw fresh.error;const x=fresh.data;if(!x)throw Error("Agendamento não encontrado.");const idx=currentApps.findIndex(a=>String(a.id)===String(id));if(idx>=0)currentApps[idx]={...currentApps[idx],...x};if(x.status==="completed"||x.status==="cancelled"){agendaMonthCache.clear();await loadApps();throw Error(x.status==="completed"?"Este agendamento já foi concluído e não pode mais ser editado.":"Este agendamento já foi cancelado e não pode mais ser editado.");}$("apf").reset();show("apmsg","");await refs();fillSelects();$("aid").value=x.id;syncAdminScheduleOverride();setApptVehicleMode(true);$("aptitle").textContent="Editar agendamento";$("apsave").textContent="Salvar alterações";window.__editingAppointmentAddonValue=Number(x.addon_value||0);window.__editingAppointmentDiscountAmount=Number(x.discount_amount||0);window.__editingAppointmentDiscountPercent=Number(x.discount_percent||0);$("apvalue").value=(Number(x.base_value||0)+Number(x.addon_value||0)).toFixed(2);$("apvaluewrap").classList.toggle("hidden",!financeAllowed());$("apdiscountblock").classList.toggle("hidden",!financeAllowed());const existingDiscount=Number(x.discount_amount||0),existingPercent=Number(x.discount_percent||0);if(existingDiscount>0&&existingPercent>0){$("apdiscounttype").value="percent";$("apdiscountvalue").value=existingPercent.toFixed(2)}else if(existingDiscount>0){$("apdiscounttype").value="fixed";$("apdiscountvalue").value=existingDiscount.toFixed(2)}else{$("apdiscounttype").value="none";$("apdiscountvalue").value=""}updateAppointmentDiscountPreview();syncApptClientPicker(x.client_id);await fillVehicles(x.client_id);$("av").value=x.vehicle_id;$("as").value=x.service_id;syncSingleAppointmentPackageSize(false);$("appackagesizewrap").classList.toggle("hidden",!serviceUsesVehicleSizePricing(services.find(q=>q.id===x.service_id)));$("acol").value=x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"");const dt=spDateTime(x.starts_at);$("adt").value=dt.date;$("an").value=x.notes||"";$("ad").showModal();const s=services.find(q=>q.id===x.service_id),h=$("shelp");const expectedBase=s?(serviceUsesVehicleSizePricing(s)?servicePriceByVehicleSize(s,$("appackagesize").value):Number(s.price||0)):null;window.__appointmentValueTouched=!!(s&&expectedBase!==null&&Math.abs(Number(x.base_value||0)-Number(expectedBase||0))>0.009);if(s){let parts=["Duração estimada: "+durationLabel(s.duration_minutes)];if(s.first_slot_time)parts.push("Primeiro horário obrigatório: "+String(s.first_slot_time).slice(0,5));if(s.booking_mode==="request")parts.push("Agendamento público sujeito à confirmação");h.textContent=parts.join(" • ");h.classList.remove("hidden")}await loadAvailableSlots(dt.time)}catch(e){show("msg",fail(e),"error")}}
 async function saveAppt(e){
   e.preventDefault();
   if(window.__appointmentSaveInFlight)return;
-  const b=$("apsave"),id=$("aid").value,clientId=$("ac").value,vehicleIds=selectedBatchVehicleIds(),serviceId=$("as").value,date=$("adt").value,time=$("atm").value,
+  const b=$("apsave"),id=$("aid").value,clientId=$("ac").value,vehicleIds=selectedBatchVehicleIds(),serviceId=$("as").value,date=$("adt").value,time=adminScheduleOverrideSelected()?$("apoverridetime").value:$("atm").value,
     requestKey=id?"":(window.__appointmentIdempotencyKey||(window.__appointmentIdempotencyKey=crypto.randomUUID()));
   show("apmsg","");
   if(!clientId)return show("apmsg","Selecione o cliente.","error");
@@ -4492,6 +4515,12 @@ async function saveAppt(e){
   if(packageSizes.some(x=>!["pm","g"].includes(x.size)))return show("apmsg","Defina o porte P/M ou G de todos os veículos selecionados para aplicar o preço correto do pacote.","error");
   const selectedRecurrences=selectedBatchRecurrences();
   if(!id&&serviceIsPackage(s)&&selectedRecurrences.some(x=>!["weekly","biweekly"].includes(x.frequency)))return show("apmsg","Para contratar o pacote, escolha Quinzenal ou Semanal.","error");
+  const override=adminScheduleOverrideSelected();
+  if(override){
+    if(selectedRecurrences.some(x=>x.frequency!=="once"))return show("apmsg","O encaixe é pontual. Selecione Avulso / sem recorrência para todos os veículos.","error");
+    if($("apoverridereason").value.trim().length<10)return show("apmsg","Informe uma justificativa com pelo menos 10 caracteres.","error");
+    if(!window.confirm("Confirmar encaixe às "+time+"? A equipe pode ter atendimentos sobrepostos. Você confirma que há capacidade para atender?"))return;
+  }
   const assignment=selectedAssignment();
   window.__appointmentSaveInFlight=true;
   b.disabled=true;b.textContent=id?"Salvando...":"Agendando...";
@@ -4523,13 +4552,13 @@ async function saveAppt(e){
         if(q.error)throw Error(q.error);
         recurrences=recurrences.map(x=>({...x,commercial_discount_type:q.type,commercial_discount_value:q.type==="none"?0:q.raw}))
       }
-      const r=await sb.rpc("create_multi_vehicle_booking_recurring",{
+      const r=await sb.rpc(override?"create_admin_schedule_override":"create_multi_vehicle_booking_recurring",{
         p_client_id:clientId,
         p_vehicle_ids:vehicleIds,
         p_service_id:s.id,
         p_date:date,
         p_local_time:time,
-        p_recurrences:recurrences,
+        ...(override?{p_reason:$("apoverridereason").value.trim()}:{p_recurrences:recurrences}),
         p_team_id:assignment.team_id,
         p_collaborator_id:assignment.collaborator_id,
         p_notes:$("an").value.trim(),
@@ -4537,7 +4566,7 @@ async function saveAppt(e){
       });
       if(r.error)throw r.error;
       const result=r.data||{},weekly=Number(result.weekly_count||0),biweekly=Number(result.biweekly_count||0),billing=Array.isArray(result.package_billing)?result.package_billing:[];
-      let msg=vehicleIds.length>1?vehicleIds.length+" veículos agendados em sequência.":"Agendamento salvo com sucesso.";
+      let msg=override?"Encaixe autorizado e salvo. Justificativa registrada.":(vehicleIds.length>1?vehicleIds.length+" veículos agendados em sequência.":"Agendamento salvo com sucesso.");
       if(billing.length){
         let chargeMap=new Map();
         const chargeIds=billing.map(x=>x.charge_id).filter(Boolean);
