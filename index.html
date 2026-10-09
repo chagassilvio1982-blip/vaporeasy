@@ -10,7 +10,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="/vaporeasy-icon-official.svg">
 <link rel="apple-touch-icon" href="/vaporeasy-icon-official.svg">
-<title>Vaporeasy</title>
+<title>Vaporeasy — HOMOLOGAÇÃO</title>
 <meta name="description" content="Agende seu atendimento Vaporeasy de forma rápida e segura.">
 <meta property="og:title" content="Vaporeasy • Agendamento online">
 <meta property="og:description" content="Cadastre seu veículo e escolha o serviço, a data e o horário disponíveis.">
@@ -1151,7 +1151,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <style id="vaporeasy-recurring-multi-20260929"></style>
 <link rel="stylesheet" href="/main-menu.css?v=20261001">\n<link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 </head>
-<body><div class="app">
+<body><div role="status" style="position:fixed;right:8px;top:8px;z-index:99999;background:#7c1b22;color:white;padding:9px;border-radius:9px;font-weight:800">HOMOLOGAÇÃO · DADOS DE TESTE</div><div class="app">
 <header id="hdr" class="hidden"><div><img data-brand-logo class="brand-logo brand-logo-header" src="/vaporeasy-logo-original.svg?v=20260928-05" loading="eager" decoding="sync" alt="Vaporeasy"></div><div class="headright"><button id="bell" class="bell" type="button" aria-label="Notificações">🔔<span id="nbadge" class="badge hidden">0</span></button><div class="profile"><b id="pname">—</b><div id="prole">—</div></div></div></header>
 <main>
 <section id="public" class="hidden">
@@ -1525,7 +1525,7 @@ if(!window.supabase){
   throw new Error("Supabase JS não carregou");
 }
 const {createClient}=window.supabase;
-const SUPABASE_URL="https://asuppjeomaymzromgcrp.supabase.co", KEY="sb_publishable_LfmsuPyDMKnyKHGh0x7Akw_yJfQ15bI", FN=SUPABASE_URL+"/functions/v1/vaporeasy-v2-staging", PUBLIC_FN=SUPABASE_URL+"/functions/v1/vaporeasy-public-booking";
+const SUPABASE_URL="https://wwivmyhlwqyzmaexkmnk.supabase.co", KEY="sb_publishable_kqR9AKXbxqRPbFFzkcXQ7w_pOzTAP1M", FN=SUPABASE_URL+"/functions/v1/vaporeasy-v2-staging", PUBLIC_FN=SUPABASE_URL+"/functions/v1/vaporeasy-public-booking";
 const sb=createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 const BRAND_LOGO="/vaporeasy-logo-original.svg?v=20261006-01",brandLogoImg=new Image();brandLogoImg.src=BRAND_LOGO;
 const $=id=>document.getElementById(id); let mode="login", clients=[], services=[], collabs=[], vehicleBrands=[], vehicleModels=[], currentApps=[], vehicles=new Map(), teams=[], teamMembers=[], allCollabs=[], currentUserId=null, currentRole="", currentReceipt=null, currentReceiptGroup=null, currentMonthlyReceipt=null, currentFinishExistingPhoto=null, notifTimer=null, notifChannel=null, knownUnread=new Set(), soundCtx=null, publicCfg=null, publicToken=new URLSearchParams(location.search).get("share")||"", publicRequestId=crypto.randomUUID(), generatedLinkClientName="", generatedLinkClientId="", slotRequestSeq=0, publicDates=[], publicDateLimit=6, publicAddonIds=[], androidImportContacts=[], collabAccess=new Map(), currentPaymentQuote=null, currentPaymentMode="receive", currentPaymentGroupIds=[], refsLoadedAt=0, vehicleCatalogLoadedAt=0, waterCounterLoadedAt=0, agendaLoadSeq=0, agendaMonthCache=new Map(), apptRecurringByVehicle=new Map(), recurrenceSyncAt=0;
@@ -1703,7 +1703,7 @@ async function enter(session){
   try{
     const sessionUser=session?.user;
     if(!session?.access_token||!sessionUser?.id)throw Error("Sessão inválida. Entre novamente.");
-    const br=await fetch("https://asuppjeomaymzromgcrp.supabase.co/functions/v1/vaporeasy-v2-staging?action=bootstrap",{method:"POST",headers:{authorization:"Bearer "+session.access_token}});
+    const br=await fetch("https://wwivmyhlwqyzmaexkmnk.supabase.co/functions/v1/vaporeasy-v2-staging?action=bootstrap",{method:"POST",headers:{authorization:"Bearer "+session.access_token}});
     const bj=await br.json();if(!br.ok&&br.status!==403)throw Error(bj.error||"Falha no acesso");
     const u=await sb.auth.getUser(session.access_token);if(u.error)throw u.error;
     if(!u.data.user||u.data.user.id!==sessionUser.id)throw Error("Sessão inconsistente. Saia e entre novamente.");
@@ -2089,6 +2089,7 @@ function bindSelectedClientActions(scope){
   scope.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>openVehicle(b.dataset.n));
   scope.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>showVehicles(b.dataset.v));
   scope.querySelectorAll("[data-cx]").forEach(b=>b.onclick=()=>archiveClient(b.dataset.cx));
+  scope.querySelectorAll("[data-plan-control]").forEach(b=>b.onclick=()=>window.openPlanControl(b.dataset.planControl));
   const clear=scope.querySelector("[data-client-clear]");
   if(clear)clear.onclick=()=>{selectedClientId="";$("q").value="";$("q").focus();renderClients()}
 }
@@ -2101,6 +2102,7 @@ function renderSelectedClient(c){
       '<button class="primary" data-v="'+c.id+'">Ver veículos</button>'+
       '<button class="ghost" data-n="'+c.id+'">+ Veículo</button>'+
       '<button class="ghost" data-e="'+c.id+'">Editar cliente</button>'+
+      (canDelete?'<button class="ghost" data-plan-control="'+c.id+'">Controle dos planos</button>':"")+
       (canDelete?'<button class="danger subtle-danger" data-cx="'+c.id+'">Excluir cliente</button>':"")+
     '</div>'+
     '<div id="v-'+c.id+'" class="hidden vehicle-list"></div>'+
@@ -5874,5 +5876,6 @@ async function loadApps(){
 
 boot();
 </script>
+<script src="/plan-control.js?v=20261009-01"></script>
 <script src="/main-menu.js?v=20261001"></script>
 </body></html>
