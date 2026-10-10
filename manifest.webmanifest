@@ -10,16 +10,11 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/vaporeasy-icon-official.svg?v=2",
+      "src": "/vaporeasy-icon-official.svg?v=3",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
-    },
-    {
-      "src": "/vaporeasy-icon-official.svg?v=2",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "/"
 }
