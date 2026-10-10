@@ -1,0 +1,50 @@
+name: Generate PWA icons (isolated fix branch)
+on:
+  push:
+    branches:
+      - fix/pwa-identidade-vaporeasy-20261010
+    paths:
+      - .github/workflows/generate-pwa-icons.yml
+      - vaporeasy-logo-original.svg
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  generate-icons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install SVG renderer
+        run: |
+          python -m pip install --disable-pip-version-check cairosvg pillow
+      - name: Render official icon as PNG
+        run: |
+          python - <<'PY'
+          import base64, re
+          from PIL import Image, ImageOps
+          from io import BytesIO
+          from pathlib import Path
+          source = Path('vaporeasy-logo-original.svg').read_text()
+          encoded = re.search(r'data:image/png;base64,([^"]+)', source).group(1)
+          logo = Image.open(BytesIO(base64.b64decode(encoded))).convert('RGBA')
+          print('Source logo:', logo.size, 'bbox:', logo.getbbox(), 'center:', logo.getpixel((logo.width//2,logo.height//2)), 'colors:', len(logo.getcolors(1000000) or []))
+          for size in (192, 512):
+              background = Image.new('RGBA', (size, size), '#ffffff')
+              max_width, max_height = int(size * .86), int(size * .44)
+              fitted = ImageOps.contain(logo, (max_width, max_height), Image.Resampling.LANCZOS)
+              background.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
+              out = background.convert('RGB')
+              print('Output:', size, 'center:', out.getpixel((size//2,size//2)), 'colors:', len(out.getcolors(1000000) or []))
+              out.save(f'vaporeasy-icon-{size}.png', optimize=True)
+          PY
+      - name: Commit only generated PNGs to fix branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vaporeasy-icon-192.png vaporeasy-icon-512.png
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(pwa): add official PNG icons for Android"
+            git push origin HEAD:fix/pwa-identidade-vaporeasy-20261010
+          fi
