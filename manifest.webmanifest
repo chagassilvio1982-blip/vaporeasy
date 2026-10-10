@@ -1,6 +1,6 @@
 {
-  "name": "Vaporeasy V2 Staging",
-  "short_name": "Vaporeasy V2",
+  "name": "Vaporeasy",
+  "short_name": "Vaporeasy",
   "description": "Sistema operacional da Vaporeasy",
   "start_url": "/",
   "scope": "/",
