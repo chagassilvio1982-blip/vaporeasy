@@ -23,7 +23,8 @@ jobs:
         run: |
           python - <<'PY'
           import cairosvg
-          from PIL import Image
+          from PIL import Image, ImageFile
+          ImageFile.LOAD_TRUNCATED_IMAGES = True
           from io import BytesIO
           from pathlib import Path
           svg = Path('vaporeasy-icon-official.svg').read_bytes()
