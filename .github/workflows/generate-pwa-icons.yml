@@ -5,7 +5,7 @@ on:
       - fix/pwa-identidade-vaporeasy-20261010
     paths:
       - .github/workflows/generate-pwa-icons.yml
-      - vaporeasy-icon-official.svg
+      - vaporeasy-logo-original.svg
   workflow_dispatch:
 permissions:
   contents: write
@@ -22,18 +22,21 @@ jobs:
       - name: Render official icon as PNG
         run: |
           python - <<'PY'
-          import cairosvg
-          from PIL import Image, ImageFile
-          ImageFile.LOAD_TRUNCATED_IMAGES = True
+          import base64, re
+          from PIL import Image, ImageOps
           from io import BytesIO
           from pathlib import Path
-          svg = Path('vaporeasy-icon-official.svg').read_bytes()
+          source = Path('vaporeasy-logo-original.svg').read_text()
+          encoded = re.search(r'data:image/png;base64,([^"]+)', source).group(1)
+          logo = Image.open(BytesIO(base64.b64decode(encoded))).convert('RGBA')
+          print('Source logo:', logo.size, 'bbox:', logo.getbbox())
           for size in (192, 512):
-              raw = cairosvg.svg2png(bytestring=svg, output_width=size, output_height=size)
-              im = Image.open(BytesIO(raw)).convert('RGBA')
-              assert im.size == (size, size)
-              im.save(f'vaporeasy-icon-{size}.png', optimize=True)
-          PY
+              background = Image.new('RGBA', (size, size), '#07131c')
+              max_width, max_height = int(size * .86), int(size * .44)
+              fitted = ImageOps.contain(logo, (max_width, max_height), Image.Resampling.LANCZOS)
+              background.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
+              background.convert('RGB').save(f'vaporeasy-icon-{size}.png', optimize=True)
+                    PY
       - name: Commit only generated PNGs to fix branch
         run: |
           git config user.name "github-actions[bot]"
