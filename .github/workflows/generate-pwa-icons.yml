@@ -31,7 +31,7 @@ jobs:
           logo = Image.open(BytesIO(base64.b64decode(encoded))).convert('RGBA')
           print('Source logo:', logo.size, 'bbox:', logo.getbbox(), 'center:', logo.getpixel((logo.width//2,logo.height//2)), 'colors:', len(logo.getcolors(1000000) or []))
           for size in (192, 512):
-              background = Image.new('RGBA', (size, size), '#07131c')
+              background = Image.new('RGBA', (size, size), '#ffffff')
               max_width, max_height = int(size * .86), int(size * .44)
               fitted = ImageOps.contain(logo, (max_width, max_height), Image.Resampling.LANCZOS)
               background.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
