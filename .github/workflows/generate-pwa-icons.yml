@@ -36,7 +36,7 @@ jobs:
               fitted = ImageOps.contain(logo, (max_width, max_height), Image.Resampling.LANCZOS)
               background.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
               background.convert('RGB').save(f'vaporeasy-icon-{size}.png', optimize=True)
-                    PY
+          PY
       - name: Commit only generated PNGs to fix branch
         run: |
           git config user.name "github-actions[bot]"
