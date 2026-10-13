@@ -79,7 +79,7 @@ begin
   if auth.uid() is not null then new.updated_by:=auth.uid(); end if;
   return new;
 end
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.operator_complete_job(p_appointment_id uuid)
  RETURNS boolean
@@ -115,4 +115,4 @@ begin
   return true;
 end
 
-$function$
+$function$;
