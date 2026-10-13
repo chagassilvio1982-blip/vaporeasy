@@ -1345,20 +1345,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </main>
 <dialog id="ld"><div class="stack"><h3 style="margin:4px 0">Gerar link de agendamento</h3><div class="notice">O cliente nunca verá nem escolherá colaborador.</div><label>Cliente destinatário<div class="appt-client-picker"><input id="lclientsearch" type="text" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="words" spellcheck="false"><select id="lclient" class="hidden" aria-hidden="true" tabindex="-1"><option value="">Novo cliente</option></select><div id="lclientsuggestions" class="appt-client-suggestions hidden"></div><div id="lclientselected" class="appt-client-selected hidden"></div></div></label><button id="lnewclient" class="ghost" type="button">+ Link para novo cliente</button><div id="lpreview" class="meta">Link para um novo cliente preencher o próprio cadastro.</div><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="lat" type="checkbox" checked style="width:22px;min-height:22px">Permitir que o cliente agende para hoje</label><button id="mklink" class="primary" type="button">Gerar link</button><label>Link<input id="linkout" readonly placeholder="O link aparecerá aqui"></label><label id="sharemsgwrap" class="hidden">Mensagem para o cliente<textarea id="sharemsg" readonly></textarea></label><div class="actions"><button id="copylink" class="ghost" type="button" disabled>Copiar mensagem</button><button id="sharelink" class="ghost" type="button" disabled>Compartilhar</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
 <dialog id="rd"><div class="stack"><div id="rcontent"></div><div id="rgroupmsg" class="notice hidden"></div><div class="actions"><button id="rshare" class="primary" type="button">Compartilhar comprovante</button><button id="rgroup" class="ghost hidden" type="button">Agrupar deste cliente</button><button id="rdiscount" class="ghost hidden" type="button">Aplicar desconto</button><button id="rcharge" class="ghost" type="button">Cobrança / Pix</button><button id="rprint" class="ghost" type="button">Compartilhar PDF</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
-<dialog id="fd"><form id="finishf" class="stack"><input id="finishid" type="hidden"><h3 id="finishtitle">Finalizar atendimento</h3><div class="notice">A foto final é o registro padrão da conclusão e é usada somente para controle interno da Vaporeasy. Se realmente não for possível fotografar, use a exceção com justificativa obrigatória.</div><div id="finishsummary" class="meta"></div><div id="finishphotowrap">
-  <div style="font-weight:800;margin-bottom:8px">Foto final do veículo</div>
-  <input id="finishphoto" type="file" accept="image/*" capture="environment" class="hidden">
-  <button id="takefinishphoto" type="button" class="primary" style="width:100%">📷 Tirar foto do veículo</button>
-  <div class="meta" style="margin-top:7px">Enquadre o veículo inteiro, preferencialmente em ângulo 3/4.</div>
-</div><div id="finishexisting" class="notice ok hidden"></div><img id="finishpreview" class="hidden" alt="Prévia da foto final" style="width:100%;max-height:340px;object-fit:cover;border-radius:14px;border:1px solid #31576a">
-<div id="finishexceptionwrap" class="finish-exception-wrap">
-  <label class="finish-exception-toggle"><input id="finishexception" type="checkbox"><span>Não foi possível tirar a foto</span></label>
-  <div id="finishexceptionbox" class="finish-exception-box hidden">
-    <label>Justificativa obrigatória<textarea id="finishreason" minlength="10" maxlength="1000" placeholder="Explique objetivamente por que a foto final não pôde ser realizada."></textarea></label>
-    <div class="meta">A justificativa ficará registrada com seu nome, data e horário no histórico interno do atendimento.</div>
-  </div>
-</div>
-<div id="finishmsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="finishsave" class="success">Salvar foto e concluir</button></div></form></dialog>
+<dialog id="fd"><form id="finishf" class="stack">
+<input id="finishid" type="hidden"><h3 id="finishtitle">Concluir atendimento</h3>
+<div id="finishsummary" class="meta"></div>
+<div id="finishkind" class="notice">A conclusão registra o serviço realizado, sem exigir fotografia.</div>
+<div class="meta">A data e o horário são registrados pelo sistema. O financeiro diferencia plano contratado, recorrência sem plano e serviço avulso.</div>
+<div id="finishmsg" class="notice hidden"></div>
+<div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="finishsave" class="success">Confirmar conclusão</button></div>
+</form></dialog>
 <dialog id="dd"><div class="stack">
   <div class="actions"><h3 style="margin:8px 0;flex:3">Detalhes do atendimento</h3><button type="button" class="ghost" data-close>Fechar</button></div>
   <div id="ddcontent"></div>
@@ -1558,7 +1552,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);const r=await sb.auth.signOut({scope:"local"});if(r.error){show("msg","Não foi possível encerrar a sessão. Tente novamente.","error");return}const check=await sb.auth.getSession();if(check.data?.session){show("msg","A sessão anterior ainda está ativa. Tente sair novamente.","error");return}currentUserId=null;currentRole=null;currentApps=[];$("pass").value="";location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=async()=>{operatorMonthCache.clear();await Promise.all([loadOperatorMonth(true),loadOperatorJobs(operatorSelectedDate,false)])};$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lclientsearch").oninput=()=>{if($("lclient").value)clearLinkClientPicker(true);renderLinkClientSuggestions()};$("lclientsearch").onfocus=renderLinkClientSuggestions;$("lclientsearch").onkeydown=e=>{if(e.key==="Escape"){$("lclientsuggestions").classList.add("hidden");$("lclientsearch").blur()}};$("lnewclient").onclick=useNewLinkClient;$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("recorddone").onclick=openRealizedService;$("rdf").onsubmit=saveRealizedService;$("rdclient").onchange=loadRealizedVehicles;$("rdservice").onchange=applyRealizedService;$("rddisctype").onchange=updateRealizedQuote;$("rddiscvalue").oninput=updateRealizedQuote;$("rdvalue").oninput=updateRealizedQuote;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setservicesizepricing").onchange=toggleServiceSizePricingFields;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletionPhoto;$("finishphoto").onchange=previewCompletionPhoto;$("takefinishphoto").onclick=()=>$("finishphoto").click();$("finishexception").onchange=toggleFinishException;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=()=>{syncSingleAppointmentPackageSize();loadAvailableSlots()};$("appackagesize").onchange=()=>{updateSingleAppointmentPackagePrice()};$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("recorddone").onclick=openRealizedService;$("rdf").onsubmit=saveRealizedService;$("rdclient").onchange=loadRealizedVehicles;$("rdservice").onchange=applyRealizedService;$("rddisctype").onchange=updateRealizedQuote;$("rddiscvalue").oninput=updateRealizedQuote;$("rdvalue").oninput=updateRealizedQuote;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setservicesizepricing").onchange=toggleServiceSizePricingFields;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletion;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=()=>{syncSingleAppointmentPackageSize();loadAvailableSlots()};$("appackagesize").onchange=()=>{updateSingleAppointmentPackagePrice()};$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -4396,7 +4390,7 @@ async function openAppointmentDetail(id){
   try{
     const a=currentApps.find(x=>x.id===id);
     if(!a)throw Error("Atendimento não encontrado.");
-    const client=clients.find(x=>x.id===a.client_id),vehicle=findVehicleLocal(a.vehicle_id),service=services.find(x=>x.id===a.service_id),responsible=collabs.find(x=>x.id===a.collaborator_id),assignedTeam=teams.find(x=>x.id===a.team_id),responsibleLabel=assignedTeam?teamDisplay(assignedTeam.id):(responsible?.name||"Não definido"),packageVisit=serviceIsPackage(service)&&!!a.recurring_plan_id;
+    const client=clients.find(x=>x.id===a.client_id),vehicle=findVehicleLocal(a.vehicle_id),service=services.find(x=>x.id===a.service_id),responsible=collabs.find(x=>x.id===a.collaborator_id),assignedTeam=teams.find(x=>x.id===a.team_id),responsibleLabel=assignedTeam?teamDisplay(assignedTeam.id):(responsible?.name||"Não definido"),packageVisit=!!a.recurring_plan_id&&window.__v2PackagePlanIds?.has(a.recurring_plan_id);
     const [ph,exr]=await Promise.all([
       sb.from("appointment_completion_photos").select("*").eq("appointment_id",id).maybeSingle(),
       sb.from("appointment_completion_exceptions").select("*").eq("appointment_id",id).maybeSingle()
@@ -4448,7 +4442,7 @@ async function openAppointmentDetail(id){
           '<div class="meta"><b>Horário da conclusão</b><br>'+esc(completed?(completed.date+" • "+completed.time):"Não registrado")+'</div>'+
           '<div class="meta" style="margin-top:10px"><b>Responsável pela finalização</b><br>'+esc(finisher)+'</div>'+
           (completionException?'<div class="notice finish-exception-history" style="margin-top:10px"><b>Concluído sem foto — com justificativa</b><br><span>'+esc(completionException.reason)+'</span><div class="meta" style="margin-top:7px">Registrado por '+esc(completionException.recorded_by_name||"Equipe Vaporeasy")+(exceptionAt?' • '+esc(exceptionAt.date+" • "+exceptionAt.time):'')+'</div></div>':'')+
-          (photo?'<div class="meta" style="margin-top:10px"><b>Foto interna registrada</b><br>'+esc(captured?(captured.date+" • "+captured.time):"Registrada")+'</div>':(!completionException?'<div class="notice" style="margin-top:10px">Sem foto final — registro anterior à regra obrigatória.</div>':''))+
+          (photo?'<div class="meta" style="margin-top:10px"><b>Foto interna registrada</b><br>'+esc(captured?(captured.date+" • "+captured.time):"Registrada")+'</div>':'')+
           (photoUrl?'<img src="'+esc(photoUrl)+'" alt="Foto final interna do veículo" style="width:100%;max-height:420px;object-fit:cover;border-radius:14px;border:1px solid #31576a;margin-top:12px;display:block">':'')+
           '<div class="meta" style="margin-top:8px">Uso interno da Vaporeasy. Fotos e justificativas de exceção não são enviadas ao cliente.</div>'+
         '</div>':'')+
@@ -4741,112 +4735,49 @@ async function fileToCompressedJpeg(file){
   }catch(e){cleanup();throw e}
 }
 async function openCompletion(id){
-  const a=currentApps.find(x=>x.id===id);if(!a)return show("msg","Atendimento não encontrado.","error");
-  const operator=currentRole==="operator",legacyCompleted=a.status==="completed";
-  if(operator&&a.status!=="in_progress")return show("msg","Inicie o atendimento antes de concluir.","error");
+  const a=currentApps.find(x=>x.id===id);
+  if(!a)return show("msg","Atendimento não encontrado.","error");
+  if(a.status==="completed")return show("msg","Este atendimento já está concluído.","error");
+  if(a.status!=="in_progress")return show("msg","Inicie o atendimento antes de concluir.","error");
+  const operator=currentRole==="operator";
   const clientLabel=operator?a.client_name:(clients.find(x=>x.id===a.client_id)?.name||"Cliente");
-  const vehicleLabel=operator?a.vehicle_label:(()=>{const vehicle=findVehicleLocal(a.vehicle_id);return vehicle?(vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"")):"Veículo"})();
-  $("finishf").reset();$("finishid").value=id;$("finishpreview").src="";$("finishpreview").classList.add("hidden");show("finishmsg","");
-  $("finishtitle").textContent=legacyCompleted?"Adicionar foto final":"Finalizar atendimento";
-  $("finishsave").textContent=legacyCompleted?"Salvar foto":"Salvar foto e concluir";
-  $("finishsummary").innerHTML='<b>'+esc(clientLabel)+'</b><br>'+esc(vehicleLabel)+(legacyCompleted?'<br><span class="meta">Atendimento já concluído. Aqui você pode complementar o registro com uma foto final.</span>':'');
-  currentFinishExistingPhoto=null;
-  $("finishexisting").classList.add("hidden");
-  $("finishexception").checked=false;
-  $("finishexceptionbox").classList.add("hidden");
-  $("finishreason").value="";
-  $("finishexceptionwrap").classList.toggle("hidden",legacyCompleted);
-  $("finishphotowrap").classList.remove("finish-photo-disabled");
-  $("takefinishphoto").disabled=false;
-  if(!operator){
-    const ex=await sb.from("appointment_completion_photos").select("*").eq("appointment_id",id).maybeSingle();
-    if(!ex.error&&ex.data){
-      currentFinishExistingPhoto=ex.data;
-      $("finishexisting").textContent="Já existe uma foto final registrada para este atendimento.";
-      $("finishexisting").classList.remove("hidden")
-    }
+  const vehicleLabel=operator?a.vehicle_label:(()=>{const v=findVehicleLocal(a.vehicle_id);return v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo"})();
+  $("finishf").reset();$("finishid").value=id;show("finishmsg","");
+  $("finishtitle").textContent="Concluir atendimento";
+  $("finishsave").textContent="Confirmar conclusão";
+  $("finishsummary").innerHTML='<b>'+esc(clientLabel||"Cliente")+'</b><br>'+esc(vehicleLabel||"Veículo");
+  let detail="Serviço avulso: cobrança individual após a conclusão.";
+  if(operator) detail="O sistema registra a execução. A classificação do plano e da cobrança é controlada pelo financeiro.";
+  else if(a.recurring_plan_id){
+    const check=await sb.from("package_subscriptions").select("id").eq("recurring_plan_id",a.recurring_plan_id).maybeSingle();
+    if(check.error)return show("msg","Não foi possível conferir o vínculo do plano: "+fail(check.error),"error");
+    detail=check.data?.id
+      ?"Visita de plano contratado: registrar a execução sem cobrar novamente o serviço incluído. Extras podem ser cobrados à parte."
+      :"Recorrência sem plano contratado: registrar a execução e gerar cobrança individual.";
   }
+  $("finishkind").textContent=detail;
   $("fd").showModal()
 }
-function toggleFinishException(){
-  const on=$("finishexception").checked;
-  $("finishexceptionbox").classList.toggle("hidden",!on);
-  $("finishphotowrap").classList.toggle("finish-photo-disabled",on);
-  $("takefinishphoto").disabled=on;
-  $("finishreason").required=on;
-  if(on){
-    $("finishphoto").value="";
-    $("finishpreview").src="";
-    $("finishpreview").classList.add("hidden");
-    $("finishsave").textContent="Concluir com justificativa";
-    setTimeout(()=>$("finishreason").focus(),50)
-  }else{
-    $("finishreason").required=false;
-    $("finishsave").textContent="Salvar foto e concluir"
-  }
-}
-function previewCompletionPhoto(){
-  const file=$("finishphoto").files?.[0];
-  if(file&&$("finishexception").checked){
-    $("finishexception").checked=false;
-    toggleFinishException()
-  }
-  if(!file){if(!currentFinishExistingPhoto){$("finishpreview").src="";$("finishpreview").classList.add("hidden")}return}
-  const url=URL.createObjectURL(file);$("finishpreview").src=url;$("finishpreview").classList.remove("hidden");
-  $("finishpreview").onload=()=>setTimeout(()=>URL.revokeObjectURL(url),500)
-}
-async function saveCompletionPhoto(e){
+async function saveCompletion(e){
   e.preventDefault();
-  const id=$("finishid").value,a=currentApps.find(x=>x.id===id),file=$("finishphoto").files?.[0],b=$("finishsave"),legacyCompleted=a?.status==="completed";
-  if(!a)return;
-  const exception=!legacyCompleted&&$("finishexception").checked,reason=$("finishreason").value.trim();
-  if(exception&&reason.length<10)return show("finishmsg","Explique o motivo em pelo menos 10 caracteres.","error");
-  if(!exception&&!file&&!currentFinishExistingPhoto)return show("finishmsg","Tire a foto final ou marque a exceção e informe a justificativa.","error");
-  b.disabled=true;b.textContent=exception?"Registrando justificativa...":file?"Salvando foto...":"Concluindo...";
+  const id=$("finishid").value,a=currentApps.find(x=>x.id===id),b=$("finishsave");
+  if(!a)return show("finishmsg","Atendimento não encontrado.","error");
+  if(a.status!=="in_progress")return show("finishmsg","O atendimento precisa estar em execução.","error");
+  if(b.disabled)return;
+  b.disabled=true;b.textContent="Concluindo...";
   try{
-    if(exception){
-      const u=await sb.rpc("complete_job_without_photo",{p_appointment_id:id,p_reason:reason});
-      if(u.error)throw u.error;
-      $("fd").close();
-      agendaMonthCache.clear();operatorMonthCache.clear();waterCounterLoadedAt=0;
-      show("msg","Atendimento concluído sem foto. A justificativa foi registrada no histórico interno.","ok");
-      if(currentRole==="operator")await Promise.all([loadOperatorJobs(operatorSelectedDate,false),loadOperatorMonth(true)]);else await loadApps();
-      return
+    if(currentRole==="operator"){
+      const res=await sb.rpc("operator_complete_job",{p_appointment_id:id});
+      if(res.error)throw res.error;
+    }else{
+      const res=await sb.from("appointments").update({status:"completed"}).eq("id",id).eq("status","in_progress").select("id").single();
+      if(res.error)throw res.error;
     }
-    if(file){
-      const blob=await fileToCompressedJpeg(file),path=id+"/"+currentUserId+"/final.jpg";
-      const up=await sb.storage.from("completion-photos").upload(path,blob,{contentType:"image/jpeg",upsert:true,cacheControl:"3600"});
-      if(up.error)throw up.error;
-      const row={
-        appointment_id:id,storage_path:path,uploaded_by:currentUserId,
-        uploaded_by_name:$("pname").textContent||"",
-        collaborator_id:currentRole==="operator"?(a.actor_collaborator_id||a.collaborator_id||null):(a.collaborator_id||null),
-        captured_at:new Date().toISOString(),updated_at:new Date().toISOString()
-      };
-      const pr=await sb.from("appointment_completion_photos").upsert(row,{onConflict:"appointment_id"});
-      if(pr.error)throw pr.error;
-      currentFinishExistingPhoto=row
-    }
-    if(a.status!=="completed"){
-      if(currentRole==="operator"){
-        const u=await sb.rpc("operator_complete_job",{p_appointment_id:id});
-        if(u.error)throw u.error
-      }else{
-        const u=await sb.from("appointments").update({status:"completed",completed_at:new Date().toISOString()}).eq("id",id);
-        if(u.error)throw u.error
-      }
-    }
-    $("fd").close();
-    agendaMonthCache.clear();operatorMonthCache.clear();waterCounterLoadedAt=0;
-    show("msg",a.status==="completed"?"Foto final adicionada ao atendimento.":"Atendimento concluído com foto final registrada.","ok");
-    if(currentRole==="operator")await Promise.all([loadOperatorJobs(operatorSelectedDate,false),loadOperatorMonth(true)]);else await loadApps()
-  }catch(e){show("finishmsg",fail(e),"error")}
-  finally{
-    b.disabled=false;
-    if(a?.status==="completed")b.textContent="Salvar foto";
-    else if($("finishexception").checked)b.textContent="Concluir com justificativa";
-    else b.textContent="Salvar foto e concluir"
-  }
+    $("fd").close();agendaMonthCache.clear();operatorMonthCache.clear();waterCounterLoadedAt=0;
+    show("msg","Atendimento concluído. Financeiro atualizado conforme o vínculo do plano.","ok");
+    if(currentRole==="operator")await Promise.all([loadOperatorJobs(operatorSelectedDate,false),loadOperatorMonth(true)]);else await loadApps();
+  }catch(err){show("finishmsg",fail(err),"error")}
+  finally{b.disabled=false;b.textContent="Confirmar conclusão"}
 }
 async function loadRemoteImage(url){
   if(!url)return null;
@@ -5749,15 +5680,16 @@ async function loadApps(){
   if(req!==agendaLoadSeq)return;
   if(r.error)return show("msg",fail(r.error),"error");
   currentApps=r.data||[];
-  const paymentMap=new Map(),photoMap=new Map(),ids=currentApps.map(x=>x.id),completedIds=currentApps.filter(x=>x.status==="completed").map(x=>x.id),vehicleIds=[...new Set(currentApps.map(x=>x.vehicle_id).filter(Boolean))];
-  const [py,ph,vr]=await Promise.all([
+  const paymentMap=new Map(),completedIds=currentApps.filter(x=>x.status==="completed").map(x=>x.id),vehicleIds=[...new Set(currentApps.map(x=>x.vehicle_id).filter(Boolean))],recurringPlanIds=[...new Set(currentApps.map(x=>x.recurring_plan_id).filter(Boolean))];
+  const [py,vr,sub]=await Promise.all([
     completedIds.length?sb.from("appointment_payments").select("*").in("appointment_id",completedIds):Promise.resolve({data:[],error:null}),
-    completedIds.length?sb.from("appointment_completion_photos").select("*").in("appointment_id",completedIds):Promise.resolve({data:[],error:null}),
-    vehicleIds.length?sb.from("vehicles").select("id,client_id,brand,model,plate,year,color").in("id",vehicleIds):Promise.resolve({data:[],error:null})
+    vehicleIds.length?sb.from("vehicles").select("id,client_id,brand,model,plate,year,color").in("id",vehicleIds):Promise.resolve({data:[],error:null}),
+    recurringPlanIds.length?sb.from("package_subscriptions").select("recurring_plan_id").in("recurring_plan_id",recurringPlanIds):Promise.resolve({data:[],error:null})
   ]);
   if(req!==agendaLoadSeq)return;
   if(!py.error)(py.data||[]).forEach(p=>paymentMap.set(p.appointment_id,p));
-  if(!ph.error)(ph.data||[]).forEach(p=>photoMap.set(p.appointment_id,p));
+  if(sub.error)return show("msg","Não foi possível validar os vínculos dos planos: "+fail(sub.error),"error");
+  window.__v2PackagePlanIds=new Set((sub.data||[]).map(x=>x.recurring_plan_id));
   const dayVehicles=vr.error?[]:(vr.data||[]),vehicleMap=new Map(dayVehicles.map(v=>[v.id,v]));
   dayVehicles.forEach(v=>{
     const list=vehicles.get(v.client_id)||[],idx=list.findIndex(x=>x.id===v.id);
@@ -5767,15 +5699,15 @@ async function loadApps(){
   const rows=currentApps,activeRows=rows.filter(x=>x.status!=="cancelled"&&x.status!=="completed"),completedRows=rows.filter(x=>x.status==="completed"),cancelledRows=rows.filter(x=>x.status==="cancelled");
   const clientMap=new Map(clients.map(c=>[c.id,c])),serviceMap=new Map(services.map(s=>[s.id,s])),collabMap=new Map(collabs.map(c=>[c.id,c])),teamMap=new Map(teams.map(t=>[t.id,t]));
   const card=x=>{
-    const c=clientMap.get(x.client_id),v=vehicleMap.get(x.vehicle_id)||findVehicleLocal(x.vehicle_id),s=serviceMap.get(x.service_id),co=collabMap.get(x.collaborator_id),assignedTeam=teamMap.get(x.team_id),packageVisit=serviceIsPackage(s)&&!!x.recurring_plan_id;
+    const c=clientMap.get(x.client_id),v=vehicleMap.get(x.vehicle_id)||findVehicleLocal(x.vehicle_id),s=serviceMap.get(x.service_id),co=collabMap.get(x.collaborator_id),assignedTeam=teamMap.get(x.team_id),packageVisit=!!x.recurring_plan_id&&window.__v2PackagePlanIds?.has(x.recurring_plan_id);
     let nx=x.status==="requested"?"confirmed":x.status==="scheduled"?"in_progress":x.status==="confirmed"?"in_progress":x.status==="in_progress"?"completed":null,
       team=assignedTeam?teamDisplay(assignedTeam.id):(co?.name||(x.source==="public"?"1 equipe reservada • equipe a definir":"Equipe reservada • responsável a definir")),
-      photo=photoMap.get(x.id),payment=paymentMap.get(x.id),
+      payment=paymentMap.get(x.id),
       primaryActionLabel=x.status==="requested"?"Aceitar solicitação":"Iniciar";
     const actionButtons=(x.status!=="completed"&&x.status!=="cancelled"?'<button class="ghost" data-edit="'+x.id+'">Editar</button>':"")+
       (nx?(nx==="completed"?'<button class="success" data-finish="'+x.id+'">Concluir</button>':'<button class="success" data-st="'+nx+'" data-id="'+x.id+'">'+esc(primaryActionLabel)+'</button>'):"")+
       (x.status!=="completed"&&x.status!=="cancelled"?'<button class="danger subtle-danger" data-st="cancelled" data-id="'+x.id+'">Cancelar</button>':"")+
-      (x.status==="completed"&&financeAllowed()&&!photo?'<button class="ghost" data-legacy-photo="'+x.id+'">Adicionar foto final</button>':"")+
+      
       (x.status==="completed"&&financeAllowed()&&!packageVisit?'<button class="ghost" data-receipt="'+x.id+'">'+(payment?.status==="paid"?"Recibo":"Comprovante")+'</button>':"")+
       (x.status==="completed"&&financeAllowed()&&!packageVisit&&payment?.status!=="paid"?'<button class="success" data-pay="'+x.id+'">Confirmar pagamento</button>':"");
     const context='<div class="appt-secondary"><span>'+esc(team)+'</span>'+(financeAllowed()?'<span>'+esc(packageVisit?"Incluído no pacote":money(x.final_value))+'</span>':"")+'</div>';
@@ -5788,7 +5720,7 @@ async function loadApps(){
 
   document.querySelectorAll("[data-detail]").forEach(card=>card.onclick=e=>{if(e.target.closest("button,summary,a,input,select,textarea"))return;openAppointmentDetail(card.dataset.detail)});
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{e.stopPropagation();openEditAppt(b.dataset.edit)});
-  document.querySelectorAll("[data-legacy-photo]").forEach(b=>b.onclick=e=>{e.stopPropagation();openCompletion(b.dataset.legacyPhoto)});
+  
   document.querySelectorAll("[data-receipt]").forEach(b=>b.onclick=e=>{e.stopPropagation();openReceipt(b.dataset.receipt)});
   document.querySelectorAll("[data-pay]").forEach(b=>b.onclick=e=>{e.stopPropagation();openPayment(b.dataset.pay)});
   document.querySelectorAll("[data-finish]").forEach(b=>b.onclick=e=>{e.stopPropagation();openCompletion(b.dataset.finish)});
