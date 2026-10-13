@@ -4749,11 +4749,21 @@ async function openCompletion(id){
   let detail="Serviço avulso: cobrança individual após a conclusão.";
   if(operator) detail="O sistema registra a execução. A classificação do plano e da cobrança é controlada pelo financeiro.";
   else if(a.recurring_plan_id){
-    const check=await sb.from("package_subscriptions").select("id").eq("recurring_plan_id",a.recurring_plan_id).maybeSingle();
+    const check=await sb.from("package_subscriptions").select("id,visits_per_month").eq("recurring_plan_id",a.recurring_plan_id).maybeSingle();
     if(check.error)return show("msg","Não foi possível conferir o vínculo do plano: "+fail(check.error),"error");
-    detail=check.data?.id
-      ?"Visita de plano contratado: registrar a execução sem cobrar novamente o serviço incluído. Extras podem ser cobrados à parte."
-      :"Recorrência sem plano contratado: registrar a execução e gerar cobrança individual.";
+    if(check.data?.id){
+      detail="Visita de plano contratado: contabilizar a execução, sem nova cobrança do serviço incluído. Extras podem ser cobrados à parte.";
+      const ym=spDateTime(a.starts_at).date.slice(0,7),first=ym+"-01T00:00:00-03:00",nextMonth=new Date(Date.UTC(Number(ym.slice(0,4)),Number(ym.slice(5,7)),1)).toISOString().slice(0,10)+"T00:00:00-03:00";
+      const count=await sb.from("appointments").select("id",{count:"exact",head:true}).eq("recurring_plan_id",a.recurring_plan_id).eq("status","completed").is("deleted_at",null).gte("starts_at",first).lt("starts_at",nextMonth);
+      if(count.error)return show("msg","Não foi possível verificar as visitas do plano: "+fail(count.error),"error");
+      const done=Number(count.count||0),included=Number(check.data.visits_per_month||0);
+      if(included>0){
+        detail+=" Visitas nesta competência: "+done+" concluída(s) de "+included+" prevista(s).";
+        if(done>=included)detail+=" ATENÇÃO: a quantidade prevista já foi atingida. Confira com o administrador se este serviço deve ser avulso; o vínculo atual não gera nova cobrança automática.";
+      }
+    }else{
+      detail="Recorrência sem plano contratado: registrar a execução e gerar cobrança individual.";
+    }
   }
   $("finishkind").textContent=detail;
   $("fd").showModal()
@@ -5710,7 +5720,7 @@ async function loadApps(){
       
       (x.status==="completed"&&financeAllowed()&&!packageVisit?'<button class="ghost" data-receipt="'+x.id+'">'+(payment?.status==="paid"?"Recibo":"Comprovante")+'</button>':"")+
       (x.status==="completed"&&financeAllowed()&&!packageVisit&&payment?.status!=="paid"?'<button class="success" data-pay="'+x.id+'">Confirmar pagamento</button>':"");
-    const context='<div class="appt-secondary"><span>'+esc(team)+'</span>'+(financeAllowed()?'<span>'+esc(packageVisit?"Incluído no pacote":money(x.final_value))+'</span>':"")+'</div>';
+    const context='<div class="appt-secondary"><span>'+esc(team)+'</span>'+(financeAllowed()?'<span>'+esc(packageVisit?"Incluído no plano":money(x.final_value))+'</span>':"")+'</div>';
     return '<div class="item appt-card" data-detail="'+x.id+'" style="cursor:pointer"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(c?.name||"Cliente")+'</h3><div class="appt-core"><b>'+esc(v?v.brand+" "+v.model:"Veículo")+'</b><span>'+esc(s?.name||"Serviço")+'</span></div><div class="appt-tap-hint">Toque no cartão para ver detalhes</div><details class="appt-actions"><summary>Ações e informações</summary>'+context+'<div class="actions">'+actionButtons+'</div></details></div>'
   };
   let out=activeRows.length?activeRows.map(card).join(""):'<div class="empty">Nenhum atendimento ativo.</div>';
