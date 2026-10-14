@@ -9,9 +9,6 @@ const tier=x=>/premium/i.test(String(x||''))?'premium':/plus/i.test(String(x||''
 const labels={premium:'Premium',plus:'Plus',essencial:'Essencial'};
 const options='<option value="interval_days">Intervalo em dias</option><option value="monthly">Vezes por mês</option><option value="per_visit">Em toda estética</option><option value="every_n_visits">A cada N estéticas</option>';
 let rows=[],current=null,benefits=[],month='',catalogBusy=false;
-function statusLine(r){
- if(r.cadence_type==='interval_days'||r.frequency==='interval_days')return 'A cada '+r.min_days||''; // overridden below
-}
 function describe(r){
  const kind=r.cadence_type||r.frequency;
  if(kind==='interval_days'){
@@ -82,8 +79,14 @@ function displayVehicle(){
  const p=$('pc-care-vehicle-list');if(!p)return;
  if(!current){p.innerHTML='';return}
  const relevant=benefits.filter(b=>b.subscription_id===current.id&&b.effective_from_month.slice(0,7)<=month&&(!b.retired_from_month||b.retired_from_month.slice(0,7)>month));
- p.innerHTML=relevant.length?relevant.map(r=>'<div class="pc-template-row"><div><b>'+html(r.service_label)+'</b><div class="pc-cadence-hint">'+
- html(describe(r))+'</div></div>'+(month>=today().slice(0,7)?'<button type="button" class="ghost" data-pcv-edit="'+html(r.id)+'">Editar período</button>':'')+'</div>').join('')
+ const states=window.VaporeasyCareRhythm?.evaluate(
+ relevant.map(r=>({...r,label:r.service_label})),current.care_history||[],current.visits||[],today())||[];
+ const stateMap=new Map(states.map(s=>[s.label.toLowerCase(),s]));
+ p.innerHTML=relevant.length?relevant.map(r=>{
+ const state=stateMap.get(r.service_label.toLowerCase());
+ const stateText=state?(state.status==='due'?'Fazer hoje':state.status==='ok'?'Dentro do prazo':state.status==='done'?'Realizado':'Conferir histórico'):'';
+ return '<div class="pc-template-row"><div><b>'+html(r.service_label)+'</b><div class="pc-cadence-hint">'+
+ html(describe(r))+(state?'<div><b>'+html(stateText)+'</b> • '+html(state.why)+(state.lastDate?' • Última aplicação: '+html(state.lastDate.split('-').reverse().join('/')):'')+'</div>':'')+'</div></div>'+(month>=today().slice(0,7)?'<button type="button" class="ghost" data-pcv-edit="'+html(r.id)+'">Editar período</button>':'')+'</div>'}).join('')
  :'<div class="meta">Nenhum cuidado adicional contratado foi cadastrado para este veículo.</div>';
  p.querySelectorAll('[data-pcv-edit]').forEach(b=>b.onclick=editForm('pcv',benefits.find(x=>x.id===b.dataset.pcvEdit)));
 }
