@@ -44,7 +44,7 @@ test('enceramento alternado a cada duas estéticas só vence quando o ciclo é c
 });
 test('ficha do técnico destaca fazer hoje, anterior, em dia, sem HTML não confiável',()=>{
  const d={
-  is_plan:true,plan_name:'Pacote Premium',visit_date:'2026-10-14',
+  is_plan:true,plan_name:'Pacote Premium',visit_date:'2026-10-14',appointment_id:'appt-20261014',
   benefits:[rule('interval_days',60,90),rule('monthly',null,null,'Selante com grafeno da pintura')],
   care_history:performed('2026-08-15').concat(performed('2026-10-01','Selante com grafeno da pintura')),
   visit_history:[{date:'2026-10-01'},{date:'2026-08-15'}],
@@ -96,4 +96,17 @@ test('detalhes da visita usam histórico completo em vez de contagem mensal de b
  assert.match(detail,/VaporeasyCareUI\?\.brief/);
  assert.doesNotMatch(detail,/benefitsHtml\(/);
  assert.doesNotMatch(detail,/package_charges|confirm_payment|appointment_payments/);
+});
+
+test('cadastro do veículo usa programação futura, não sinaliza execução em visita inexistente',()=>{
+ const d={is_plan:true,plan_name:'Plano Premium',visit_date:'2026-10-14',benefits:[
+   {label:'Enceramento manual',frequency:'per_visit'},
+   {label:'Selante com grafeno da pintura',frequency:'monthly',monthly_quantity:1}
+ ],care_history:[],visit_history:[]};
+ const h=catalog.brief(d,true);
+ assert.match(h,/PROGRAMAR NA PRÓXIMA ESTÉTICA/);
+ assert.doesNotMatch(h,/FAZER NESTA ESTÉTICA/);
+ assert.match(h,/consulte o atendimento para confirmar/);
+ const record=rhythm.evaluate([{label:'Enceramento manual',frequency:'per_visit'}],[],[],'2026-10-14')[0];
+ assert.equal(record.status,'check');
 });
