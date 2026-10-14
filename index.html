@@ -1327,7 +1327,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div class="item"><div class="meta">Cancelamentos</div><div id="rcancelled" class="time">0</div></div>
 </div>
 <details open><summary style="cursor:pointer;font-weight:900">Faturamento por serviço</summary><div id="rservices" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Clientes mais ativos</summary><div id="rclientlist" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
+<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Todos os clientes atendidos</summary><div id="rclientlist" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 <details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Produtividade por equipe / responsável</summary><div id="rcollabs" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 <details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Recorrências ativas</summary><div id="rrecurrence" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 </section>
@@ -1348,6 +1348,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <dialog id="fd"><form id="finishf" class="stack">
 <input id="finishid" type="hidden"><h3 id="finishtitle">Concluir atendimento</h3>
 <div id="finishsummary" class="meta"></div>
+<div id="finish-care-brief" aria-live="polite"></div>
 <div id="finishkind" class="notice">A conclusão registra o serviço realizado, sem exigir fotografia.</div>
 <div class="meta">A data e o horário são registrados pelo sistema. O financeiro diferencia plano contratado, recorrência sem plano e serviço avulso.</div>
 <div id="finishmsg" class="notice hidden"></div>
@@ -2141,7 +2142,8 @@ function renderClients(){
     if(!c)return;
     selectedClientId=c.id;
     input.value=c.name;
-    renderClients()
+    renderClients();
+    void showVehicles(c.id,true)
   })
 }
 async function hasFutureActiveAppointment(filters){
@@ -2175,7 +2177,7 @@ async function archiveVehicle(cid,id){
 }
 function openClient(c){$("cf").reset();$("cid").value=c?.id||"";$("cn").value=c?.name||"";$("cp").value=c?.phone||"";$("cw").value=c?.whatsapp||"";$("ca").value=c?.address||"";$("co").value=c?.notes||"";$("cc").value="";$("cd").showModal()}
 async function saveClient(e){e.preventDefault();try{let condo=null, name=$("cc").value.trim();if(name){let f=await sb.from("condominiums").select("id").ilike("name",name).limit(1).maybeSingle();if(f.error)throw f.error;if(f.data)condo=f.data.id;else{let n=await sb.from("condominiums").insert({name}).select("id").single();if(n.error)throw n.error;condo=n.data.id}}const p={name:$("cn").value.trim(),phone:$("cp").value.trim(),whatsapp:$("cw").value.trim(),address:$("ca").value.trim(),notes:$("co").value.trim(),condominium_id:condo};let r=$("cid").value?await sb.from("clients").update(p).eq("id",$("cid").value):await sb.from("clients").insert(p);if(r.error)throw r.error;$("cd").close();show("msg","Cliente salvo.","ok");await loadClients()}catch(e){show("msg",fail(e),"error")}}
-async function showVehicles(cid){const box=$("v-"+cid),canDelete=["owner","admin"].includes(currentRole);box.classList.toggle("hidden");if(box.classList.contains("hidden"))return;let r=await sb.from("vehicles").select("*").eq("client_id",cid).is("archived_at",null).order("brand");if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}vehicles.set(cid,r.data||[]);box.innerHTML=(r.data||[]).length?(r.data||[]).map(v=>'<details class="vehicle-card"><summary><span><b>'+esc(v.brand+" "+v.model)+'</b><small>'+esc(v.plate||"Sem placa")+'</small></span><span class="vehicle-open-label">Opções</span></summary><div class="vehicle-card-actions"><button class="primary" data-rg="'+v.id+'" data-c="'+cid+'">RG / Histórico</button><button class="ghost" data-ve="'+v.id+'" data-c="'+cid+'">Editar</button>'+(canDelete?'<button class="danger subtle-danger" data-vx="'+v.id+'" data-c="'+cid+'">Excluir veículo</button>':"")+'</div></details>').join(""):'<div class="empty">Nenhum veículo.</div>';box.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>openVehicleRG(cid,(r.data||[]).find(x=>x.id===b.dataset.rg)));box.querySelectorAll("[data-ve]").forEach(b=>b.onclick=()=>openVehicle(cid,(r.data||[]).find(x=>x.id===b.dataset.ve)));box.querySelectorAll("[data-vx]").forEach(b=>b.onclick=()=>archiveVehicle(cid,b.dataset.vx))}
+async function showVehicles(cid,auto=false){const box=$("v-"+cid),canDelete=["owner","admin"].includes(currentRole);if(auto)box.classList.remove("hidden");else box.classList.toggle("hidden");if(box.classList.contains("hidden"))return;let r=await sb.from("vehicles").select("*").eq("client_id",cid).is("archived_at",null).order("brand");if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}vehicles.set(cid,r.data||[]);box.innerHTML=(r.data||[]).length?(r.data||[]).map(v=>'<details class="vehicle-card"><summary><span><b>'+esc(v.brand+" "+v.model)+'</b><small>'+esc(v.plate||"Sem placa")+'</small></span><span class="vehicle-open-label">Opções</span></summary><div class="vehicle-card-actions"><button class="primary" data-rg="'+v.id+'" data-c="'+cid+'">RG / Histórico</button>'+(canDelete?'<button class="ghost" data-plan-vehicle="'+v.id+'" data-c="'+cid+'">Cuidados do plano</button>':'')+'<button class="ghost" data-ve="'+v.id+'" data-c="'+cid+'">Editar</button>'+(canDelete?'<button class="danger subtle-danger" data-vx="'+v.id+'" data-c="'+cid+'">Excluir veículo</button>':"")+'</div></details><div data-care-vehicle="'+v.id+'"></div>').join(""):'<div class="empty">Nenhum veículo.</div>';box.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>openVehicleRG(cid,(r.data||[]).find(x=>x.id===b.dataset.rg)));box.querySelectorAll("[data-plan-vehicle]").forEach(b=>b.onclick=()=>window.openPlanControl(cid,b.dataset.planVehicle));box.querySelectorAll("[data-ve]").forEach(b=>b.onclick=()=>openVehicle(cid,(r.data||[]).find(x=>x.id===b.dataset.ve)));box.querySelectorAll("[data-vx]").forEach(b=>b.onclick=()=>archiveVehicle(cid,b.dataset.vx));if(window.renderClientVehicleCare)void window.renderClientVehicleCare(cid)}
 let currentRGPhotos=[],currentRGIssues=[],currentRGPhotoIssueId="";
 function priorityLabel(v){return v==="immediate"?"Atenção imediata":v==="preventive"?"Preventivo":"Recomendado"}
 function priorityPill(v){return '<span class="pill">'+esc(priorityLabel(v))+'</span>'}
@@ -2524,15 +2526,32 @@ async function loadManagementReport(){
     const cm=new Map((cr.data||[]).map(x=>[x.id,x])),vm=new Map((vr.data||[]).map(x=>[x.id,x])),sm=new Map((sr.data||[]).map(x=>[x.id,x])),com=new Map((cor.data||[]).map(x=>[x.id,x])),tmMap=new Map((trr.data||[]).map(x=>[x.id,x]));
     const revenue=completed.reduce((s,x)=>s+Number(x.final_value||0),0),uniqueVehicles=new Set(completed.map(x=>x.vehicle_id)).size,uniqueClients=new Set(completed.map(x=>x.client_id)).size,ticket=completed.length?revenue/completed.length:0;
     const byService=aggregateBy(completed,x=>x.service_id).map(x=>({...x,name:sm.get(x.key)?.name||"Serviço"})).sort((a,b)=>b.revenue-a.revenue||b.count-a.count);
-    const byClient=aggregateBy(completed,x=>x.client_id).map(x=>({...x,name:cm.get(x.key)?.name||"Cliente"})).sort((a,b)=>b.count-a.count||b.revenue-a.revenue).slice(0,15);
+    const byClient=aggregateBy(completed,x=>x.client_id).map(x=>({...x,name:cm.get(x.key)?.name||"Cliente"})).sort((a,b)=>b.count-a.count||b.revenue-a.revenue);
+    const byClientVehicle=new Map();
+    completed.forEach(a=>{
+      let vehiclesForClient=byClientVehicle.get(a.client_id);
+      if(!vehiclesForClient){vehiclesForClient=new Map();byClientVehicle.set(a.client_id,vehiclesForClient)}
+      let vehicle=vehiclesForClient.get(a.vehicle_id);
+      if(!vehicle){vehicle={vehicleId:a.vehicle_id,count:0,dates:[]};vehiclesForClient.set(a.vehicle_id,vehicle)}
+      vehicle.count++;
+      vehicle.dates.push(a.starts_at);
+    });
     const byCollab=aggregateBy(completed,x=>x.team_id?"team:"+x.team_id:(x.collaborator_id?"collab:"+x.collaborator_id:"__none__")).map(x=>{let name="Equipe não definida";if(x.key.startsWith("team:"))name=tmMap.get(x.key.slice(5))?.name||"Equipe";else if(x.key.startsWith("collab:"))name="Individual: "+(com.get(x.key.slice(7))?.name||"Colaborador");return{...x,name}}).sort((a,b)=>b.count-a.count||b.revenue-a.revenue);
     const recurrenceGroups=[{key:"weekly",name:"Semanal",count:0},{key:"biweekly",name:"Quinzenal",count:0},{key:"monthly",name:"Mensal",count:0}];(rr.data||[]).forEach(p=>{const g=recurrenceGroups.find(x=>x.key===p.frequency);if(g)g.count++});
-    currentManagementReport={range,completed,cancelled,revenue,uniqueVehicles,uniqueClients,ticket,byService,byClient,byCollab,recurrenceGroups,recurring:rr.data||[],maps:{cm,vm,sm,com,tmMap}};
+    currentManagementReport={range,completed,cancelled,revenue,uniqueVehicles,uniqueClients,ticket,byService,byClient,byClientVehicle,byCollab,recurrenceGroups,recurring:rr.data||[],maps:{cm,vm,sm,com,tmMap}};
     $("rcompleted").textContent=String(completed.length);$("rvehicles").textContent=String(uniqueVehicles);$("rclients").textContent=String(uniqueClients);$("rrevenue").textContent=money(revenue);$("rticket").textContent=money(ticket);$("rcancelled").textContent=String(cancelled.length);
     const maxService=Math.max(0,...byService.map(x=>x.revenue));
     $("rservices").innerHTML=byService.length?byService.map(x=>'<div class="item" style="margin-top:8px"><div class="actions"><div style="flex:3"><b>'+esc(x.name)+'</b><div class="meta">'+x.count+' serviço'+(x.count===1?'':'s')+' • '+x.vehicles.size+' veículo'+(x.vehicles.size===1?'':'s')+'</div></div><div style="font-weight:900">'+esc(money(x.revenue))+'</div></div>'+reportBar(x.revenue,maxService)+'</div>').join(""):'<div class="empty">Nenhum serviço concluído no período.</div>';
     const maxClient=Math.max(0,...byClient.map(x=>x.count));
-    $("rclientlist").innerHTML=byClient.length?byClient.map((x,i)=>'<div class="item" style="margin-top:8px"><div class="actions"><div style="flex:3"><b>'+(i+1)+'. '+esc(x.name)+'</b><div class="meta">'+x.count+' atendimento'+(x.count===1?'':'s')+' • '+x.vehicles.size+' veículo'+(x.vehicles.size===1?'':'s')+'</div></div><div style="font-weight:900">'+esc(money(x.revenue))+'</div></div>'+reportBar(x.count,maxClient)+'</div>').join(""):'<div class="empty">Nenhum cliente atendido no período.</div>';
+    $("rclientlist").innerHTML=byClient.length?byClient.map((x,i)=>{
+      const vehiclesForClient=[...(byClientVehicle.get(x.key)||new Map()).values()];
+      const details=vehiclesForClient.map(v=>{
+        const vehicle=vm.get(v.vehicleId),name=vehicle?[vehicle.brand,vehicle.model,vehicle.plate].filter(Boolean).join(" • "):"Veículo não identificado";
+        const dates=v.dates.map(date=>new Date(date).toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo"})).join(", ");
+        return '<div class="meta" style="margin:6px 0"><b>'+esc(name)+'</b> • '+v.count+' atendimento'+(v.count===1?'':'s')+'<div>'+esc(dates)+'</div></div>';
+      }).join("");
+      return '<div class="item" style="margin-top:8px"><b>'+(i+1)+'. '+esc(x.name)+'</b><div class="meta">'+x.count+' atendimento'+(x.count===1?'':'s')+' • '+x.vehicles.size+' veículo'+(x.vehicles.size===1?'':'s')+'</div><details style="margin-top:8px"><summary style="cursor:pointer">Ver veículos e datas</summary>'+details+'</details></div>';
+    }).join(""):'<div class="empty">Nenhum cliente atendido no período.</div>';
     const maxCollab=Math.max(0,...byCollab.map(x=>x.count));
     $("rcollabs").innerHTML=byCollab.length?byCollab.map(x=>'<div class="item" style="margin-top:8px"><div class="actions"><div style="flex:3"><b>'+esc(x.name)+'</b><div class="meta">'+x.count+' serviço'+(x.count===1?'':'s')+' • '+(completed.length?Math.round(x.count/completed.length*100):0)+'% dos concluídos</div></div><div style="font-weight:900">'+esc(money(x.revenue))+'</div></div>'+reportBar(x.count,maxCollab)+'</div>').join(""):'<div class="empty">Nenhum serviço concluído no período.</div>';
     const totalRec=(rr.data||[]).length,maxRec=Math.max(0,...recurrenceGroups.map(x=>x.count));
@@ -2551,7 +2570,23 @@ async function generateManagementReportPdf(){
     doc.setFont("helvetica","bold");doc.setFontSize(20);doc.setTextColor(23,49,64);doc.text("VAPOREASY",m,y);y+=8;doc.setFontSize(13);doc.text("Relatório de gestão",m,y);y+=8;doc.setFontSize(9.5);doc.setFont("helvetica","normal");doc.setTextColor(60);doc.text("Período: "+new Intl.DateTimeFormat("pt-BR").format(new Date(d.range.start+"T12:00:00"))+" a "+new Intl.DateTimeFormat("pt-BR").format(new Date(d.range.end+"T12:00:00")),m,y);y+=10;
     section("Resumo");line("Serviços concluídos",d.completed.length);line("Veículos atendidos",d.uniqueVehicles);line("Clientes atendidos",d.uniqueClients);line("Faturamento",money(d.revenue));line("Ticket médio",money(d.ticket));line("Cancelamentos",d.cancelled.length);
     section("Faturamento por serviço");if(!d.byService.length){doc.text("Sem serviços concluídos.",m,y);y+=7}else d.byService.forEach(x=>{page(8);doc.setFont("helvetica","bold");doc.text(x.name,m,y);doc.setFont("helvetica","normal");doc.text(x.count+" atendimento(s) • "+money(x.revenue),105,y);y+=7});
-    section("Clientes mais ativos");if(!d.byClient.length){doc.text("Sem clientes atendidos.",m,y);y+=7}else d.byClient.slice(0,10).forEach((x,i)=>{page(8);doc.setFont("helvetica","bold");doc.text((i+1)+". "+x.name,m,y);doc.setFont("helvetica","normal");doc.text(x.count+" atendimento(s) • "+money(x.revenue),105,y);y+=7});
+    section("Todos os clientes atendidos");
+    if(!d.byClient.length){doc.text("Sem clientes atendidos.",m,y);y+=7}
+    else for(const [i,x] of d.byClient.entries()){
+      const clientLine=doc.splitTextToSize((i+1)+". "+x.name+" • "+x.count+" atendimento(s)",w);
+      page(clientLine.length*4.5+7);
+      doc.setFont("helvetica","bold");doc.text(clientLine,m,y);y+=clientLine.length*4.5+1;
+      const vehiclesForClient=[...(d.byClientVehicle.get(x.key)||new Map()).values()];
+      for(const v of vehiclesForClient){
+        const vehicle=d.maps.vm.get(v.vehicleId);
+        const vehicleName=vehicle?[vehicle.brand,vehicle.model,vehicle.plate].filter(Boolean).join(" • "):"Veículo não identificado";
+        const days=v.dates.map(date=>new Date(date).toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo"})).join(", ");
+        const lines=doc.splitTextToSize(vehicleName+" — "+v.count+" atendimento(s) — "+days,w-5);
+        page(lines.length*4+4);
+        doc.setFont("helvetica","normal");doc.text(lines,m+4,y);y+=lines.length*4+2;
+      }
+      y+=2;
+    }
     section("Produtividade por equipe / responsável");if(!d.byCollab.length){doc.text("Sem serviços concluídos.",m,y);y+=7}else d.byCollab.forEach(x=>{page(8);doc.setFont("helvetica","bold");doc.text(x.name,m,y);doc.setFont("helvetica","normal");doc.text(x.count+" serviço(s) • "+money(x.revenue),105,y);y+=7});
     section("Recorrências ativas");d.recurrenceGroups.forEach(x=>line(x.name,x.count));line("Total ativo",d.recurring.length);
     page(18);y+=5;doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(100);doc.text("Relatório interno de gestão gerado pelo sistema Vaporeasy.",m,y);
@@ -3819,11 +3854,12 @@ async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
       :"";
     const rg=isToday?'<button class="ghost operator-rg-action" type="button" data-op-rg="'+x.id+'">📷 RG do veículo</button>':"";
     const info=!isToday?'<div class="operator-future-note">As ações Iniciar, Concluir e RG do veículo ficam disponíveis no dia do atendimento.</div>':"";
-    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
+    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+(isToday&&x.status!=="completed"?'<div data-care-job="'+x.id+'" id="care-job-'+x.id+'"></div>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
   };
   let out=active.length?active.map(card).join(""):(done.length?'<div class="empty">Nenhum atendimento pendente nesta data.</div>':'<div class="empty">Nenhum atendimento atribuído a você nesta data.</div>');
   if(done.length)out+='<details class="operator-completed"><summary>Concluídos ('+done.length+')</summary><div>'+done.map(card).join("")+'</div></details>';
   box.innerHTML=out;
+  box.querySelectorAll("[data-care-job]").forEach(node=>{if(window.renderQuickPlanCare)void window.renderQuickPlanCare(node.dataset.careJob,node.id)});
   box.querySelectorAll("[data-op-start]").forEach(b=>b.onclick=()=>operatorStartJob(b.dataset.opStart));
   box.querySelectorAll("[data-op-finish]").forEach(b=>b.onclick=()=>openCompletion(b.dataset.opFinish));
   box.querySelectorAll("[data-op-rg]").forEach(b=>b.onclick=()=>openOperatorVehicleRG(currentApps.find(x=>x.id===b.dataset.opRg)))
@@ -4430,12 +4466,13 @@ async function openAppointmentDetail(id){
         '<div class="meta"><b>'+esc(vehicle?(vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"")):"Veículo")+'</b></div>'+
       '</div>'+
       '<div class="item" style="margin-top:10px">'+
-        '<div class="meta"><b>Serviço</b><br>'+esc(service?.name||"Serviço")+'</div>'+
+        '<div class="meta"><b>Serviço</b><br>'+esc((service?.name||"Serviço").replace(/^Pacote\s+/i,"Plano "))+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Status</b><br>'+esc(status)+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Agendado para</b><br>'+esc(scheduled.date+" • "+scheduled.time)+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Equipe / responsável</b><br>'+esc(responsibleLabel)+'</div>'+(financeAllowed()?'<div class="meta" style="margin-top:10px"><b>'+esc(packageVisit?"Cobrança":"Valor")+'</b><br>'+esc(packageVisit?packageChargeLabel:money(a.final_value))+'</div>':'')+
         (a.notes?'<div class="meta" style="margin-top:10px"><b>Observações</b><br>'+esc(a.notes)+'</div>':'')+
       '</div>'+
+      (packageVisit&&['owner','admin'].includes(currentRole)?'<div id="dd-plan-benefits" data-appointment="'+esc(a.id)+'"></div>':'')+
       (a.status==="completed"?
         '<div class="item" style="margin-top:10px">'+
           '<h3 style="margin-top:0">Finalização interna</h3>'+
@@ -4451,6 +4488,13 @@ async function openAppointmentDetail(id){
         (a.status!=="completed"&&a.status!=="cancelled"?'<button class="ghost" type="button" data-detail-edit="'+esc(a.id)+'">Editar agendamento</button>':'')+
       '</div>';
     $("dd").showModal();
+    if(packageVisit&&['owner','admin'].includes(currentRole)){
+      const ctx={appointmentId:a.id,clientId:a.client_id,vehicleId:a.vehicle_id,recurringPlanId:a.recurring_plan_id,month:scheduled.date.slice(0,7),containerId:'dd-plan-benefits'};
+      if(window.renderPlanBenefitsForAppointment)window.renderPlanBenefitsForAppointment(ctx).catch(err=>{
+        const box=$("dd-plan-benefits");
+        if(box?.dataset.appointment===a.id)box.innerHTML='<div class="notice error" style="margin-top:10px">Não foi possível consultar os benefícios contratados: '+esc(fail(err))+'</div>';
+      });
+    }
     const eb=$("dd").querySelector("[data-detail-edit]"),cb=$("dd").querySelector("[data-detail-package-charge]");
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)};
     if(cb)cb.onclick=()=>sharePackageCharge(cb.dataset.detailPackageCharge)
@@ -4766,7 +4810,8 @@ async function openCompletion(id){
     }
   }
   $("finishkind").textContent=detail;
-  $("fd").showModal()
+  $("fd").showModal();
+  if(window.renderQuickPlanCare)void window.renderQuickPlanCare(id,"finish-care-brief")
 }
 async function saveCompletion(e){
   e.preventDefault();
@@ -5747,7 +5792,9 @@ async function loadApps(){
     if(u.error)return show("msg",fail(u.error),"error");
     agendaMonthCache.clear();
     if(b.dataset.st==="completed")waterCounterLoadedAt=0;
-    await loadApps()
+    const started=b.dataset.st==="in_progress",startedId=b.dataset.id;
+    await loadApps();
+    if(started)void openAppointmentDetail(startedId)
   });
   if(agendaFocusAppointmentId){
     const focusId=agendaFocusAppointmentId;
@@ -5772,5 +5819,6 @@ async function loadApps(){
 
 boot();
 </script>
+<script src="/plan-control.js?v=20261014-03"></script>
 <script src="/main-menu.js?v=20261001"></script>
 </body></html>
