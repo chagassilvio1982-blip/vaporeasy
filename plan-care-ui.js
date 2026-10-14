@@ -32,6 +32,7 @@ function formHtml(prefix,label){
   '<label>Até quantos dias<input id="'+prefix+'-max" type="number" min="1" max="365" value="90"></label></div>'+
   '<div id="'+prefix+'-visits" class="hidden"><label>A cada quantas estéticas<input id="'+prefix+'-every" type="number" min="1" max="12" value="2"></label></div>'+
   '<div id="'+prefix+'-monthly" class="hidden"><label>Quantidade mensal<input id="'+prefix+'-qty" type="number" min="1" max="12" value="1"></label></div>'+
+  (prefix==='pcv'?'<label>Início da vigência<input id="pcv-effective" type="month" required></label><div class="meta">Mudanças em cuidados existentes valem a partir do próximo mês, preservando os atendimentos deste mês.</div>':'')+
   (prefix==='pct'?'<label>Orientação para o técnico<textarea id="pct-guidance" maxlength="500" rows="2"></textarea></label>':'')+
   '<div class="actions"><button type="submit" class="primary">'+label+'</button><button type="button" class="ghost" id="'+prefix+'-cancel">Cancelar</button></div></form>';
 }
@@ -42,12 +43,17 @@ function values(prefix){
  if(!['interval_days','monthly','per_visit','every_n_visits'].includes(type)||((type==='interval_days')&&(!Number.isInteger(a)||!Number.isInteger(b)||a<1||b<a||b>365))||
  (type==='every_n_visits'&&(!Number.isInteger(every)||every<1||every>12))||quantity<1||quantity>12)
  throw Error('Confirme o intervalo de dias ou a frequência selecionada.');
- return {label:$(prefix+'-label').value.trim(),type,min:a,max:b,every,quantity};
+ return {label:$(prefix+'-label').value.trim(),type,min:a,max:b,every,quantity,effective:prefix==='pcv'?$('pcv-effective').value:null};
 }
 function editForm(prefix,rule){
  $(prefix+'-form').classList.remove('hidden');
  $(prefix+'-label').value=rule?.service_label||rule?.label||'';
  $(prefix+'-label').readOnly=!!rule;
+ if(prefix==='pcv'){
+  const [y,m]=today().slice(0,7).split('-').map(Number);
+  const earliest=rule?new Date(Date.UTC(y,m,1)).toISOString().slice(0,7):today().slice(0,7);
+  $('pcv-effective').min=earliest;$('pcv-effective').value=earliest;
+ }
  $(prefix+'-type').value=rule?.cadence_type||rule?.frequency||'interval_days';
  $(prefix+'-min').value=rule?.min_days??rule?.cadence_min_days??60;
  $(prefix+'-max').value=rule?.max_days??rule?.cadence_max_days??90;
@@ -85,7 +91,7 @@ function displayVehicle(){
  const stateMap=new Map(states.map(s=>[s.label.toLowerCase(),s]));
  p.innerHTML=relevant.length?relevant.map(r=>{
  const state=stateMap.get(r.service_label.toLowerCase());
- const stateText=state?(state.status==='due'?'Fazer hoje':state.status==='ok'?'Dentro do prazo':state.status==='done'?'Realizado':'Conferir histórico'):'';
+ const stateText=state?(state.status==='due'?'Pendente':state.status==='ok'?'Dentro do prazo':state.status==='done'?'Realizado':'Conferir histórico'):'';
  return '<div class="pc-template-row"><div><b>'+html(r.service_label)+'</b><div class="pc-cadence-hint">'+
  html(describe(r))+(state?'<div><b>'+html(stateText)+'</b> • '+html(state.why)+(state.lastDate?' • Última aplicação: '+html(state.lastDate.split('-').reverse().join('/')):'')+'</div>':'')+'</div></div>'+(month>=today().slice(0,7)?'<div class="actions"><button type="button" class="ghost" data-pcv-edit="'+html(r.id)+'">Editar período</button><button type="button" class="ghost" data-pcv-retire="'+html(r.id)+'">Encerrar cuidado</button></div>':'')+'</div>'}).join('')
  :'<div class="meta">Nenhum cuidado adicional contratado foi cadastrado para este veículo.</div>';
@@ -95,12 +101,15 @@ function displayVehicle(){
 async function retireRule(id){
  const rule=benefits.find(x=>x.id===id);
  if(!rule||!current||catalogBusy||month<today().slice(0,7))return;
- if(!window.confirm('Encerrar "'+rule.service_label+'" a partir de '+month+'? Registros anteriores serão preservados.'))return;
+ const [y,m]=today().slice(0,7).split('-').map(Number);
+ const retirement=new Date(Date.UTC(y,m,1)).toISOString().slice(0,7);
+ if(!window.confirm('Encerrar "'+rule.service_label+'" a partir de '+retirement+'? Registros anteriores serão preservados.'))return;
  catalogBusy=true;
  try{
-  const result=await sb.rpc('retire_package_included_benefit',{p_benefit_id:id,p_from_month:month+'-01'});
+  const result=await sb.rpc('retire_package_included_benefit',{p_benefit_id:id,p_from_month:retirement+'-01'});
   if(result.error)throw result.error;
   if(typeof window.refreshPlanControl==='function')await window.refreshPlanControl(current.vehicle_id);
+  $('pc-msg').textContent='Encerramento previsto para '+retirement.split('-').reverse().join('/')+'.';$('pc-msg').className='notice';
  }catch(e){warning('Não foi possível encerrar o cuidado: '+(e.message||String(e)))}finally{catalogBusy=false}
 }
 async function adoptTemplate(id){
@@ -119,16 +128,17 @@ async function saveRule(v){
  try{
   const result=await sb.rpc('save_subscription_care_rule',{
    p_subscription_id:current.id,p_label:v.label,p_type:v.type,p_min:v.min,
-   p_max:v.max,p_every:v.every,p_quantity:v.quantity,p_month:month+'-01'
+   p_max:v.max,p_every:v.every,p_quantity:v.quantity,p_month:(v.effective||month)+'-01'
   });
   if(result.error)throw result.error;
   $('pcv-form').classList.add('hidden');
   if(typeof window.refreshPlanControl==='function')await window.refreshPlanControl(current.vehicle_id);
+  if(v.effective&&v.effective>month){$('pc-msg').textContent='Cuidado salvo para '+v.effective.split('-').reverse().join('/')+'. O mês atual permanece igual.';$('pc-msg').className='notice';}
  }catch(e){warning('Não foi possível salvar: '+(e.message||String(e)))}finally{catalogBusy=false}
 }
 function init(){
  if($('pc-care-tools'))return;
- const root=$('pc-summary');if(!root)return;
+ const root=$('pc-admin');if(!root||!['owner','admin'].includes(currentRole))return;
  const node=document.createElement('section');node.id='pc-care-tools';
  node.innerHTML='<div class="item" style="margin-top:12px"><h3>Cuidados deste veículo</h3><div id="pc-care-vehicle-list"></div>'+
  '<button class="ghost" id="pcv-new" type="button" style="margin-top:9px">+ Incluir cuidado contratado</button>'+
@@ -138,7 +148,7 @@ function init(){
  '<label>Plano<select id="pct-tier"><option value="essencial">Essencial</option><option value="plus">Plus</option><option value="premium">Premium</option></select></label>'+
  '<div id="pct-list"></div><button type="button" class="ghost" id="pct-new" style="margin-top:10px">+ Novo cuidado padrão</button>'+
  formHtml('pct','Salvar padrão do plano')+'</details>';
- root.insertAdjacentElement('afterend',node);
+ root.appendChild(node);
  for(const prefix of ['pct','pcv']){
   $(prefix+'-type').onchange=()=>togglePeriod(prefix);
   $(prefix+'-cancel').onclick=()=>$(prefix+'-form').classList.add('hidden');
@@ -175,11 +185,28 @@ function refresh(s,b,selectedMonth){
  displayVehicle();displayTemplates();
  if($('pc-define'))$('pc-define').classList.add('hidden'); // replaced by compact rule editor
 }
+function nextText(x){
+ if(x.nextDate)return x.nextDate.split('-').reverse().join('/');
+ if(x.frequency==='per_visit')return 'Em cada estética';
+ if(x.frequency==='every_n_visits')return 'Conforme ciclo de estéticas';
+ return 'A confirmar';
+}
+function summary(d){
+ const limit=d.limit_visits??d.visits_limit,done=d.completed??(d.visits||[]).length,
+ scheduled=d.scheduled,known=limit!==null&&limit!==undefined;
+ return '<div class="care-counts" aria-label="Estéticas do mês">'+[
+ ['Contratadas',known?limit:'—'],['Concluídas',done],['Agendadas',scheduled??'—'],
+ ['Restantes',known?Math.max(0,Number(limit)-Number(done)):'—']
+ ].map(([label,value])=>'<div><b>'+html(value)+'</b><span>'+label+'</span></div>').join('')+
+ '</div><div class="care-meta">Restantes = contratadas menos concluídas; inclui as agendadas.'+
+ (scheduled===undefined?' Agendadas: consulte a agenda.':'')+'</div>';
+}
 function task(name,items,css){
  if(!items.length)return '';
  return '<section class="care-group '+css+'"><h5>'+name+'</h5>'+
  items.map(x=>'<div class="care-task"><b>'+html(x.label)+'</b><small>'+html(x.why)+
-  (x.lastDate?' • Última aplicação: '+html(x.lastDate.split('-').reverse().join('/')):'')+
+  (x.lastDate?' • Última execução: '+html(x.lastDate.split('-').reverse().join('/')):'')+
+  ' • Próxima previsão: '+html(nextText(x))+
   '</small></div>').join('')+'</section>';
 }
 function brief(d,hideAppointmentNotes){
@@ -195,12 +222,15 @@ function brief(d,hideAppointmentNotes){
  const notes=(!hideAppointmentNotes&&d.appointment_notes?'<div class="care-group"><b>Observação desta visita</b><div class="care-meta">'+html(d.appointment_notes)+'</div></div>':'')+
  (d.vehicle_notes?'<div class="care-group"><b>Observações do veículo</b><div class="care-meta">'+html(d.vehicle_notes)+'</div></div>':'');
  return '<div class="care-brief" role="region" aria-label="Cuidados do veículo"><h4>'+html(String(d.plan_name||'Plano Vaporeasy').replace(/^Pacote\s+/i,'Plano '))+' • '+(isAppointment?'O que fazer nesta estética':'Situação dos cuidados')+'</h4>'+
- '<div class="care-meta">Benefícios apenas deste contrato. Registros financeiros não aparecem aqui.</div>'+
+ '<div class="care-meta">'+html(String(d.month||when).slice(0,7).split('-').reverse().join('/'))+'</div>'+
+ (d.hide_summary?'':summary(d))+
  task(isAppointment?'FAZER NESTA ESTÉTICA':'PROGRAMAR NA PRÓXIMA ESTÉTICA',due,'care-group-priority')+
- task('JÁ REALIZADO / DENTRO DO PRAZO',[...done,...ok],'care-group-muted')+
+ (!due.length&&isAppointment?'<div class="care-group care-group-priority">Nenhum cuidado adicional pendente confirmado para esta estética.</div>':'')+
+ task('JÁ REALIZADOS',evaluated.filter(x=>x.lastDate).map(x=>({...x,why:x.status==='due'?'Pendente • renovar cuidado':x.status==='done'?'Concluído':'Dentro do prazo'})),'care-group-muted')+
+ task('PRÓXIMOS CUIDADOS',[...done,...ok],'care-group-muted')+
  task('CONFERIR PRIMEIRA APLICAÇÃO',check,'care-group-muted')+
  (!evaluated.length?'<div class="care-group care-group-muted"><div class="care-meta">Nenhum cuidado adicional foi confirmado neste contrato. Confirme com o administrador antes de executar benefícios extras.</div></div>':'')+
- '<section class="care-group care-group-previous"><h5>ESTÉTICA ANTERIOR</h5>'+lastText+'</section>'+notes+'</div>';
+ '<details class="care-group care-group-previous"><summary>ESTÉTICA ANTERIOR</summary>'+lastText+'</details>'+notes+'</div>';
 }
-window.VaporeasyCareUI={init,refresh,brief,describe};
+window.VaporeasyCareUI={init,refresh,brief,describe,summary};
 })();

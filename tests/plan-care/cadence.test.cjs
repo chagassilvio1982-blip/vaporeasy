@@ -53,7 +53,9 @@ test('ficha do técnico destaca fazer hoje, anterior, em dia, sem HTML não conf
  const h=catalog.brief(d,false);
  assert.match(h,/FAZER NESTA ESTÉTICA/);
  assert.match(h,/ESTÉTICA ANTERIOR/);
- assert.match(h,/JÁ REALIZADO \/ DENTRO DO PRAZO/);
+ assert.match(h,/JÁ REALIZADOS/);
+ assert.match(h,/PRÓXIMOS CUIDADOS/);
+ assert.match(h,/Próxima previsão: 14\/10\/2026/);
  assert.match(h,/Plano Premium/);
  assert.doesNotMatch(h,/<script>/);
  assert.match(h,/&lt;script&gt;/);
@@ -109,4 +111,38 @@ test('cadastro do veículo usa programação futura, não sinaliza execução em
  assert.match(h,/consulte o atendimento para confirmar/);
  const record=rhythm.evaluate([{label:'Enceramento manual',frequency:'per_visit'}],[],[],'2026-10-14')[0];
  assert.equal(record.status,'check');
+});
+
+test('confirmação neste atendimento conclui benefício por ciclo sem exigi-lo novamente',()=>{
+ const b={label:'Enceramento',frequency:'every_n_visits',every_n_visits:1,appointment_id:'a'};
+ const h=[{label:'Enceramento',date:'2026-10-14',appointment_id:'a'}];
+ assert.equal(state(b,h).status,'done');
+ assert.equal(state({...b,frequency:'per_visit'},[]).status,'due');
+});
+test('resumo Premium quatro visitas não desconta agendadas como concluídas',()=>{
+ const h=catalog.summary({limit_visits:4,completed:1,scheduled:2});
+ assert.match(h,/<b>4<\/b><span>Contratadas/);
+ assert.match(h,/<b>1<\/b><span>Concluídas/);
+ assert.match(h,/<b>2<\/b><span>Agendadas/);
+ assert.match(h,/<b>3<\/b><span>Restantes/);
+});
+test('intervalo exato 90 dias, data da próxima aplicação e histórico futuro ignorado',()=>{
+ const b=rule('interval_days',90,90);
+ const h=performed('2026-07-16').concat(performed('2026-11-01'));
+ assert.equal(state(b,h,'2026-10-13').status,'ok');
+ assert.equal(state(b,h).status,'due');
+ assert.equal(state(b,h).nextDate,'2026-10-14');
+ assert.equal(state(b,h).lastDate,'2026-07-16');
+});
+test('mensal concluído mostra previsão no próximo mês e não inventa execução',()=>{
+ const b=rule('monthly',null,null,'Grafeno');
+ assert.equal(state(b,performed('2026-10-02','Grafeno')).nextDate,'2026-11-01');
+ assert.equal(state(b,[]).lastDate,null);
+});
+test('nova frequência é avaliada sem mutar histórico ou contrato anterior',()=>{
+ const h=performed('2026-08-15'),original=JSON.stringify(h),b=rule('interval_days',60,60);
+ assert.equal(state(b,h).status,'due');
+ assert.equal(state({...b,min_days:90,max_days:90},h).status,'ok');
+ assert.equal(JSON.stringify(h),original);
+ assert.equal(b.min_days,60);
 });

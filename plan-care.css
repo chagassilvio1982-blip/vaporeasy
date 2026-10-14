@@ -19,3 +19,16 @@
 .pc-input-row label{margin:0}
 .pc-cadence-hint{font-size:12px;color:#aac6d4;line-height:1.45}
 @media(max-width:500px){.pc-input-row{grid-template-columns:1fr}.pc-template-row{flex-direction:column}.pc-template-row button{width:100%}}
+
+/* Compact operational summary; administration remains collapsed. */
+.care-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0}
+.care-counts div{padding:8px 2px;text-align:center;background:#0b2b39;border-radius:8px}
+.care-counts b{display:block;font-size:21px;color:#fff}
+.care-counts span{font-size:12px;color:#bed0d9;overflow-wrap:anywhere}
+#pc-admin{margin-top:12px;border:1px solid #244b5e;border-radius:12px;padding:10px}
+#pc-admin>summary,#pc-history-panel>summary,.care-group>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:800}
+#plancontrol button,#plancontrol input,#plancontrol select{min-height:44px}
+#plancontrol{box-sizing:border-box;max-width:calc(100vw - 20px)}
+.care-task small{font-size:13px;line-height:1.5}
+.care-task b{font-size:15px}.care-brief .care-meta{font-size:12px}
+@media(max-width:360px){.care-counts{grid-template-columns:repeat(2,minmax(0,1fr))}}
