@@ -1,0 +1,26 @@
+name: Vaporeasy homologacao - UX e cuidados
+on:
+  push:
+    branches:
+      - feature/v2-busca-agenda-20261014
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  care-ux-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run deterministic care and scheduling tests
+        run: |
+          node --test tests/plan-care/cadence.test.cjs tests/agenda-quick/agenda-quick.test.cjs tests/agenda-quick/operational-ux.test.cjs
+      - name: Validate static JS syntax
+        run: |
+          node --check plan-care-rhythm.js
+          node --check plan-care-ui.js
+          node --check plan-control.js
+          node --check agenda-quick-search.js
