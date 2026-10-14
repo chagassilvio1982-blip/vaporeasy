@@ -1,0 +1,13 @@
+/* Controles rápidos da agenda: dimensões adequadas ao uso móvel. */
+.agenda-date-picker{display:flex;align-items:end;gap:8px;min-width:0}
+.agenda-date-picker label{flex:1;min-width:0}
+.agenda-date-picker input{margin-bottom:0}
+#agendaToday{min-width:72px;min-height:50px;flex-shrink:0}
+.agenda-search-label{display:block;margin:14px 0 5px;font-size:13px}
+#agendaQuickSearch{min-height:50px;margin:0 0 4px}
+#agendaQuickSearchStatus{min-height:20px;color:#b3c8d3;font-size:12px;margin:0 0 8px}
+#agendaQuickSearchStatus:empty{display:none}
+@media(max-width:470px){
+  .agenda-date-picker{width:100%}
+  #agendaToday{min-height:50px}
+}
