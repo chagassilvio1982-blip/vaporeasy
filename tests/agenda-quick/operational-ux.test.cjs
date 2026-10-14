@@ -73,3 +73,20 @@ test('ações rápidas preservam fluxos atuais sem escrita adicional',()=>{
  assert.match(index,/data-st/);
  assert.doesNotMatch(index,/function agendaQuickDirectPayment/);
 });
+
+test('observações do atendimento aparecem uma única vez no cartão do operador',()=>{
+ const plan=fs.readFileSync(path.resolve(__dirname,'../../plan-control.js'),'utf8');
+ const start=plan.indexOf('function briefHtml(d,hideAppointmentNotes=false){');
+ const end=plan.indexOf('window.renderQuickPlanCare=',start);
+ assert.ok(start>=0&&end>start);
+ const code=plan.slice(start,end);
+ const make=new Function('esc','briefDate','operationalBenefitLines','d','hide',
+  code+'\nreturn briefHtml(d,hide)');
+ const d={is_plan:false,recent_visits:[],appointment_notes:'Porta sensível',vehicle_notes:'Proteção delicada'};
+ const compact=make(escape,x=>x,()=>{},d,true);
+ const expanded=make(escape,x=>x,()=>{},d,false);
+ assert.doesNotMatch(compact,/Porta sensível/);
+ assert.match(compact,/Proteção delicada/);
+ assert.match(expanded,/Porta sensível/);
+ assert.match(plan,/node\.closest\('\.operator-job'\)/);
+});
