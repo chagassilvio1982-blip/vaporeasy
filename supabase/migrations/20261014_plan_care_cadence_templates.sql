@@ -56,6 +56,22 @@ alter table public.package_included_benefits
  or (frequency in ('monthly','per_visit') and cadence_min_days is null and cadence_max_days is null and every_n_visits is null)
  );
 
+-- Explicit audit trail for subscription cadence edits; no charge, calendar, or visit mutation.
+create table public.plan_care_rule_audit(
+ id uuid primary key default gen_random_uuid(),
+ benefit_id uuid not null references public.package_included_benefits(id),
+ subscription_id uuid not null references public.package_subscriptions(id),
+ previous_rule jsonb not null,
+ new_rule jsonb not null,
+ changed_by uuid not null references auth.users(id),
+ changed_at timestamptz not null default now()
+);
+alter table public.plan_care_rule_audit enable row level security;
+revoke all on public.plan_care_rule_audit from public,anon,authenticated;
+grant select on public.plan_care_rule_audit to authenticated;
+create policy plan_care_rule_audit_admin_read on public.plan_care_rule_audit for select to authenticated
+ using (auth.uid() is not null and private.current_app_role() in ('owner','admin'));
+
 create function public.save_plan_care_template(
  p_tier text,p_label text,p_type text,p_min int default null,p_max int default null,
  p_every int default null,p_quantity int default 1,p_guidance text default '',p_enabled boolean default true
@@ -69,13 +85,13 @@ begin
  if p_tier not in ('essencial','plus','premium') or length(btrim(coalesce(p_label,''))) not between 3 and 120
  or p_type not in ('monthly','per_visit','interval_days','every_n_visits')
  or coalesce(p_quantity,0) not between 1 and 12 or length(coalesce(p_guidance,''))>500
- or (p_type='interval_days' and (p_min not between 1 and 365 or p_max not between p_min and 365 or p_every is not null))
- or (p_type='every_n_visits' and (p_every not between 1 and 12 or p_min is not null or p_max is not null))
+ or (p_type='interval_days' and (p_min is null or p_max is null or p_min not between 1 and 365 or p_max not between p_min and 365 or p_every is not null))
+ or (p_type='every_n_visits' and (p_every is null or p_every not between 1 and 12 or p_min is not null or p_max is not null))
  or (p_type in ('monthly','per_visit') and (p_min is not null or p_max is not null or p_every is not null))
  then raise exception 'Regra, frequência ou intervalo inválido.'; end if;
  insert into public.plan_care_templates(plan_tier,service_label,cadence_type,min_days,max_days,every_n_visits,monthly_quantity,guidance,enabled)
  values(p_tier,btrim(p_label),p_type,p_min,p_max,p_every,p_quantity,coalesce(p_guidance,''),p_enabled)
- on conflict(plan_tier,lower(service_label)) do update
+ on conflict (plan_tier, (lower(service_label))) do update
  set cadence_type=excluded.cadence_type,min_days=excluded.min_days,max_days=excluded.max_days,
  every_n_visits=excluded.every_n_visits,monthly_quantity=excluded.monthly_quantity,guidance=excluded.guidance,
  enabled=excluded.enabled,updated_at=now()
@@ -100,8 +116,8 @@ begin
  or length(btrim(coalesce(p_label,''))) not between 3 and 120
  or p_type not in ('monthly','per_visit','interval_days','every_n_visits')
  or p_quantity not between 1 and 12
- or (p_type='interval_days' and (p_min not between 1 and 365 or p_max not between p_min and 365 or p_every is not null))
- or (p_type='every_n_visits' and (p_every not between 1 and 12 or p_min is not null or p_max is not null))
+ or (p_type='interval_days' and (p_min is null or p_max is null or p_min not between 1 and 365 or p_max not between p_min and 365 or p_every is not null))
+ or (p_type='every_n_visits' and (p_every is null or p_every not between 1 and 12 or p_min is not null or p_max is not null))
  or (p_type in ('monthly','per_visit') and (p_min is not null or p_max is not null or p_every is not null))
  then raise exception 'Revise período, contrato e frequência.'; end if;
  select * into b from public.package_included_benefits
@@ -114,6 +130,12 @@ begin
   set frequency=p_type,monthly_quantity=p_quantity,cadence_min_days=p_min,cadence_max_days=p_max,
     every_n_visits=p_every
   where id=b.id returning id into rule_id;
+  insert into public.plan_care_rule_audit(benefit_id,subscription_id,previous_rule,new_rule,changed_by)
+  values(b.id,s.id,
+   jsonb_build_object('frequency',b.frequency,'monthly_quantity',b.monthly_quantity,
+     'min_days',b.cadence_min_days,'max_days',b.cadence_max_days,'every_n_visits',b.every_n_visits),
+   jsonb_build_object('frequency',p_type,'monthly_quantity',p_quantity,
+     'min_days',p_min,'max_days',p_max,'every_n_visits',p_every),auth.uid());
  else
   insert into public.package_included_benefits(subscription_id,service_label,frequency,monthly_quantity,effective_from_month,
    cadence_min_days,cadence_max_days,every_n_visits,created_by)
