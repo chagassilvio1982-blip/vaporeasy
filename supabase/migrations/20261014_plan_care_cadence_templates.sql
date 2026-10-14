@@ -36,7 +36,7 @@ values
  ('premium','Estética de manutenção','per_visit',null,null,null,1,'Atendimento conforme contratação.'),
  ('premium','Enceramento manual','per_visit',null,null,null,1,'Verificar se foi incluído no plano deste veículo.'),
  ('premium','Proteção hidrorrepelente do para-brisa','interval_days',60,90,null,1,'Inspecionar uso e comportamento da água; antecipar ou adiar dentro da janela após avaliação.'),
- ('premium','Selante com grafeno da pintura','interval_days',30,30,null,1,'Reaplicação mensal quando este tratamento estiver contratado.'),
+ ('premium','Selante com grafeno da pintura','monthly',null,null,null,1,'Uma aplicação por mês, quando este tratamento estiver contratado.'),
  ('premium','Hidratação do couro','interval_days',60,60,null,1,'Aplicar apenas quando o veículo tiver couro e o serviço estiver contratado.');
 
 alter table public.package_included_benefits
