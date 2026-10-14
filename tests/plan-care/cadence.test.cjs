@@ -85,3 +85,15 @@ test('hidrorrepelente histórico é reconhecido mesmo com nome antigo no registr
  const unrelated=state(d,performed('2026-08-15','Hidratação do couro'));
  assert.equal(unrelated.status,'check');
 });
+
+test('detalhes da visita usam histórico completo em vez de contagem mensal de benefícios',()=>{
+ const source=fs.readFileSync(path.resolve(__dirname,'../../plan-control.js'),'utf8');
+ const start=source.indexOf('window.renderPlanBenefitsForAppointment=async function(ctx){');
+ const end=source.indexOf('async function voidRecord',start);
+ assert.ok(start>=0&&end>start);
+ const detail=source.slice(start,end);
+ assert.match(detail,/sb\.rpc\('appointment_care_brief'/);
+ assert.match(detail,/VaporeasyCareUI\?\.brief/);
+ assert.doesNotMatch(detail,/benefitsHtml\(/);
+ assert.doesNotMatch(detail,/package_charges|confirm_payment|appointment_payments/);
+});
