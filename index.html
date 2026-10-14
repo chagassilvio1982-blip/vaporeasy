@@ -1348,6 +1348,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <dialog id="fd"><form id="finishf" class="stack">
 <input id="finishid" type="hidden"><h3 id="finishtitle">Concluir atendimento</h3>
 <div id="finishsummary" class="meta"></div>
+<div id="finish-care-brief" aria-live="polite"></div>
 <div id="finishkind" class="notice">A conclusão registra o serviço realizado, sem exigir fotografia.</div>
 <div class="meta">A data e o horário são registrados pelo sistema. O financeiro diferencia plano contratado, recorrência sem plano e serviço avulso.</div>
 <div id="finishmsg" class="notice hidden"></div>
@@ -2141,7 +2142,8 @@ function renderClients(){
     if(!c)return;
     selectedClientId=c.id;
     input.value=c.name;
-    renderClients()
+    renderClients();
+    void showVehicles(c.id,true)
   })
 }
 async function hasFutureActiveAppointment(filters){
@@ -2175,7 +2177,7 @@ async function archiveVehicle(cid,id){
 }
 function openClient(c){$("cf").reset();$("cid").value=c?.id||"";$("cn").value=c?.name||"";$("cp").value=c?.phone||"";$("cw").value=c?.whatsapp||"";$("ca").value=c?.address||"";$("co").value=c?.notes||"";$("cc").value="";$("cd").showModal()}
 async function saveClient(e){e.preventDefault();try{let condo=null, name=$("cc").value.trim();if(name){let f=await sb.from("condominiums").select("id").ilike("name",name).limit(1).maybeSingle();if(f.error)throw f.error;if(f.data)condo=f.data.id;else{let n=await sb.from("condominiums").insert({name}).select("id").single();if(n.error)throw n.error;condo=n.data.id}}const p={name:$("cn").value.trim(),phone:$("cp").value.trim(),whatsapp:$("cw").value.trim(),address:$("ca").value.trim(),notes:$("co").value.trim(),condominium_id:condo};let r=$("cid").value?await sb.from("clients").update(p).eq("id",$("cid").value):await sb.from("clients").insert(p);if(r.error)throw r.error;$("cd").close();show("msg","Cliente salvo.","ok");await loadClients()}catch(e){show("msg",fail(e),"error")}}
-async function showVehicles(cid){const box=$("v-"+cid),canDelete=["owner","admin"].includes(currentRole);box.classList.toggle("hidden");if(box.classList.contains("hidden"))return;let r=await sb.from("vehicles").select("*").eq("client_id",cid).is("archived_at",null).order("brand");if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}vehicles.set(cid,r.data||[]);box.innerHTML=(r.data||[]).length?(r.data||[]).map(v=>'<details class="vehicle-card"><summary><span><b>'+esc(v.brand+" "+v.model)+'</b><small>'+esc(v.plate||"Sem placa")+'</small></span><span class="vehicle-open-label">Opções</span></summary><div class="vehicle-card-actions"><button class="primary" data-rg="'+v.id+'" data-c="'+cid+'">RG / Histórico</button>'+(canDelete?'<button class="ghost" data-plan-vehicle="'+v.id+'" data-c="'+cid+'">Cuidados do plano</button>':'')+'<button class="ghost" data-ve="'+v.id+'" data-c="'+cid+'">Editar</button>'+(canDelete?'<button class="danger subtle-danger" data-vx="'+v.id+'" data-c="'+cid+'">Excluir veículo</button>':"")+'</div></details>').join(""):'<div class="empty">Nenhum veículo.</div>';box.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>openVehicleRG(cid,(r.data||[]).find(x=>x.id===b.dataset.rg)));box.querySelectorAll("[data-plan-vehicle]").forEach(b=>b.onclick=()=>window.openPlanControl(cid,b.dataset.planVehicle));box.querySelectorAll("[data-ve]").forEach(b=>b.onclick=()=>openVehicle(cid,(r.data||[]).find(x=>x.id===b.dataset.ve)));box.querySelectorAll("[data-vx]").forEach(b=>b.onclick=()=>archiveVehicle(cid,b.dataset.vx))}
+async function showVehicles(cid,auto=false){const box=$("v-"+cid),canDelete=["owner","admin"].includes(currentRole);if(auto)box.classList.remove("hidden");else box.classList.toggle("hidden");if(box.classList.contains("hidden"))return;let r=await sb.from("vehicles").select("*").eq("client_id",cid).is("archived_at",null).order("brand");if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}vehicles.set(cid,r.data||[]);box.innerHTML=(r.data||[]).length?(r.data||[]).map(v=>'<details class="vehicle-card"><summary><span><b>'+esc(v.brand+" "+v.model)+'</b><small>'+esc(v.plate||"Sem placa")+'</small></span><span class="vehicle-open-label">Opções</span></summary><div class="vehicle-card-actions"><button class="primary" data-rg="'+v.id+'" data-c="'+cid+'">RG / Histórico</button>'+(canDelete?'<button class="ghost" data-plan-vehicle="'+v.id+'" data-c="'+cid+'">Cuidados do plano</button>':'')+'<button class="ghost" data-ve="'+v.id+'" data-c="'+cid+'">Editar</button>'+(canDelete?'<button class="danger subtle-danger" data-vx="'+v.id+'" data-c="'+cid+'">Excluir veículo</button>':"")+'</div></details><div data-care-vehicle="'+v.id+'"></div>').join(""):'<div class="empty">Nenhum veículo.</div>';box.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>openVehicleRG(cid,(r.data||[]).find(x=>x.id===b.dataset.rg)));box.querySelectorAll("[data-plan-vehicle]").forEach(b=>b.onclick=()=>window.openPlanControl(cid,b.dataset.planVehicle));box.querySelectorAll("[data-ve]").forEach(b=>b.onclick=()=>openVehicle(cid,(r.data||[]).find(x=>x.id===b.dataset.ve)));box.querySelectorAll("[data-vx]").forEach(b=>b.onclick=()=>archiveVehicle(cid,b.dataset.vx));if(window.renderClientVehicleCare)void window.renderClientVehicleCare(cid)}
 let currentRGPhotos=[],currentRGIssues=[],currentRGPhotoIssueId="";
 function priorityLabel(v){return v==="immediate"?"Atenção imediata":v==="preventive"?"Preventivo":"Recomendado"}
 function priorityPill(v){return '<span class="pill">'+esc(priorityLabel(v))+'</span>'}
@@ -3852,11 +3854,12 @@ async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
       :"";
     const rg=isToday?'<button class="ghost operator-rg-action" type="button" data-op-rg="'+x.id+'">📷 RG do veículo</button>':"";
     const info=!isToday?'<div class="operator-future-note">As ações Iniciar, Concluir e RG do veículo ficam disponíveis no dia do atendimento.</div>':"";
-    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
+    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+(x.status!=="completed"?'<div data-care-job="'+x.id+'" id="care-job-'+x.id+'"></div>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
   };
   let out=active.length?active.map(card).join(""):(done.length?'<div class="empty">Nenhum atendimento pendente nesta data.</div>':'<div class="empty">Nenhum atendimento atribuído a você nesta data.</div>');
   if(done.length)out+='<details class="operator-completed"><summary>Concluídos ('+done.length+')</summary><div>'+done.map(card).join("")+'</div></details>';
   box.innerHTML=out;
+  box.querySelectorAll("[data-care-job]").forEach(node=>{if(window.renderQuickPlanCare)void window.renderQuickPlanCare(node.dataset.careJob,node.id)});
   box.querySelectorAll("[data-op-start]").forEach(b=>b.onclick=()=>operatorStartJob(b.dataset.opStart));
   box.querySelectorAll("[data-op-finish]").forEach(b=>b.onclick=()=>openCompletion(b.dataset.opFinish));
   box.querySelectorAll("[data-op-rg]").forEach(b=>b.onclick=()=>openOperatorVehicleRG(currentApps.find(x=>x.id===b.dataset.opRg)))
@@ -4807,7 +4810,8 @@ async function openCompletion(id){
     }
   }
   $("finishkind").textContent=detail;
-  $("fd").showModal()
+  $("fd").showModal();
+  if(window.renderQuickPlanCare)void window.renderQuickPlanCare(id,"finish-care-brief")
 }
 async function saveCompletion(e){
   e.preventDefault();
@@ -5788,7 +5792,9 @@ async function loadApps(){
     if(u.error)return show("msg",fail(u.error),"error");
     agendaMonthCache.clear();
     if(b.dataset.st==="completed")waterCounterLoadedAt=0;
-    await loadApps()
+    const started=b.dataset.st==="in_progress",startedId=b.dataset.id;
+    await loadApps();
+    if(started)void openAppointmentDetail(startedId)
   });
   if(agendaFocusAppointmentId){
     const focusId=agendaFocusAppointmentId;
@@ -5813,6 +5819,6 @@ async function loadApps(){
 
 boot();
 </script>
-<script src="/plan-control.js?v=20261014-02"></script>
+<script src="/plan-control.js?v=20261014-03"></script>
 <script src="/main-menu.js?v=20261001"></script>
 </body></html>
