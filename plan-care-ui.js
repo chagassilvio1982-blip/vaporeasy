@@ -185,7 +185,7 @@ function task(name,items,css){
 function brief(d,hideAppointmentNotes){
  const rhythm=window.VaporeasyCareRhythm;
  if(!rhythm)return '<div class="notice">Cuidados do plano indisponíveis: atualize a página.</div>';
- const when=d.visit_date||today(),evaluated=rhythm.evaluate((d.benefits||[]).map(b=>({...b,appointment_id:d.appointment_id})),d.care_history||d.performed||[],d.visit_history||[],when);
+ const when=d.visit_date||today(),isAppointment=!!d.appointment_id,evaluated=rhythm.evaluate((d.benefits||[]).map(b=>({...b,appointment_id:d.appointment_id})),d.care_history||d.performed||[],d.visit_history||[],when);
  const due=evaluated.filter(x=>x.status==='due'),done=evaluated.filter(x=>x.status==='done'),ok=evaluated.filter(x=>x.status==='ok'),check=evaluated.filter(x=>x.status==='check');
  const last=rhythm.lastVisit(d.visit_history||d.recent_visits||[],when);
  const lastCare=last?(d.care_history||[]).filter(e=>String(e.date).slice(0,10)===String(last.date).slice(0,10)):[];
@@ -194,9 +194,9 @@ function brief(d,hideAppointmentNotes){
  '<span class="care-meta">Nenhuma estética anterior encontrada para este veículo.</span>';
  const notes=(!hideAppointmentNotes&&d.appointment_notes?'<div class="care-group"><b>Observação desta visita</b><div class="care-meta">'+html(d.appointment_notes)+'</div></div>':'')+
  (d.vehicle_notes?'<div class="care-group"><b>Observações do veículo</b><div class="care-meta">'+html(d.vehicle_notes)+'</div></div>':'');
- return '<div class="care-brief" role="region" aria-label="Cuidados desta estética"><h4>'+html(String(d.plan_name||'Plano Vaporeasy').replace(/^Pacote\s+/i,'Plano '))+' • O que fazer nesta visita</h4>'+
+ return '<div class="care-brief" role="region" aria-label="Cuidados do veículo"><h4>'+html(String(d.plan_name||'Plano Vaporeasy').replace(/^Pacote\s+/i,'Plano '))+' • '+(isAppointment?'O que fazer nesta estética':'Situação dos cuidados')+'</h4>'+
  '<div class="care-meta">Benefícios apenas deste contrato. Registros financeiros não aparecem aqui.</div>'+
- task('FAZER NESTA ESTÉTICA',due,'care-group-priority')+
+ task(isAppointment?'FAZER NESTA ESTÉTICA':'PROGRAMAR NA PRÓXIMA ESTÉTICA',due,'care-group-priority')+
  task('JÁ REALIZADO / DENTRO DO PRAZO',[...done,...ok],'care-group-muted')+
  task('CONFERIR PRIMEIRA APLICAÇÃO',check,'care-group-muted')+
  (!evaluated.length?'<div class="care-group care-group-muted"><div class="care-meta">Nenhum cuidado adicional foi confirmado neste contrato. Confirme com o administrador antes de executar benefícios extras.</div></div>':'')+
