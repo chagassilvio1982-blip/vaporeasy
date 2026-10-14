@@ -76,3 +76,12 @@ test('as páginas carregam os módulos e ocultam o antigo formulário duplicado'
  assert.match(plan,/window\.VaporeasyCareUI\.brief/);
  assert.match(plan,/\.rpc\('appointment_care_brief'/);
 });
+
+test('hidrorrepelente histórico é reconhecido mesmo com nome antigo no registro',()=>{
+ const d=rule('interval_days',60,90,'Proteção hidrorrepelente do para-brisa');
+ const r=state(d,performed('2026-08-15','Aplicação de hidrorrepelente'));
+ assert.equal(r.status,'due');
+ assert.equal(r.lastDate,'2026-08-15');
+ const unrelated=state(d,performed('2026-08-15','Hidratação do couro'));
+ assert.equal(unrelated.status,'check');
+});
