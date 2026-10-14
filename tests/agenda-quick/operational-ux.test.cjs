@@ -77,7 +77,7 @@ test('ações rápidas preservam fluxos atuais sem escrita adicional',()=>{
 test('observações do atendimento aparecem uma única vez no cartão do operador',()=>{
  const plan=fs.readFileSync(path.resolve(__dirname,'../../plan-control.js'),'utf8');
  const start=plan.indexOf('function briefHtml(d,hideAppointmentNotes=false){');
- const end=plan.indexOf('window.renderQuickPlanCare=',start);
+ const end=plan.indexOf('window.refreshPlanControl=load;',start);
  assert.ok(start>=0&&end>start);
  const code=plan.slice(start,end);
  const make=new Function('esc','briefDate','operationalBenefitLines','d','hide',
