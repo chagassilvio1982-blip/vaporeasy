@@ -53,4 +53,4 @@ begin
   returning id into rule_id;
  end if;
  return rule_id;
-end $;
+end $$;
