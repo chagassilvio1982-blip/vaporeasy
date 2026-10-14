@@ -27,3 +27,46 @@ test('integração é somente leitura e acionada na lista do mês',()=>{
   assert.match(src,/new MutationObserver\(apply\)/);
   assert.doesNotMatch(src,/\bsb\.(?:from|rpc)\(/);
 });
+
+test('filtro mensal oculta cartões sem correspondência e reavalia após recarregar',()=>{
+  const modulePath=require.resolve('../../agenda-quick-search.js');
+  const mkClassList=()=>{const classes=new Set();return {toggle:(name,on)=>on?classes.add(name):classes.delete(name),contains:name=>classes.has(name)}};
+  const node=(kind,text)=>({textContent:text,classList:mkClassList(),matches:selector=>
+    selector==='.list-caption'?kind==='heading':selector==='[data-agenda-list-day]'&&kind==='appointment'});
+  const day1=node('heading','Quarta-feira');
+  const a=node('appointment','09:00 Cézar Negrão Toyota • ABC-1D23');
+  const b=node('appointment','11:00 Marcelo Honda • XYZ9876');
+  const day2=node('heading','Quinta-feira');
+  const c=node('appointment','08:00 Joana BMW • GHI1234');
+  const list={children:[day1,a,b,day2,c],dataset:{}};
+  const input={value:'',addEventListener:(event,callback)=>{input.onInput=callback}};
+  const status={textContent:''};
+  const nodes={agendaListItems:list,agendaQuickSearch:input,agendaQuickSearchStatus:status};
+  global.document={readyState:'complete',getElementById:id=>nodes[id]};
+  global.MutationObserver=class {constructor(cb){this.cb=cb;global.__agendaObserver=this}observe(){}};
+  try{
+    delete require.cache[modulePath];
+    require(modulePath);
+    input.value='abc1d23';
+    input.onInput();
+    assert.equal(a.classList.contains('hidden'),false);
+    assert.equal(b.classList.contains('hidden'),true);
+    assert.equal(c.classList.contains('hidden'),true);
+    assert.equal(day1.classList.contains('hidden'),false);
+    assert.equal(day2.classList.contains('hidden'),true);
+    assert.match(status.textContent,/1 de 3/);
+    input.value='';
+    input.onInput();
+    assert.equal(c.classList.contains('hidden'),false);
+    const d=node('appointment','12:00 Cézar Mercedes • ABC1D23');
+    list.children=[day1,a,b,day2,c,d];
+    input.value='ABC-1D23';
+    global.__agendaObserver.cb();
+    assert.match(status.textContent,/2 de 4/);
+  }finally{
+    delete global.document;
+    delete global.MutationObserver;
+    delete global.__agendaObserver;
+    delete require.cache[modulePath];
+  }
+});
