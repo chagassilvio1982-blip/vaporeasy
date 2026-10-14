@@ -125,17 +125,28 @@ begin
   and effective_from_month<=p_month and (retired_from_month is null or retired_from_month>p_month)
  order by effective_from_month desc limit 1 for update;
  if found then
-  -- Existing contracted rule is edited; historic execution records remain unchanged.
-  update public.package_included_benefits
-  set frequency=p_type,monthly_quantity=p_quantity,cadence_min_days=p_min,cadence_max_days=p_max,
+  -- A historical contract rule must not be rewritten for previous months.
+  if b.effective_from_month < p_month then
+   update public.package_included_benefits set retired_from_month=p_month where id=b.id;
+   insert into public.package_included_benefits(
+    subscription_id,service_label,frequency,monthly_quantity,effective_from_month,
+    cadence_min_days,cadence_max_days,every_n_visits,created_by)
+   values(s.id,btrim(p_label),p_type,p_quantity,p_month,p_min,p_max,p_every,auth.uid())
+   returning id into rule_id;
+  else
+   update public.package_included_benefits
+   set frequency=p_type,monthly_quantity=p_quantity,cadence_min_days=p_min,cadence_max_days=p_max,
     every_n_visits=p_every
-  where id=b.id returning id into rule_id;
+   where id=b.id returning id into rule_id;
+  end if;
   insert into public.plan_care_rule_audit(benefit_id,subscription_id,previous_rule,new_rule,changed_by)
   values(b.id,s.id,
    jsonb_build_object('frequency',b.frequency,'monthly_quantity',b.monthly_quantity,
-     'min_days',b.cadence_min_days,'max_days',b.cadence_max_days,'every_n_visits',b.every_n_visits),
+     'min_days',b.cadence_min_days,'max_days',b.cadence_max_days,'every_n_visits',b.every_n_visits,
+     'effective_month',b.effective_from_month),
    jsonb_build_object('frequency',p_type,'monthly_quantity',p_quantity,
-     'min_days',p_min,'max_days',p_max,'every_n_visits',p_every),auth.uid());
+     'min_days',p_min,'max_days',p_max,'every_n_visits',p_every,
+     'effective_month',p_month,'version_id',rule_id),auth.uid());
  else
   insert into public.package_included_benefits(subscription_id,service_label,frequency,monthly_quantity,effective_from_month,
    cadence_min_days,cadence_max_days,every_n_visits,created_by)
@@ -143,7 +154,7 @@ begin
   returning id into rule_id;
  end if;
  return rule_id;
-end $$;
+end $;
 revoke all on function public.save_plan_care_template(text,text,text,int,int,int,int,text,boolean) from public,anon;
 revoke all on function public.save_subscription_care_rule(uuid,text,text,int,int,int,int,date) from public,anon;
 grant execute on function public.save_plan_care_template(text,text,text,int,int,int,int,text,boolean) to authenticated;
