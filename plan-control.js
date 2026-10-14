@@ -245,39 +245,54 @@ window.renderClientVehicleCare=async function(clientId){
  try{
   const ps=await sb.rpc('get_client_plan_control',{p_client_id:clientId,p_month:month+'-01'});
   if(ps.error)throw ps.error;
-  const plans=ps.data?.subscriptions||[],ids=plans.map(x=>x.id);
-  const [br,vis,pr]=await Promise.all([
-    ids.length?sb.from('package_included_benefits').select('subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month,cadence_min_days,cadence_max_days,every_n_visits').in('subscription_id',ids):{data:[],error:null},
-    sb.from('appointments').select('vehicle_id,starts_at,notes').eq('client_id',clientId).eq('status','completed').is('deleted_at',null).order('starts_at',{ascending:false}).limit(160),
-    sb.from('vehicle_profiles').select('vehicle_id,notes').in('vehicle_id',slots.map(x=>x.dataset.careVehicle))
+  const plans=ps.data?.subscriptions||[],ids=plans.map(x=>x.id),vehicleIds=slots.map(x=>x.dataset.careVehicle);
+  const [br,vis,pr,hist]=await Promise.all([
+   ids.length?sb.from('package_included_benefits').select(
+    'subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month,cadence_min_days,cadence_max_days,every_n_visits'
+   ).in('subscription_id',ids):{data:[],error:null},
+   sb.from('appointments').select('vehicle_id,starts_at,notes').eq('client_id',clientId)
+    .eq('status','completed').is('deleted_at',null).order('starts_at',{ascending:false}).limit(180),
+   sb.from('vehicle_profiles').select('vehicle_id,notes').in('vehicle_id',vehicleIds),
+   ids.length?sb.from('package_service_events')
+    .select('subscription_id,performed_on,service_label,appointment_id').in('subscription_id',ids)
+    .is('voided_at',null).lte('performed_on',today()).order('performed_on',{ascending:false}).limit(700)
+    :{data:[],error:null}
   ]);
   if(!root.isConnected||root.classList.contains('hidden')||root.dataset.careRequest!==requestId)return;
-  for(const r of [br,vis,pr])if(r.error)throw r.error;
+  for(const r of [br,vis,pr,hist])if(r.error)throw r.error;
   const notes=new Map((pr.data||[]).map(x=>[x.vehicle_id,x.notes||'']));
   slots.forEach(node=>{
    const vehicleId=node.dataset.careVehicle,found=plans.filter(p=>p.vehicle_id===vehicleId);
-   const vdates=(vis.data||[]).filter(x=>x.vehicle_id===vehicleId).slice(0,4);
-   const last=vdates.length?'<div class="meta" style="margin-top:5px"><b>Últimas estéticas:</b> '+esc(vdates.map(x=>dateLabel(spDateTime(x.starts_at).date)).join(' • '))+'</div>':
-    '<div class="meta" style="margin-top:5px">Nenhuma estética concluída localizada.</div>';
+   const visits=(vis.data||[]).filter(x=>x.vehicle_id===vehicleId)
+    .map(x=>({date:spDateTime(x.starts_at).date}));
+   const preview=visits.slice(0,4);
+   const last=preview.length?'<div class="meta" style="margin-top:7px"><b>Últimas estéticas:</b> '+
+     esc(preview.map(x=>dateLabel(x.date)).join(' • '))+'</div>':
+     '<div class="meta">Nenhuma estética concluída localizada.</div>';
    const planLines=found.map(p=>{
-    const defs=(br.data||[]).filter(x=>x.subscription_id===p.id&&x.effective_from_month.slice(0,7)<=month&&(!x.retired_from_month||x.retired_from_month.slice(0,7)>month))
-     .map(x=>({label:x.service_label,frequency:x.frequency,quantity:x.monthly_quantity}));
-    const {rows,other}=operationalBenefitLines(defs,p.services||[],p.limit_visits);
-    const count=p.limit_visits===null||p.limit_visits===undefined?p.completed+' concluída(s), quota não registrada':p.completed+' de '+p.limit_visits+' concluída(s)';
-    return '<div style="margin-top:7px"><b>'+esc(p.plan.replace(/^Pacote\s+/i,'Plano '))+'</b> • '+esc(count)+'</div>'+
-      (rows.length?rows.map(b=>'<div class="meta" style="margin-top:4px">'+esc(b.label)+' — <b>'+esc(b.complete)+'</b>'+
-        (b.performed.length?' • '+esc(b.performed.map(x=>dateLabel(x.date)).join(', ')):'')+'</div>').join(''):
-       '<div class="meta">Benefícios adicionais não especificados neste plano.</div>')+
-      (other.length?'<div class="meta">Outros realizados: '+other.map(x=>esc(x.label)+' ('+esc(dateLabel(x.date))+')').join(' • ')+'</div>':'');
+    const defs=(br.data||[]).filter(x=>x.subscription_id===p.id&&x.effective_from_month.slice(0,7)<=month&&
+     (!x.retired_from_month||x.retired_from_month.slice(0,7)>month)).map(x=>({
+      label:x.service_label,frequency:x.frequency,quantity:x.monthly_quantity,
+      min_days:x.cadence_min_days,max_days:x.cadence_max_days,every_n_visits:x.every_n_visits
+     }));
+    const history=(hist.data||[]).filter(x=>x.subscription_id===p.id)
+     .map(x=>({date:x.performed_on,label:x.service_label,appointment_id:x.appointment_id}));
+    const title='<div class="meta"><b>'+esc(p.plan.replace(/^Pacote\s+/i,'Plano '))+'</b> • '+
+      esc(p.limit_visits===null||p.limit_visits===undefined?p.completed+' estéticas, limite a confirmar':
+        p.completed+' de '+p.limit_visits+' estéticas concluídas no mês')+'</div>';
+    const care=window.VaporeasyCareUI?.brief?.({
+      is_plan:true,plan_name:p.plan,benefits:defs,care_history:history,visit_history:visits,
+      visit_date:today(),vehicle_notes:notes.get(vehicleId)||''
+    },true)||'<div class="meta">Cuidados indisponíveis.</div>';
+    return title+care;
    }).join('');
-   const observation=notes.get(vehicleId)?'<div class="meta" style="margin-top:6px"><b>Observações do veículo:</b> '+esc(notes.get(vehicleId))+'</div>':'';
-   node.innerHTML='<div class="item" style="margin:6px 0 12px;padding:12px"><b>Resumo rápido</b>'+
-      (found.length?planLines:'<div class="meta">Sem plano registrado neste mês; atendimentos avulsos e recorrentes continuam no histórico.</div>')+
-      last+observation+'</div>';
+   const observation=notes.get(vehicleId)?'<div class="meta" style="margin-top:8px"><b>Observações do veículo:</b> '+esc(notes.get(vehicleId))+'</div>':'';
+   node.innerHTML='<div class="item" style="margin:6px 0 12px;padding:12px"><b>Resumo do veículo</b>'+
+    (found.length?planLines:'<div class="meta" style="margin-top:6px">Sem plano contratado neste mês. A recorrência simples não concede benefícios do plano.</div>'+last+observation)+'</div>';
   });
  }catch(err){
   if(root.isConnected&&root.dataset.careRequest===requestId)
-   slots.forEach(node=>node.innerHTML='<div class="notice error">Não foi possível consultar o resumo: '+esc(fail(err))+'</div>');
+   slots.forEach(node=>node.innerHTML='<div class="notice error">Não foi possível consultar os cuidados: '+esc(fail(err))+'</div>');
  }
 };
 
