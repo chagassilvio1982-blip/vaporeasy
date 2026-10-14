@@ -48,7 +48,7 @@ async function load(vehicleId=''){
   const br=ids.length?await sb.from('package_included_benefits').select('id,subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month,cadence_min_days,cadence_max_days,every_n_visits').in('subscription_id',ids):{data:[],error:null};
   if(token!==sequence)return;if(br.error)throw br.error;
   benefitConfigs=br.data||[];
-  const hist=ids.length?await sb.from('package_service_events').select('subscription_id,performed_on,service_label,appointment_id').in('subscription_id',ids).is('voided_at',null).lte('performed_on',month+'-31').order('performed_on',{ascending:false}).limit(700):{data:[],error:null};
+  const hist=ids.length?await sb.from('package_service_events').select('subscription_id,performed_on,service_label,appointment_id').in('subscription_id',ids).is('voided_at',null).lt('performed_on',new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),1)).toISOString().slice(0,10)).order('performed_on',{ascending:false}).limit(700):{data:[],error:null};
   if(token!==sequence)return;if(hist.error)throw hist.error;
   data.forEach(p=>{p.care_history=(hist.data||[]).filter(x=>x.subscription_id===p.id).map(x=>({date:x.performed_on,label:x.service_label,appointment_id:x.appointment_id}))});
   el('pc-sub').innerHTML=data.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.vehicle+(s.plate?' • '+s.plate:'')+' • '+s.plan+(!s.active?' • histórico':''))+'</option>').join('');
@@ -65,7 +65,7 @@ function render(){
  const history=[...(s.visits||[]).map(v=>({...v,label:'Estética do plano',kind:'visit',notes:''})),...(s.services||[]).map(v=>({...v,kind:'benefit'}))].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  el('pc-benefit-list').innerHTML='';
  window.VaporeasyCareUI?.refresh(s,benefitConfigs,el('pc-month').value);
- el('pc-define').classList.remove('hidden');
+ el('pc-define').classList.add('hidden');
  const defined=forMonth(s,el('pc-month').value);
  el('pc-kind').innerHTML='<option value="">Selecione o serviço realizado</option>'+
   (defined.length?defined.map(b=>'<option value="'+esc(b.service_label)+'">'+esc(b.service_label)+'</option>').join(''):
