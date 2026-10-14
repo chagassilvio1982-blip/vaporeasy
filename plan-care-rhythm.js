@@ -47,9 +47,11 @@
     status=count>=monthly?'done':'due';
     why=count>=monthly?'Realizado '+count+' de '+monthly+' neste mês':'Realizados '+count+' de '+monthly+' previstos neste mês';
    }else if(frequency==='per_visit'){
-    const done=performed.some(x=>x.appointment_id&&b.appointment_id&&x.appointment_id===b.appointment_id);
-    status=done?'done':'due';
-    why=done?'Registrado neste atendimento':'Previsto em toda estética do plano';
+    const hasAppointment=!!b.appointment_id;
+    const done=hasAppointment&&performed.some(x=>x.appointment_id&&x.appointment_id===b.appointment_id);
+    status=!hasAppointment?'check':done?'done':'due';
+    why=!hasAppointment?'Previsto em toda estética; consulte o atendimento para confirmar':
+      done?'Registrado neste atendimento':'Previsto em toda estética do plano';
    }else if(frequency==='every_n_visits'){
     if(!previous){status='check';why='Definir ponto inicial do ciclo de '+every+' visitas';}
     else{
