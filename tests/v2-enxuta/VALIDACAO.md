@@ -60,6 +60,6 @@ Alvo: homologação isolada. Não liberar em produção sem aprovação após va
 - [x] Sintaxe JavaScript verificada. Testes determinísticos do resumo: mensal, por visita, situação realizada/pendente, ausência de plano e escape de observações.
 - [ ] Teste autenticado real com proprietário e operador no celular, com e sem plano; conferir carregamento inicial e troca de cliente.
 - [ ] Medir latência das leituras na agenda em local com internet ruim. Não existe modo offline.
-- [ ] Confirmar o deployment Vercel do último commit. O conector de listagem retornou 403; não considerar a prévia anterior automaticamente atualizada.
+- [x] GitHub registrou status **Vercel: success** para o commit do checklist 1f19a14e; detalhe https://vercel.com/vaporeasy/vaporeasy/Bk1Sid1AzPGcnERvHRTLAe8wqhRu. O conector Vercel não disponibilizou URL única do novo preview, e ainda não houve E2E autenticado.
 - [ ] Confirmar que descrição de benefícios foi preenchida, pois tabela de benefícios configurados está vazia até cadastro administrativo.
 - [ ] Publicação em produção somente após aprovação.
