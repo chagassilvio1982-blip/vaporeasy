@@ -188,9 +188,9 @@ function operationalBenefitLines(definitions,events,visitsLimit){
  });
  return {rows,other:(events||[]).filter(x=>!used.has(x.id))};
 }
-function briefHtml(d){
+function briefHtml(d,hideAppointmentNotes=false){
  const names=(d.recent_visits||[]).map(x=>briefDate(x.date));
- const notes=[d.appointment_notes?'<div class="meta" style="margin-top:7px"><b>Observações de hoje:</b> '+esc(d.appointment_notes)+'</div>':'',
+ const notes=[!hideAppointmentNotes&&d.appointment_notes?'<div class="meta" style="margin-top:7px"><b>Observações de hoje:</b> '+esc(d.appointment_notes)+'</div>':'',
  d.vehicle_notes?'<div class="meta" style="margin-top:7px"><b>Cuidados e observações do veículo:</b> '+esc(d.vehicle_notes)+'</div>':''].join('');
  const recent=names.length?'<div class="meta" style="margin-top:7px"><b>Últimos atendimentos:</b> '+esc(names.slice(0,4).join(' • '))+'</div>':
  '<div class="meta" style="margin-top:7px">Nenhum atendimento concluído localizado.</div>';
@@ -219,7 +219,7 @@ window.renderQuickPlanCare=async function(appointmentId,elementId){
   const r=await sb.rpc('appointment_care_brief',{p_appointment_id:appointmentId});
   if(!node.isConnected||node.dataset.careRequest!==appointmentId)return;
   if(r.error)throw r.error;
-  node.innerHTML=briefHtml(r.data||{});
+  node.innerHTML=briefHtml(r.data||{},!!node.closest('.operator-job'));
  }catch(err){
   if(node.isConnected&&node.dataset.careRequest===appointmentId)
    node.innerHTML='<div class="notice error">Não foi possível consultar os cuidados: '+esc(fail(err))+'</div>';
