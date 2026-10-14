@@ -12,6 +12,7 @@ function ensureDialog(){
  const spec=document.createElement('div');spec.id='pc-spec';
  spec.innerHTML='<div id="pc-benefit-list"></div><details id="pc-define"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Definir benefício contratado</summary><form id="pc-define-form" class="stack" style="padding:12px"><div class="meta">Cadastre somente benefícios comprovadamente contratados para este veículo, inclusive se o mês for anterior. A definição vale a partir do mês selecionado e não cria cobrança.</div><label>Benefício previsto<input id="pc-define-label" maxlength="120" required placeholder="Ex.: Enceramento manual"></label><label>Frequência<select id="pc-define-frequency"><option value="monthly">Quantidade por mês</option><option value="per_visit">Em cada estética do plano</option></select></label><label id="pc-define-qty-wrap">Quantidade mensal<input id="pc-define-qty" type="number" min="1" max="12" value="1" required></label><button class="primary" type="submit">Adicionar ao plano</button></form></details>';
  el('pc-summary').insertAdjacentElement('afterend',spec);
+ window.VaporeasyCareUI?.init();
  el('pc-define-frequency').onchange=()=>el('pc-define-qty-wrap').classList.toggle('hidden',el('pc-define-frequency').value==='per_visit');
  el('pc-define-form').onsubmit=defineBenefit;
  el('pc-benefit-list').addEventListener('click',e=>{const b=e.target.closest('[data-pc-retire]');if(b)retireBenefit(b.dataset.pcRetire)});
@@ -44,9 +45,12 @@ async function load(vehicleId=''){
   const r=await sb.rpc('get_client_plan_control',{p_client_id:clientId,p_month:month+'-01'});if(token!==sequence)return;if(r.error)throw r.error;
   data=r.data?.subscriptions||[];
   const ids=data.map(x=>x.id);
-  const br=ids.length?await sb.from('package_included_benefits').select('id,subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month').in('subscription_id',ids):{data:[],error:null};
+  const br=ids.length?await sb.from('package_included_benefits').select('id,subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month,cadence_min_days,cadence_max_days,every_n_visits').in('subscription_id',ids):{data:[],error:null};
   if(token!==sequence)return;if(br.error)throw br.error;
   benefitConfigs=br.data||[];
+  const hist=ids.length?await sb.from('package_service_events').select('subscription_id,performed_on,service_label,appointment_id').in('subscription_id',ids).is('voided_at',null).lte('performed_on',month+'-31').order('performed_on',{ascending:false}).limit(700):{data:[],error:null};
+  if(token!==sequence)return;if(hist.error)throw hist.error;
+  data.forEach(p=>{p.care_history=(hist.data||[]).filter(x=>x.subscription_id===p.id).map(x=>({date:x.performed_on,label:x.service_label,appointment_id:x.appointment_id}))});
   el('pc-sub').innerHTML=data.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.vehicle+(s.plate?' • '+s.plate:'')+' • '+s.plan+(!s.active?' • histórico':''))+'</option>').join('');
   const chosen=data.find(s=>s.vehicle_id===vehicleId)||data.find(s=>s.id===previous)||data[0];
   if(chosen)el('pc-sub').value=chosen.id;
@@ -55,11 +59,12 @@ async function load(vehicleId=''){
 }
 function render(){
  const s=selected();requestKey='';el('pc-register').open=false;el('pc-define').open=false;
- if(!s){el('pc-benefit-list').innerHTML='';el('pc-define').classList.add('hidden');el('pc-summary').innerHTML='<div class="empty">Nenhum plano registrado para este cliente neste mês.</div>';el('pc-body').classList.add('hidden');return}
+ if(!s){window.VaporeasyCareUI?.refresh(null,[],el('pc-month').value);el('pc-benefit-list').innerHTML='';el('pc-define').classList.add('hidden');el('pc-summary').innerHTML='<div class="empty">Nenhum plano registrado para este cliente neste mês.</div>';el('pc-body').classList.add('hidden');return}
  const known=s.limit_visits!==null&&s.limit_visits!==undefined,limit=Number(s.limit_visits||0),done=Number(s.completed||0),scheduled=Number(s.scheduled||0),remaining=Math.max(0,limit-done),extra=Math.max(0,done-limit);
  el('pc-summary').innerHTML='<div class="item"><h3>'+esc(s.plan)+'</h3><div class="meta">'+esc(s.vehicle)+' • '+esc(el('pc-month').value.split('-').reverse().join('/'))+'</div><div style="font-size:23px;font-weight:900;margin:12px 0">'+done+(known?' de '+limit:'')+' estéticas concluídas</div><div class="meta">'+(known?remaining+' restante'+(remaining===1?'':'s')+' no mês':'Limite deste mês não registrado')+' • '+scheduled+' agendada'+(scheduled===1?'':'s')+'</div>'+(known&&extra?'<div class="notice" style="margin-top:10px">'+extra+' estética'+(extra===1?'':'s')+' acima da quantidade contratada. Confira o histórico.</div>':'')+(s.limit_source==='current_contract'?'<div class="meta" style="margin-top:8px">Quantidade de referência do contrato atual.</div>':'')+'</div>';
  const history=[...(s.visits||[]).map(v=>({...v,label:'Estética do plano',kind:'visit',notes:''})),...(s.services||[]).map(v=>({...v,kind:'benefit'}))].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
- el('pc-benefit-list').innerHTML=benefitsHtml(s,el('pc-month').value);
+ el('pc-benefit-list').innerHTML='';
+ window.VaporeasyCareUI?.refresh(s,benefitConfigs,el('pc-month').value);
  el('pc-define').classList.remove('hidden');
  const defined=forMonth(s,el('pc-month').value);
  el('pc-kind').innerHTML='<option value="">Selecione o serviço realizado</option>'+
@@ -189,6 +194,7 @@ function operationalBenefitLines(definitions,events,visitsLimit){
  return {rows,other:(events||[]).filter(x=>!used.has(x.id))};
 }
 function briefHtml(d,hideAppointmentNotes=false){
+ if(d?.is_plan&&window.VaporeasyCareUI?.brief)return window.VaporeasyCareUI.brief(d,hideAppointmentNotes);
  const names=(d.recent_visits||[]).map(x=>briefDate(x.date));
  const notes=[!hideAppointmentNotes&&d.appointment_notes?'<div class="meta" style="margin-top:7px"><b>Observações de hoje:</b> '+esc(d.appointment_notes)+'</div>':'',
  d.vehicle_notes?'<div class="meta" style="margin-top:7px"><b>Cuidados e observações do veículo:</b> '+esc(d.vehicle_notes)+'</div>':''].join('');
@@ -211,6 +217,7 @@ function briefHtml(d,hideAppointmentNotes=false){
  (visits.length?'<div>Executadas em: '+esc(visits.slice(0,6).join(' • '))+'</div>':'')+'</div>'+
  '<div style="margin-top:9px"><b>Benefícios do plano</b>'+benefitView+recordedOther+'</div>'+recent+notes+'</div>';
 }
+window.refreshPlanControl=load;
 window.renderQuickPlanCare=async function(appointmentId,elementId){
  const node=document.getElementById(elementId);if(!node)return;
  node.dataset.careRequest=appointmentId;
@@ -240,7 +247,7 @@ window.renderClientVehicleCare=async function(clientId){
   if(ps.error)throw ps.error;
   const plans=ps.data?.subscriptions||[],ids=plans.map(x=>x.id);
   const [br,vis,pr]=await Promise.all([
-    ids.length?sb.from('package_included_benefits').select('subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month').in('subscription_id',ids):{data:[],error:null},
+    ids.length?sb.from('package_included_benefits').select('subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month,cadence_min_days,cadence_max_days,every_n_visits').in('subscription_id',ids):{data:[],error:null},
     sb.from('appointments').select('vehicle_id,starts_at,notes').eq('client_id',clientId).eq('status','completed').is('deleted_at',null).order('starts_at',{ascending:false}).limit(160),
     sb.from('vehicle_profiles').select('vehicle_id,notes').in('vehicle_id',slots.map(x=>x.dataset.careVehicle))
   ]);
