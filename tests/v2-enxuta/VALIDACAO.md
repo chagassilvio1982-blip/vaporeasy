@@ -48,3 +48,18 @@ Alvo: homologação isolada. Não liberar em produção sem aprovação após va
 - Reverter a branch/commit da interface para remover apenas o botão, o script e o detalhamento adicional.
 - As migrations de controle de serviços não devem apagar histórico de eventos já inseridos.
 - Migration de foto não aplicada por esta branch; reverter somente com definição do gatilho/funções e checkpoint validado.
+
+
+## Resumo automático no atendimento — solicitação de 14/10
+- [x] Ao selecionar um cliente, a lista dos veículos abre automaticamente, com um resumo por veículo: plano, quantidade concluída, benefícios realizados/pendentes, datas, últimas estéticas e observações do veículo, sem navegar até "Cuidados do plano".
+- [x] Ao iniciar atendimento no painel administrativo, abre automaticamente "Detalhes do atendimento"; o controle de plano e suas datas já aparecem ali.
+- [x] Ao tentar concluir um atendimento, a tela de confirmação inclui um resumo de cuidados e notas sem exigir nova navegação.
+- [x] Em "Meus atendimentos" do operador, a ficha do veículo exibe resumo automaticamente antes das ações. Após "Iniciar serviço", o cartão recarrega com a informação, sem novo clique.
+- [x] Para recorrência sem plano, o resumo informa claramente que não há benefício de plano vinculado; mantém últimas visitas e observações, sem inferir mensalidade.
+- [x] Nova função `appointment_care_brief(uuid)` aplicada **apenas** em Supabase de homologação isolada. Restrição de operador: apenas agendamento atribuído no dia; dados financeiros não são retornados; `anon` não pode executar.
+- [x] Sintaxe JavaScript verificada. Testes determinísticos do resumo: mensal, por visita, situação realizada/pendente, ausência de plano e escape de observações.
+- [ ] Teste autenticado real com proprietário e operador no celular, com e sem plano; conferir carregamento inicial e troca de cliente.
+- [ ] Medir latência das leituras na agenda em local com internet ruim. Não existe modo offline.
+- [ ] Confirmar o deployment Vercel do último commit. O conector de listagem retornou 403; não considerar a prévia anterior automaticamente atualizada.
+- [ ] Confirmar que descrição de benefícios foi preenchida, pois tabela de benefícios configurados está vazia até cadastro administrativo.
+- [ ] Publicação em produção somente após aprovação.
