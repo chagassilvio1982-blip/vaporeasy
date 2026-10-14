@@ -1,0 +1,21 @@
+/* Operational priority: not another list of monthly counters. */
+.care-brief{margin:10px 0;border:1px solid #235368;border-radius:13px;padding:13px;background:#08212e}
+.care-brief h4{font-size:15px;margin:0 0 7px;color:#f4fafc}
+.care-group{margin-top:10px;padding:10px;border-radius:10px;background:#0b2b39}
+.care-group-priority{background:#153b4b;border:1px solid #2aa6c4}
+.care-group-previous{background:#0c2a32;border:1px solid #294c50}
+.care-group-muted{background:#081e2a}
+.care-group h5{margin:0 0 7px;font-size:13px;font-weight:900}
+.care-task{padding:8px 0;border-top:1px solid rgba(180,215,235,.15)}
+.care-task:first-of-type{border-top:0}
+.care-task b{display:block;font-size:13px;color:#fff}
+.care-task small{display:block;margin-top:4px;font-size:11.5px;color:#bed0d9;line-height:1.4}
+.care-brief .care-meta{color:#a5c2d2;font-size:11px;line-height:1.5}
+#pc-plan-templates,#pc-define,#pc-register{margin-top:10px;border:1px solid #244b5e;border-radius:12px;padding:9px}
+#pc-plan-templates>summary,#pc-define>summary,#pc-register>summary{cursor:pointer;font-size:14px;font-weight:900;padding:7px}
+.pc-template-row{display:flex;align-items:start;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #173c4c}
+.pc-template-row button{flex-shrink:0}
+.pc-input-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.pc-input-row label{margin:0}
+.pc-cadence-hint{font-size:12px;color:#aac6d4;line-height:1.45}
+@media(max-width:500px){.pc-input-row{grid-template-columns:1fr}.pc-template-row{flex-direction:column}.pc-template-row button{width:100%}}
