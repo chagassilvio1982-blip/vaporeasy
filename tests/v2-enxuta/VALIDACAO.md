@@ -14,11 +14,25 @@ Alvo: homologação isolada. Não liberar em produção sem aprovação após va
 - [x] Sintaxe de scripts inline e plan-control.js validada pelo parser JavaScript.
 - [x] Comparação Git: +4 commits sobre a branch de finalização sem foto, sem alterações em produção.
 - [x] Supabase isolado: get_client_plan_control, register_package_service e void_package_service presentes.
-- [x] Preview Vercel automático no branch retorna READY.
+- [x] Preview Vercel de commit anterior no branch retornou READY; a publicação do commit novo de benefícios ainda não foi confirmada (listagem Vercel retorna 403).
 - [ ] Execução autenticada no navegador e em celulares reais.
 - [ ] Aplicação da migration de retirada do gatilho de foto após checkpoint/rollback recuperável e verificação de permissões.
 - [ ] Testes completos de agenda/financeiro com registros isolados.
 - [ ] Aprovação expressa antes de qualquer atualização de produção.
+
+## Benefícios incluídos por plano e veículo — 14/10
+- [x] Migration aditiva `20261014_package_included_benefits.sql` aplicada apenas na base Supabase **wwivmyhlwqyzmaexkmnk**.
+- [x] Nova tabela com RLS, leitura para proprietário/ADM, escrita somente por RPC autorizada; duas RPCs presentes, sem permissão INSERT direta a autenticados.
+- [x] Configurações começam vazias: NÃO inventar benefícios Premium, Essencial ou Plus por nome do plano.
+- [x] Admin pode definir benefício previsto por mês ou por visita e vigência; histórico de meses anteriores é preservado ao encerrar a partir de mês atual.
+- [x] A tela Detalhes do atendimento exibe quota de estéticas, benefícios incluídos, realizados/pendentes, datas, e eventos vinculados àquele atendimento.
+- [x] Modal de controle seleciona a competência correta do agendamento de origem e permite registrar benefício realizado sem cobrança.
+- [x] Testes JavaScript determinísticos de contagem pendente/concluída, excedente e vigência + parse dos scripts inline.
+- [ ] Testes autenticados em celular e confirmação do deploy atualizado (Vercel 403 no conector de listagem).
+- [ ] Teste real com contrato Premium e preenchimento manual da lista correta de benefícios, sem qualquer lançamento financeiro indevido.
+- [ ] Teste de fluxo sobreposto entre dois dialogs, atualização após inclusão e encerramento de benefícios.
+- [ ] Reconciliar serviços legados que não estejam vinculados à estética pelo appointment_id; não inferir vínculo por data.
+- [ ] Validar conteúdo de benefícios com responsável comercial antes de cadastrar o que foi contratado.
 
 ## Casos mínimos de aceitação
 1. Proprietário seleciona cliente com múltiplos veículos; cada botão abre o histórico do veículo correspondente, mês correto.
