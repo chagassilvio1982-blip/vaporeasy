@@ -56,7 +56,7 @@ test('observações visíveis são escapadas e valores financeiros não são exi
 });
 test('operador enxerga observações sem expandir e mantém cuidados por atendimento',()=>{
  const ctx={isToday:true,esc:escape,apRange:()=> '09:00–10:30',statusLabel:x=>x};
- const body=cardIn('async function loadOperatorJobs(','    const card=x=>{','  let out=active.length',ctx,{
+ const body=cardIn('async function loadOperatorJobs(','  const card=x=>{','  let out=active.length',ctx,{
   id:'op1',status:'scheduled',client_name:'Cliente',vehicle_label:'BMW',
   service_name:'Estética',notes:'Não molhar painel <script>'
  });
