@@ -4463,12 +4463,13 @@ async function openAppointmentDetail(id){
         '<div class="meta"><b>'+esc(vehicle?(vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"")):"Veículo")+'</b></div>'+
       '</div>'+
       '<div class="item" style="margin-top:10px">'+
-        '<div class="meta"><b>Serviço</b><br>'+esc(service?.name||"Serviço")+'</div>'+
+        '<div class="meta"><b>Serviço</b><br>'+esc((service?.name||"Serviço").replace(/^Pacote\s+/i,"Plano "))+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Status</b><br>'+esc(status)+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Agendado para</b><br>'+esc(scheduled.date+" • "+scheduled.time)+'</div>'+
         '<div class="meta" style="margin-top:10px"><b>Equipe / responsável</b><br>'+esc(responsibleLabel)+'</div>'+(financeAllowed()?'<div class="meta" style="margin-top:10px"><b>'+esc(packageVisit?"Cobrança":"Valor")+'</b><br>'+esc(packageVisit?packageChargeLabel:money(a.final_value))+'</div>':'')+
         (a.notes?'<div class="meta" style="margin-top:10px"><b>Observações</b><br>'+esc(a.notes)+'</div>':'')+
       '</div>'+
+      (packageVisit&&['owner','admin'].includes(currentRole)?'<div id="dd-plan-benefits" data-appointment="'+esc(a.id)+'"></div>':'')+
       (a.status==="completed"?
         '<div class="item" style="margin-top:10px">'+
           '<h3 style="margin-top:0">Finalização interna</h3>'+
@@ -4484,6 +4485,13 @@ async function openAppointmentDetail(id){
         (a.status!=="completed"&&a.status!=="cancelled"?'<button class="ghost" type="button" data-detail-edit="'+esc(a.id)+'">Editar agendamento</button>':'')+
       '</div>';
     $("dd").showModal();
+    if(packageVisit&&['owner','admin'].includes(currentRole)){
+      const ctx={appointmentId:a.id,clientId:a.client_id,vehicleId:a.vehicle_id,recurringPlanId:a.recurring_plan_id,month:scheduled.date.slice(0,7),containerId:'dd-plan-benefits'};
+      if(window.renderPlanBenefitsForAppointment)window.renderPlanBenefitsForAppointment(ctx).catch(err=>{
+        const box=$("dd-plan-benefits");
+        if(box?.dataset.appointment===a.id)box.innerHTML='<div class="notice error" style="margin-top:10px">Não foi possível consultar os benefícios contratados: '+esc(fail(err))+'</div>';
+      });
+    }
     const eb=$("dd").querySelector("[data-detail-edit]"),cb=$("dd").querySelector("[data-detail-package-charge]");
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)};
     if(cb)cb.onclick=()=>sharePackageCharge(cb.dataset.detailPackageCharge)
@@ -5805,6 +5813,6 @@ async function loadApps(){
 
 boot();
 </script>
-<script src="/plan-control.js?v=20261014-01"></script>
+<script src="/plan-control.js?v=20261014-02"></script>
 <script src="/main-menu.js?v=20261001"></script>
 </body></html>
