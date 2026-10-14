@@ -154,7 +154,7 @@ begin
   returning id into rule_id;
  end if;
  return rule_id;
-end $;
+end $$;
 revoke all on function public.save_plan_care_template(text,text,text,int,int,int,int,text,boolean) from public,anon;
 revoke all on function public.save_subscription_care_rule(uuid,text,text,int,int,int,int,date) from public,anon;
 grant execute on function public.save_plan_care_template(text,text,text,int,int,int,int,text,boolean) to authenticated;
