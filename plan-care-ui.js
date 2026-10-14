@@ -6,7 +6,6 @@
 const $=id=>document.getElementById(id);
 const html=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const tier=x=>/premium/i.test(String(x||''))?'premium':/plus/i.test(String(x||''))?'plus':/essencial/i.test(String(x||''))?'essencial':null;
-const labels={premium:'Premium',plus:'Plus',essencial:'Essencial'};
 const options='<option value="interval_days">Intervalo em dias</option><option value="monthly">Vezes por mês</option><option value="per_visit">Em toda estética</option><option value="every_n_visits">A cada N estéticas</option>';
 let rows=[],current=null,benefits=[],month='',catalogBusy=false;
 function describe(r){
@@ -70,7 +69,7 @@ function displayTemplates(){
  place.innerHTML=subset.length?subset.map(r=>'<div class="pc-template-row"><div><b>'+html(r.service_label)+'</b>'+
   '<div class="pc-cadence-hint">'+html(describe(r))+(r.guidance?'<div>'+html(r.guidance)+'</div>':'')+'</div></div>'+
   '<div class="actions"><button type="button" class="ghost" data-pct-edit="'+html(r.id)+'">Editar padrão</button>'+
-  (current&&tier(current.plan)===chosen&&!/^estética de manutenção$/i.test(r.service_label)?'<button type="button" class="primary" data-pct-apply="'+html(r.id)+'">Confirmar no veículo</button>':'')+
+  (current&&month>=today().slice(0,7)&&tier(current.plan)===chosen&&!/^estética de manutenção$/i.test(r.service_label)?'<button type="button" class="primary" data-pct-apply="'+html(r.id)+'">Confirmar no veículo</button>':'')+
   '</div></div>').join(''):'<div class="meta">Nenhum padrão para este plano.</div>';
  place.querySelectorAll('[data-pct-edit]').forEach(b=>b.onclick=()=>editForm('pct',rows.find(r=>r.id===b.dataset.pctEdit)));
  place.querySelectorAll('[data-pct-apply]').forEach(b=>b.onclick=()=>adoptTemplate(b.dataset.pctApply));
@@ -79,16 +78,30 @@ function displayVehicle(){
  const p=$('pc-care-vehicle-list');if(!p)return;
  if(!current){p.innerHTML='';return}
  const relevant=benefits.filter(b=>b.subscription_id===current.id&&b.effective_from_month.slice(0,7)<=month&&(!b.retired_from_month||b.retired_from_month.slice(0,7)>month));
+ const selectedEnd=month?new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10):today();
+ const asOf=selectedEnd<today()?selectedEnd:today();
  const states=window.VaporeasyCareRhythm?.evaluate(
- relevant.map(r=>({...r,label:r.service_label})),current.care_history||[],current.visits||[],today())||[];
+ relevant.map(r=>({...r,label:r.service_label})),current.care_history||[],current.visits||[],asOf)||[];
  const stateMap=new Map(states.map(s=>[s.label.toLowerCase(),s]));
  p.innerHTML=relevant.length?relevant.map(r=>{
  const state=stateMap.get(r.service_label.toLowerCase());
  const stateText=state?(state.status==='due'?'Fazer hoje':state.status==='ok'?'Dentro do prazo':state.status==='done'?'Realizado':'Conferir histórico'):'';
  return '<div class="pc-template-row"><div><b>'+html(r.service_label)+'</b><div class="pc-cadence-hint">'+
- html(describe(r))+(state?'<div><b>'+html(stateText)+'</b> • '+html(state.why)+(state.lastDate?' • Última aplicação: '+html(state.lastDate.split('-').reverse().join('/')):'')+'</div>':'')+'</div></div>'+(month>=today().slice(0,7)?'<button type="button" class="ghost" data-pcv-edit="'+html(r.id)+'">Editar período</button>':'')+'</div>'}).join('')
+ html(describe(r))+(state?'<div><b>'+html(stateText)+'</b> • '+html(state.why)+(state.lastDate?' • Última aplicação: '+html(state.lastDate.split('-').reverse().join('/')):'')+'</div>':'')+'</div></div>'+(month>=today().slice(0,7)?'<div class="actions"><button type="button" class="ghost" data-pcv-edit="'+html(r.id)+'">Editar período</button><button type="button" class="ghost" data-pcv-retire="'+html(r.id)+'">Encerrar cuidado</button></div>':'')+'</div>'}).join('')
  :'<div class="meta">Nenhum cuidado adicional contratado foi cadastrado para este veículo.</div>';
  p.querySelectorAll('[data-pcv-edit]').forEach(b=>b.onclick=editForm('pcv',benefits.find(x=>x.id===b.dataset.pcvEdit)));
+ p.querySelectorAll('[data-pcv-retire]').forEach(b=>b.onclick=()=>retireRule(b.dataset.pcvRetire));
+}
+async function retireRule(id){
+ const rule=benefits.find(x=>x.id===id);
+ if(!rule||!current||catalogBusy||month<today().slice(0,7))return;
+ if(!window.confirm('Encerrar "'+rule.service_label+'" a partir de '+month+'? Registros anteriores serão preservados.'))return;
+ catalogBusy=true;
+ try{
+  const result=await sb.rpc('retire_package_included_benefit',{p_benefit_id:id,p_from_month:month+'-01'});
+  if(result.error)throw result.error;
+  if(typeof window.refreshPlanControl==='function')await window.refreshPlanControl(current.vehicle_id);
+ }catch(e){warning('Não foi possível encerrar o cuidado: '+(e.message||String(e)))}finally{catalogBusy=false}
 }
 async function adoptTemplate(id){
  const r=rows.find(x=>x.id===id);
@@ -155,6 +168,9 @@ function init(){
 }
 function refresh(s,b,selectedMonth){
  current=s||null;benefits=b||[];month=selectedMonth||today().slice(0,7);
+ if($('pcv-new'))$('pcv-new').classList.toggle('hidden',!current||month<today().slice(0,7));
+ if($('pc-care-standards'))$('pc-care-standards').open=false;
+ if($('pcv-form'))$('pcv-form').classList.add('hidden');
  if($('pct-tier')&&current)$('pct-tier').value=tier(current.plan)||'premium';
  displayVehicle();displayTemplates();
  if($('pc-define'))$('pc-define').classList.add('hidden'); // replaced by compact rule editor
