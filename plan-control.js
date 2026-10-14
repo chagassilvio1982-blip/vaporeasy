@@ -172,4 +172,106 @@ async function voidRecord(id){
  saving=true;lockWriting();
  try{const r=await sb.rpc('void_package_service',{p_event_id:id,p_reason:reason.trim()});if(r.error)throw r.error;await load(selected()?.vehicle_id||'');message('Registro anulado. O histórico de auditoria foi preservado.')}catch(e){message(fail(e),true)}finally{saving=false;lockWriting()}
 }
+
+/* Automatic, read-only operational overview; does not change bookings or charges. */
+function briefDate(d){return d?dateLabel(d):'—'}
+function operationalBenefitLines(definitions,events,visitsLimit){
+ const used=new Set();
+ const rows=(definitions||[]).map(b=>{
+  const performed=(events||[]).filter(x=>keyName(x.label)===keyName(b.label));
+  performed.forEach(x=>used.add(x.id));
+  const expected=b.frequency==='per_visit'?visitsLimit:Number(b.quantity||1);
+  const complete=expected===null||expected===undefined?'A conferir':
+   performed.length>expected?'Acima do previsto':
+   performed.length===expected?'Realizado':'Pendente';
+  return {label:b.label,expected,performed,complete};
+ });
+ return {rows,other:(events||[]).filter(x=>!used.has(x.id))};
+}
+function briefHtml(d){
+ const names=(d.recent_visits||[]).map(x=>briefDate(x.date));
+ const notes=[d.appointment_notes?'<div class="meta" style="margin-top:7px"><b>Observações de hoje:</b> '+esc(d.appointment_notes)+'</div>':'',
+ d.vehicle_notes?'<div class="meta" style="margin-top:7px"><b>Cuidados e observações do veículo:</b> '+esc(d.vehicle_notes)+'</div>':''].join('');
+ const recent=names.length?'<div class="meta" style="margin-top:7px"><b>Últimos atendimentos:</b> '+esc(names.slice(0,4).join(' • '))+'</div>':
+ '<div class="meta" style="margin-top:7px">Nenhum atendimento concluído localizado.</div>';
+ if(!d.is_plan)return '<div class="item" style="margin-top:10px"><b>Resumo do veículo</b>'+recent+notes+
+ '<div class="meta" style="margin-top:7px">Sem plano contratado vinculado a este agendamento. Recorrência simples não recebe benefícios de plano.</div></div>';
+ const {rows,other}=operationalBenefitLines(d.benefits,d.performed,d.visits_limit);
+ const limit=d.visits_limit===null||d.visits_limit===undefined?'previstas a confirmar':(d.visits||[]).length+' de '+d.visits_limit+' concluídas';
+ const visits=(d.visits||[]).map(v=>briefDate(v.date));
+ const benefitView=rows.length?rows.map(b=>{
+  const count=b.expected===null||b.expected===undefined?b.performed.length+' realizado(s)':b.performed.length+' de '+b.expected;
+  return '<div class="meta" style="margin-top:7px"><b>'+esc(b.label)+'</b> • '+esc(b.complete)+' ('+esc(count)+')'+
+  (b.performed.length?'<div>'+esc(b.performed.map(x=>briefDate(x.date)).join(' • '))+'</div>':'')+'</div>';
+ }).join(''):'<div class="meta" style="margin-top:7px">Benefícios previstos ainda não foram especificados para este veículo.</div>';
+ const recordedOther=other.length?'<div class="meta" style="margin-top:7px"><b>Outros cuidados registrados:</b> '+
+ other.map(x=>esc(x.label)+' • '+esc(briefDate(x.date))).join(' | ')+'</div>':'';
+ return '<div class="item" style="margin-top:10px"><b>Cuidados deste veículo • '+esc(String(d.plan_name||'Plano Vaporeasy').replace(/^Pacote\s+/i,'Plano '))+'</b>'+
+ '<div class="meta" style="margin-top:7px"><b>Estéticas do mês:</b> '+esc(limit)+
+ (visits.length?'<div>Executadas em: '+esc(visits.slice(0,6).join(' • '))+'</div>':'')+'</div>'+
+ '<div style="margin-top:9px"><b>Benefícios do plano</b>'+benefitView+recordedOther+'</div>'+recent+notes+'</div>';
+}
+window.renderQuickPlanCare=async function(appointmentId,elementId){
+ const node=document.getElementById(elementId);if(!node)return;
+ node.dataset.careRequest=appointmentId;
+ node.innerHTML='<div class="meta" style="margin-top:7px">Consultando histórico e cuidados...</div>';
+ try{
+  const r=await sb.rpc('appointment_care_brief',{p_appointment_id:appointmentId});
+  if(!node.isConnected||node.dataset.careRequest!==appointmentId)return;
+  if(r.error)throw r.error;
+  node.innerHTML=briefHtml(r.data||{});
+ }catch(err){
+  if(node.isConnected&&node.dataset.careRequest===appointmentId)
+   node.innerHTML='<div class="notice error">Não foi possível consultar os cuidados: '+esc(fail(err))+'</div>';
+ }
+};
+/* Single client read and three small batched queries, not one query per vehicle. */
+window.renderClientVehicleCare=async function(clientId){
+ if(!allowed())return;
+ const root=document.getElementById('v-'+clientId);
+ if(!root||root.classList.contains('hidden'))return;
+ const slots=[...root.querySelectorAll('[data-care-vehicle]')],month=today().slice(0,7);
+ if(!slots.length)return;
+ const requestId=String(Date.now())+':'+clientId;
+ root.dataset.careRequest=requestId;
+ slots.forEach(node=>{node.innerHTML='<div class="meta">Consultando cuidados...</div>'});
+ try{
+  const ps=await sb.rpc('get_client_plan_control',{p_client_id:clientId,p_month:month+'-01'});
+  if(ps.error)throw ps.error;
+  const plans=ps.data?.subscriptions||[],ids=plans.map(x=>x.id);
+  const [br,vis,pr]=await Promise.all([
+    ids.length?sb.from('package_included_benefits').select('subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month').in('subscription_id',ids):{data:[],error:null},
+    sb.from('appointments').select('vehicle_id,starts_at,notes').eq('client_id',clientId).eq('status','completed').is('deleted_at',null).order('starts_at',{ascending:false}).limit(160),
+    sb.from('vehicle_profiles').select('vehicle_id,notes').in('vehicle_id',slots.map(x=>x.dataset.careVehicle))
+  ]);
+  if(!root.isConnected||root.classList.contains('hidden')||root.dataset.careRequest!==requestId)return;
+  for(const r of [br,vis,pr])if(r.error)throw r.error;
+  const notes=new Map((pr.data||[]).map(x=>[x.vehicle_id,x.notes||'']));
+  slots.forEach(node=>{
+   const vehicleId=node.dataset.careVehicle,found=plans.filter(p=>p.vehicle_id===vehicleId);
+   const vdates=(vis.data||[]).filter(x=>x.vehicle_id===vehicleId).slice(0,4);
+   const last=vdates.length?'<div class="meta" style="margin-top:5px"><b>Últimas estéticas:</b> '+esc(vdates.map(x=>dateLabel(spDateTime(x.starts_at).date)).join(' • '))+'</div>':
+    '<div class="meta" style="margin-top:5px">Nenhuma estética concluída localizada.</div>';
+   const planLines=found.map(p=>{
+    const defs=(br.data||[]).filter(x=>x.subscription_id===p.id&&x.effective_from_month.slice(0,7)<=month&&(!x.retired_from_month||x.retired_from_month.slice(0,7)>month))
+     .map(x=>({label:x.service_label,frequency:x.frequency,quantity:x.monthly_quantity}));
+    const {rows,other}=operationalBenefitLines(defs,p.services||[],p.limit_visits);
+    const count=p.limit_visits===null||p.limit_visits===undefined?p.completed+' concluída(s), quota não registrada':p.completed+' de '+p.limit_visits+' concluída(s)';
+    return '<div style="margin-top:7px"><b>'+esc(p.plan.replace(/^Pacote\s+/i,'Plano '))+'</b> • '+esc(count)+'</div>'+
+      (rows.length?rows.map(b=>'<div class="meta" style="margin-top:4px">'+esc(b.label)+' — <b>'+esc(b.complete)+'</b>'+
+        (b.performed.length?' • '+esc(b.performed.map(x=>dateLabel(x.date)).join(', ')):'')+'</div>').join(''):
+       '<div class="meta">Benefícios adicionais não especificados neste plano.</div>')+
+      (other.length?'<div class="meta">Outros realizados: '+other.map(x=>esc(x.label)+' ('+esc(dateLabel(x.date))+')').join(' • ')+'</div>':'');
+   }).join('');
+   const observation=notes.get(vehicleId)?'<div class="meta" style="margin-top:6px"><b>Observações do veículo:</b> '+esc(notes.get(vehicleId))+'</div>':'';
+   node.innerHTML='<div class="item" style="margin:6px 0 12px;padding:12px"><b>Resumo rápido</b>'+
+      (found.length?planLines:'<div class="meta">Sem plano registrado neste mês; atendimentos avulsos e recorrentes continuam no histórico.</div>')+
+      last+observation+'</div>';
+  });
+ }catch(err){
+  if(root.isConnected&&root.dataset.careRequest===requestId)
+   slots.forEach(node=>node.innerHTML='<div class="notice error">Não foi possível consultar o resumo: '+esc(fail(err))+'</div>');
+ }
+};
+
 })();
