@@ -156,15 +156,12 @@ window.renderPlanBenefitsForAppointment=async function(ctx){
  if(rp.error||sub.error)throw rp.error||sub.error;
  const s=(rp.data?.subscriptions||[]).find(x=>x.id===sub.data?.id&&x.vehicle_id===ctx.vehicleId);
  if(!s){box.innerHTML='<div class="item" style="margin-top:10px">Não foi encontrado plano contratado para esta competência.</div>';return}
- const br=await sb.from('package_included_benefits').select('id,subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month').eq('subscription_id',s.id);
+ const care=await sb.rpc('appointment_care_brief',{p_appointment_id:ctx.appointmentId});
  if(!box.isConnected||box.dataset.appointment!==ctx.appointmentId)return;
- if(br.error)throw br.error;
- const previousConfigs=benefitConfigs;
- benefitConfigs=br.data||[];
- const markup=benefitsHtml(s,ctx.month,false);
+ if(care.error)throw care.error;
+ const markup=window.VaporeasyCareUI?.brief?.(care.data||{},false)||'<div class="notice error">Resumo de cuidados indisponível.</div>';
  const doneHere=(s.services||[]).filter(x=>x.appointment_id===ctx.appointmentId);
- const thisAppointment='<div class="item" style="margin-top:10px"><b>Cuidados vinculados a este atendimento</b><div class="meta">'+(doneHere.length?doneHere.map(x=>esc(x.label)+' • '+esc(dateLabel(x.date))).join('<br>'):'Nenhum benefício registrado especificamente nesta estética. Confira o histórico mensal acima.')+'</div></div>';
- benefitConfigs=previousConfigs;
+ const thisAppointment='<div class="item" style="margin-top:10px"><b>Cuidados vinculados a este atendimento</b><div class="meta">'+(doneHere.length?doneHere.map(x=>esc(x.label)+' • '+esc(dateLabel(x.date))).join('<br>'):'Nenhum cuidado vinculado diretamente a esta estética. Consulte a ficha de cuidados acima.')+'</div></div>';
  const quantity=s.limit_visits===null||s.limit_visits===undefined?'Previsão mensal não registrada':s.completed+' de '+s.limit_visits+' estéticas concluídas';
  box.innerHTML='<div><div class="item" style="margin-top:10px"><b>Controle do plano • '+esc(ctx.month.split('-').reverse().join('/'))+'</b><div class="meta">'+esc(quantity)+'</div></div>'+markup+thisAppointment+'<div class="actions" style="margin-top:10px"><button type="button" class="ghost" data-detail-open-benefits>Consultar / registrar cuidados</button></div></div>';
  const b=box.querySelector('[data-detail-open-benefits]');
