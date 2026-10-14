@@ -62,8 +62,10 @@ function render(){
  el('pc-benefit-list').innerHTML=benefitsHtml(s,el('pc-month').value);
  el('pc-define').classList.remove('hidden');
  const defined=forMonth(s,el('pc-month').value);
- el('pc-kind').innerHTML='<option value="">Selecione o serviço realizado</option>'+defined.map(b=>'<option value="'+esc(b.service_label)+'">'+esc(b.service_label)+'</option>').join('')+
-  '<option>Aplicação de hidrorrepelente</option><option>Enceramento manual</option><option>Hidratação do couro</option><option>Higienização dos bancos</option><option>Tratamento do couro</option><option value="other">Outro serviço incluído</option>';
+ el('pc-kind').innerHTML='<option value="">Selecione o serviço realizado</option>'+
+  (defined.length?defined.map(b=>'<option value="'+esc(b.service_label)+'">'+esc(b.service_label)+'</option>').join(''):
+   '<option>Aplicação de hidrorrepelente</option><option>Enceramento manual</option><option>Hidratação do couro</option><option>Higienização dos bancos</option><option>Tratamento do couro</option>')+
+  '<option value="other">Outro serviço incluído</option>';
  el('pc-history').innerHTML=history.length?history.map(h=>'<div class="item"><b>'+esc(dateLabel(h.date))+' • '+esc(h.label)+'</b><div class="meta">'+(h.kind==='visit'?'Estética concluída • conta como uma visita':'Serviço incluído • sem cobrança adicional')+'</div>'+(h.notes?'<div class="meta" style="margin-top:5px">'+esc(h.notes)+'</div>':'')+(h.kind==='benefit'?'<button type="button" class="ghost" data-pc-void="'+esc(h.id)+'" style="margin-top:8px">Anular registro</button>':'')+'</div>').join(''):'<div class="empty">Nenhuma estética concluída ou benefício registrado neste mês.</div>';
  el('pc-history').querySelectorAll('[data-pc-void]').forEach(b=>b.onclick=()=>voidRecord(b.dataset.pcVoid));
  el('pc-body').classList.remove('hidden');el('pc-form').reset();el('pc-custom-wrap').classList.add('hidden');el('pc-custom').required=false;
