@@ -92,7 +92,7 @@ function benefitRows(s,month){
   (s.services||[]).forEach(v=>{if(keyName(v.label)===keyName(b.service_label))used.add(v.id)});
   const known=s.limit_visits!==null&&s.limit_visits!==undefined;
   const qty=b.frequency==='per_visit'?(known?Number(s.limit_visits):null):Number(b.monthly_quantity);
-  const done=dates.length,status=qty===null?'Quantidade a conferir':done>=qty?'Realizado':'Pendente';
+  const done=dates.length,status=qty===null?'Quantidade a conferir':done>qty?'Acima do previsto • conferir':done===qty?'Realizado':'Pendente';
   return {id:b.id,label:b.service_label,done,qty,status,dates,frequency:b.frequency};
  });
  const other=(s.services||[]).filter(v=>!used.has(v.id));
@@ -155,9 +155,11 @@ window.renderPlanBenefitsForAppointment=async function(ctx){
  const previousConfigs=benefitConfigs;
  benefitConfigs=br.data||[];
  const markup=benefitsHtml(s,ctx.month,false);
+ const doneHere=(s.services||[]).filter(x=>x.appointment_id===ctx.appointmentId);
+ const thisAppointment='<div class="item" style="margin-top:10px"><b>Cuidados vinculados a este atendimento</b><div class="meta">'+(doneHere.length?doneHere.map(x=>esc(x.label)+' • '+esc(dateLabel(x.date))).join('<br>'):'Nenhum benefício registrado especificamente nesta estética. Confira o histórico mensal acima.')+'</div></div>';
  benefitConfigs=previousConfigs;
  const quantity=s.limit_visits===null||s.limit_visits===undefined?'Previsão mensal não registrada':s.completed+' de '+s.limit_visits+' estéticas concluídas';
- box.innerHTML='<div><div class="item" style="margin-top:10px"><b>Controle do plano • '+esc(ctx.month.split('-').reverse().join('/'))+'</b><div class="meta">'+esc(quantity)+'</div></div>'+markup+'<div class="actions" style="margin-top:10px"><button type="button" class="ghost" data-detail-open-benefits>Consultar / registrar cuidados</button></div></div>';
+ box.innerHTML='<div><div class="item" style="margin-top:10px"><b>Controle do plano • '+esc(ctx.month.split('-').reverse().join('/'))+'</b><div class="meta">'+esc(quantity)+'</div></div>'+markup+thisAppointment+'<div class="actions" style="margin-top:10px"><button type="button" class="ghost" data-detail-open-benefits>Consultar / registrar cuidados</button></div></div>';
  const b=box.querySelector('[data-detail-open-benefits]');
  if(b)b.onclick=()=>window.openPlanControl(ctx.clientId,ctx.vehicleId,ctx.month);
 };
