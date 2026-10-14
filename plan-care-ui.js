@@ -70,7 +70,7 @@ function displayTemplates(){
  place.innerHTML=subset.length?subset.map(r=>'<div class="pc-template-row"><div><b>'+html(r.service_label)+'</b>'+
   '<div class="pc-cadence-hint">'+html(describe(r))+(r.guidance?'<div>'+html(r.guidance)+'</div>':'')+'</div></div>'+
   '<div class="actions"><button type="button" class="ghost" data-pct-edit="'+html(r.id)+'">Editar padrão</button>'+
-  (current&&tier(current.plan)===chosen?'<button type="button" class="primary" data-pct-apply="'+html(r.id)+'">Incluir no veículo</button>':'')+
+  (current&&tier(current.plan)===chosen&&!/^estética de manutenção$/i.test(r.service_label)?'<button type="button" class="primary" data-pct-apply="'+html(r.id)+'">Confirmar no veículo</button>':'')+
   '</div></div>').join(''):'<div class="meta">Nenhum padrão para este plano.</div>';
  place.querySelectorAll('[data-pct-edit]').forEach(b=>b.onclick=()=>editForm('pct',rows.find(r=>r.id===b.dataset.pctEdit)));
  place.querySelectorAll('[data-pct-apply]').forEach(b=>b.onclick=()=>adoptTemplate(b.dataset.pctApply));
@@ -92,7 +92,7 @@ function displayVehicle(){
 }
 async function adoptTemplate(id){
  const r=rows.find(x=>x.id===id);
- if(!r||!current||r.plan_tier!==tier(current.plan)||catalogBusy)return;
+ if(!r||!current||r.plan_tier!==tier(current.plan)||catalogBusy||/^estética de manutenção$/i.test(r.service_label))return;
  if(benefits.some(b=>b.subscription_id===current.id&&b.service_label.toLowerCase()===r.service_label.toLowerCase()&&
  b.effective_from_month.slice(0,7)<=month&&(!b.retired_from_month||b.retired_from_month.slice(0,7)>month))){
   warning('Este cuidado já está configurado para o veículo. Use Editar período.');return;
