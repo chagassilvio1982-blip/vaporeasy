@@ -83,3 +83,21 @@ Documentação consultada:
 ## Reversão
 
 Reverter o commit que acrescenta `agenda-quick-search.js`, `agenda-quick.css` e as referências no `index.html`, ou fechar o PR sem merge. Nenhum dado persistente é afetado.
+
+## Incremento operacional executado após benchmark
+
+- Agenda diária administrativa: botões **Iniciar**, **Aceitar solicitação** ou **Concluir serviço** visíveis diretamente no cartão, conforme estado; edição/cancelamento continuam dentro de 'Ações e informações'.
+- Observações da visita visíveis diretamente no cartão da agenda administrativa e em 'Meus atendimentos' do colaborador, com escape HTML. Não são expostos preços ao colaborador.
+- Confirmação de recebimento e geração de cobrança não foram alteradas.
+- Conclusão continua usando o modal existente, sem bypass de validação.
+- Teste reproduzível: `tests/agenda-quick/operational-ux.test.cjs` (cinco casos, incluindo estados, notas e segurança).
+
+### Pendências deste incremento
+
+- [x] Validar sintaxe JavaScript inline.
+- [x] Validar cartões com estados requested, scheduled, confirmed, in_progress, completed e cancelled.
+- [x] Validar observações visíveis e HTML escapado.
+- [ ] Validar toques reais em Android e desktop autenticados.
+- [ ] Validar captura de início e conclusão com plano e recorrência simples na homologação.
+- [ ] Confirmar preview Vercel deste commit e integração com banco isolado.
+- [ ] Não liberar produção sem regressão financeira/recorrência e autorização específica para publicação.
