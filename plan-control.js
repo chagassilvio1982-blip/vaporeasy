@@ -1,7 +1,7 @@
 /* Internal plan usage and included-service history. Does not create charges. */
 (function(){
 'use strict';
-let clientId='',data=[],sequence=0,requestKey='',saving=false;
+let clientId='',data=[],benefitConfigs=[],sequence=0,requestKey='',saving=false;
 const el=id=>document.getElementById(id),allowed=()=>['owner','admin'].includes(currentRole);
 function dateLabel(date){return String(date||'').slice(0,10).split('-').reverse().join('/')}
 function ensureDialog(){
@@ -9,6 +9,13 @@ function ensureDialog(){
  const d=document.createElement('dialog');d.id='plancontrol';d.setAttribute('aria-label','Controle dos planos');
  d.innerHTML='<div class="stack"><div class="actions"><h3 id="pc-title" style="flex:3;margin:8px 0">Controle dos planos</h3><button id="pc-close" type="button" class="ghost">Fechar</button></div><div id="pc-msg" class="notice hidden" role="status"></div><label>Mês do plano<input id="pc-month" type="month"></label><label>Veículo e plano<select id="pc-sub"></select></label><div id="pc-summary"></div><div id="pc-body" class="hidden"><h3>Serviços efetuados no plano</h3><div id="pc-history"></div><details id="pc-register"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Registrar serviço incluído</summary><form id="pc-form" class="stack" style="padding-top:12px"><div class="notice">Registra um benefício realizado, sem cobrança adicional. A contagem de estéticas vem dos atendimentos concluídos na agenda.</div><label>Serviço<select id="pc-kind"><option>Aplicação de hidrorrepelente</option><option>Enceramento manual</option><option>Hidratação do couro</option><option>Higienização dos bancos</option><option>Tratamento do couro</option><option value="other">Outro serviço incluído</option></select></label><label id="pc-custom-wrap" class="hidden">Nome do serviço<input id="pc-custom" maxlength="120"></label><label>Vincular a uma estética concluída<select id="pc-appt"><option value="">Registro independente</option></select></label><label>Data da execução<input id="pc-date" type="date" required></label><label>Observações<textarea id="pc-notes" maxlength="2000"></textarea></label><button id="pc-save" type="submit" class="primary">Salvar serviço realizado</button></form></details></div></div>';
  document.body.appendChild(d);
+ const spec=document.createElement('div');spec.id='pc-spec';
+ spec.innerHTML='<div id="pc-benefit-list"></div><details id="pc-define"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Definir benefício contratado</summary><form id="pc-define-form" class="stack" style="padding:12px"><div class="meta">Cadastre somente benefícios efetivamente combinados para este veículo. A definição será válida a partir do mês selecionado, sem gerar cobrança.</div><label>Benefício previsto<input id="pc-define-label" maxlength="120" required placeholder="Ex.: Enceramento manual"></label><label>Frequência<select id="pc-define-frequency"><option value="monthly">Quantidade por mês</option><option value="per_visit">Em cada estética do plano</option></select></label><label id="pc-define-qty-wrap">Quantidade mensal<input id="pc-define-qty" type="number" min="1" max="12" value="1" required></label><button class="primary" type="submit">Adicionar ao plano</button></form></details>';
+ el('pc-summary').insertAdjacentElement('afterend',spec);
+ el('pc-define-frequency').onchange=()=>el('pc-define-qty-wrap').classList.toggle('hidden',el('pc-define-frequency').value==='per_visit');
+ el('pc-define-form').onsubmit=defineBenefit;
+ el('pc-benefit-list').addEventListener('click',e=>{const b=e.target.closest('[data-pc-retire]');if(b)retireBenefit(b.dataset.pcRetire)});
+ d.addEventListener('close',()=>{const c=window.__v2DetailPlanContext;if(c&&document.getElementById('dd')?.open)window.renderPlanBenefitsForAppointment?.(c).catch(()=>{});});
  el('pc-close').onclick=()=>d.close();el('pc-month').onchange=()=>load();el('pc-sub').onchange=render;
  el('pc-kind').onchange=()=>{const custom=el('pc-kind').value==='other';el('pc-custom-wrap').classList.toggle('hidden',!custom);el('pc-custom').required=custom;requestKey=''};
  el('pc-appt').onchange=()=>{const s=selected(),a=(s?.visits||[]).find(x=>x.id===el('pc-appt').value);if(a)el('pc-date').value=a.date;requestKey=''};
@@ -16,7 +23,7 @@ function ensureDialog(){
  ['pc-date','pc-custom','pc-notes'].forEach(id=>el(id).addEventListener('input',()=>{if(!saving)requestKey=''}));
 }
 function lockWriting(){
- ['pc-month','pc-sub','pc-kind','pc-custom','pc-appt','pc-date','pc-notes'].forEach(id=>el(id).disabled=saving||(id==='pc-sub'&&!data.length));
+ ['pc-month','pc-sub','pc-kind','pc-custom','pc-appt','pc-date','pc-notes','pc-define-label','pc-define-frequency','pc-define-qty'].forEach(id=>el(id).disabled=saving||(id==='pc-sub'&&!data.length));
  el('pc-save').disabled=saving||!selected()||el('pc-date').min>el('pc-date').max;
  el('pc-history').querySelectorAll('[data-pc-void]').forEach(b=>b.disabled=saving);
 }
@@ -36,6 +43,10 @@ async function load(vehicleId=''){
  try{
   const r=await sb.rpc('get_client_plan_control',{p_client_id:clientId,p_month:month+'-01'});if(token!==sequence)return;if(r.error)throw r.error;
   data=r.data?.subscriptions||[];
+  const ids=data.map(x=>x.id);
+  const br=ids.length?await sb.from('package_included_benefits').select('id,subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month').in('subscription_id',ids):{data:[],error:null};
+  if(token!==sequence)return;if(br.error)throw br.error;
+  benefitConfigs=br.data||[];
   el('pc-sub').innerHTML=data.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.vehicle+(s.plate?' • '+s.plate:'')+' • '+s.plan+(!s.active?' • histórico':''))+'</option>').join('');
   const chosen=data.find(s=>s.vehicle_id===vehicleId)||data.find(s=>s.id===previous)||data[0];
   if(chosen)el('pc-sub').value=chosen.id;
@@ -43,11 +54,16 @@ async function load(vehicleId=''){
  }catch(e){if(token===sequence){data=[];el('pc-sub').innerHTML='';el('pc-summary').textContent='Não foi possível consultar o plano.';message(fail(e),true)}}
 }
 function render(){
- const s=selected();requestKey='';el('pc-register').open=false;
- if(!s){el('pc-summary').innerHTML='<div class="empty">Nenhum plano registrado para este cliente neste mês.</div>';el('pc-body').classList.add('hidden');return}
+ const s=selected();requestKey='';el('pc-register').open=false;el('pc-define').open=false;
+ if(!s){el('pc-benefit-list').innerHTML='';el('pc-define').classList.add('hidden');el('pc-summary').innerHTML='<div class="empty">Nenhum plano registrado para este cliente neste mês.</div>';el('pc-body').classList.add('hidden');return}
  const known=s.limit_visits!==null&&s.limit_visits!==undefined,limit=Number(s.limit_visits||0),done=Number(s.completed||0),scheduled=Number(s.scheduled||0),remaining=Math.max(0,limit-done),extra=Math.max(0,done-limit);
  el('pc-summary').innerHTML='<div class="item"><h3>'+esc(s.plan)+'</h3><div class="meta">'+esc(s.vehicle)+' • '+esc(el('pc-month').value.split('-').reverse().join('/'))+'</div><div style="font-size:23px;font-weight:900;margin:12px 0">'+done+(known?' de '+limit:'')+' estéticas concluídas</div><div class="meta">'+(known?remaining+' restante'+(remaining===1?'':'s')+' no mês':'Limite deste mês não registrado')+' • '+scheduled+' agendada'+(scheduled===1?'':'s')+'</div>'+(known&&extra?'<div class="notice" style="margin-top:10px">'+extra+' estética'+(extra===1?'':'s')+' acima da quantidade contratada. Confira o histórico.</div>':'')+(s.limit_source==='current_contract'?'<div class="meta" style="margin-top:8px">Quantidade de referência do contrato atual.</div>':'')+'</div>';
  const history=[...(s.visits||[]).map(v=>({...v,label:'Estética do plano',kind:'visit',notes:''})),...(s.services||[]).map(v=>({...v,kind:'benefit'}))].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ el('pc-benefit-list').innerHTML=benefitsHtml(s,el('pc-month').value);
+ el('pc-define').classList.toggle('hidden',saving||el('pc-month').value<today().slice(0,7));
+ const defined=forMonth(s,el('pc-month').value);
+ el('pc-kind').innerHTML='<option value="">Selecione o serviço realizado</option>'+defined.map(b=>'<option value="'+esc(b.service_label)+'">'+esc(b.service_label)+'</option>').join('')+
+  '<option>Aplicação de hidrorrepelente</option><option>Enceramento manual</option><option>Hidratação do couro</option><option>Higienização dos bancos</option><option>Tratamento do couro</option><option value="other">Outro serviço incluído</option>';
  el('pc-history').innerHTML=history.length?history.map(h=>'<div class="item"><b>'+esc(dateLabel(h.date))+' • '+esc(h.label)+'</b><div class="meta">'+(h.kind==='visit'?'Estética concluída • conta como uma visita':'Serviço incluído • sem cobrança adicional')+'</div>'+(h.notes?'<div class="meta" style="margin-top:5px">'+esc(h.notes)+'</div>':'')+(h.kind==='benefit'?'<button type="button" class="ghost" data-pc-void="'+esc(h.id)+'" style="margin-top:8px">Anular registro</button>':'')+'</div>').join(''):'<div class="empty">Nenhuma estética concluída ou benefício registrado neste mês.</div>';
  el('pc-history').querySelectorAll('[data-pc-void]').forEach(b=>b.onclick=()=>voidRecord(b.dataset.pcVoid));
  el('pc-body').classList.remove('hidden');el('pc-form').reset();el('pc-custom-wrap').classList.add('hidden');el('pc-custom').required=false;
@@ -65,6 +81,87 @@ async function save(e){
   requestKey='';await load(s.vehicle_id);message('Serviço realizado registrado no plano, sem cobrança adicional.');
  }catch(err){message(fail(err),true)}finally{saving=false;lockWriting()}
 }
+
+function forMonth(s,month){
+ return benefitConfigs.filter(b=>b.subscription_id===s.id&&b.effective_from_month.slice(0,7)<=month&&(!b.retired_from_month||b.retired_from_month.slice(0,7)>month));
+}
+function keyName(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR')}
+function benefitRows(s,month){
+ const defs=forMonth(s,month),used=new Set(),rows=defs.map(b=>{
+  const dates=(s.services||[]).filter(v=>keyName(v.label)===keyName(b.service_label)).map(v=>dateLabel(v.date));
+  (s.services||[]).forEach(v=>{if(keyName(v.label)===keyName(b.service_label))used.add(v.id)});
+  const known=s.limit_visits!==null&&s.limit_visits!==undefined;
+  const qty=b.frequency==='per_visit'?(known?Number(s.limit_visits):null):Number(b.monthly_quantity);
+  const done=dates.length,status=qty===null?'Quantidade a conferir':done>=qty?'Realizado':'Pendente';
+  return {id:b.id,label:b.service_label,done,qty,status,dates,frequency:b.frequency};
+ });
+ const other=(s.services||[]).filter(v=>!used.has(v.id));
+ return {rows,other};
+}
+function benefitsHtml(s,month,withActions=true){
+ const {rows,other}=benefitRows(s,month);
+ let html='<div class="item" style="margin-top:10px"><h3 style="margin-top:0">Benefícios previstos no plano</h3>';
+ if(!rows.length)html+='<div class="meta">Nenhum benefício adicional foi especificado para este veículo neste mês. Configure somente o que foi contratado; serviços registrados permanecem no histórico abaixo.</div>';
+ else html+=rows.map(b=>{
+  const raw=benefitConfigs.find(v=>v.id===b.id);
+  const frequency=b.frequency==='per_visit'?'Em cada estética':'Por mês';
+  const qtyText=b.qty===null?'previsão a confirmar':b.done+' de '+b.qty+' realizado(s)';
+  return '<div class="item" style="margin-top:8px"><b>'+esc(b.label)+'</b><div class="meta">'+frequency+' • '+esc(qtyText)+'</div><div class="meta" style="margin-top:6px"><b>'+esc(b.status)+'</b>'+(b.dates.length?' • '+esc(b.dates.join(', ')):' • Sem execução registrada')+'</div>'+
+   (withActions&&month>=today().slice(0,7)?'<button type="button" class="ghost" data-pc-retire="'+esc(raw.id)+'" style="margin-top:8px">Encerrar benefício a partir deste mês</button>':'')+'</div>';
+ }).join('');
+ if(other.length)html+='<div class="meta" style="margin-top:9px"><b>Outros serviços realizados:</b> '+other.map(v=>esc(v.label)+' ('+esc(dateLabel(v.date))+')').join(' • ')+'</div>';
+ return html+'</div>';
+}
+async function defineBenefit(e){
+ e.preventDefault();if(saving||!allowed())return;
+ const s=selected(),month=el('pc-month').value,label=el('pc-define-label').value.trim(),frequency=el('pc-define-frequency').value,qty=frequency==='per_visit'?1:Number(el('pc-define-qty').value);
+ if(!s||label.length<3||label.length>120||!['monthly','per_visit'].includes(frequency)||!Number.isInteger(qty)||qty<1||qty>12||month<today().slice(0,7))return message('Verifique o benefício e o mês de início.',true);
+ saving=true;lockWriting();message('');
+ try{
+  const r=await sb.rpc('add_package_included_benefit',{p_subscription_id:s.id,p_service_label:label,p_frequency:frequency,p_monthly_quantity:qty,p_effective_from_month:month+'-01'});
+  if(r.error)throw r.error;await load(s.vehicle_id);message('Benefício contratado incluído para o veículo, sem alteração financeira.');
+ }catch(e){message(fail(e),true)}finally{saving=false;lockWriting()}
+}
+async function retireBenefit(id){
+ if(saving||!allowed())return;
+ const s=selected(),month=el('pc-month').value;
+ if(month<today().slice(0,7))return message('Não é permitido alterar a previsão de meses anteriores.',true);
+ if(!window.confirm('Encerrar este benefício a partir de '+month+'? Registros anteriores serão preservados.'))return;
+ saving=true;lockWriting();message('');
+ try{
+  const r=await sb.rpc('retire_package_included_benefit',{p_benefit_id:id,p_from_month:month+'-01'});
+  if(r.error)throw r.error;await load(s.vehicle_id);message('Previsão encerrada a partir do mês selecionado. Histórico preservado.');
+ }catch(e){message(fail(e),true)}finally{saving=false;lockWriting()}
+}
+/* Inline view for the existing appointment details dialog. No new navigation. */
+window.renderPlanBenefitsForAppointment=async function(ctx){
+ if(!allowed())return;
+ const box=document.getElementById(ctx.containerId||'dd-plan-benefits');
+ if(!box)return;
+ window.__v2DetailPlanContext=ctx;
+ box.dataset.appointment=ctx.appointmentId;
+ box.innerHTML='<div class="item" style="margin-top:10px">Consultando cuidados do plano...</div>';
+ const [rp,sub]=await Promise.all([
+  sb.rpc('get_client_plan_control',{p_client_id:ctx.clientId,p_month:ctx.month+'-01'}),
+  sb.from('package_subscriptions').select('id').eq('recurring_plan_id',ctx.recurringPlanId).maybeSingle()
+ ]);
+ if(!box.isConnected||box.dataset.appointment!==ctx.appointmentId)return;
+ if(rp.error||sub.error)throw rp.error||sub.error;
+ const s=(rp.data?.subscriptions||[]).find(x=>x.id===sub.data?.id&&x.vehicle_id===ctx.vehicleId);
+ if(!s){box.innerHTML='<div class="item" style="margin-top:10px">Não foi encontrado plano contratado para esta competência.</div>';return}
+ const br=await sb.from('package_included_benefits').select('id,subscription_id,service_label,frequency,monthly_quantity,effective_from_month,retired_from_month').eq('subscription_id',s.id);
+ if(!box.isConnected||box.dataset.appointment!==ctx.appointmentId)return;
+ if(br.error)throw br.error;
+ const previousConfigs=benefitConfigs;
+ benefitConfigs=br.data||[];
+ const markup=benefitsHtml(s,ctx.month,false);
+ benefitConfigs=previousConfigs;
+ const quantity=s.limit_visits===null||s.limit_visits===undefined?'Previsão mensal não registrada':s.completed+' de '+s.limit_visits+' estéticas concluídas';
+ box.innerHTML='<div><div class="item" style="margin-top:10px"><b>Controle do plano • '+esc(ctx.month.split('-').reverse().join('/'))+'</b><div class="meta">'+esc(quantity)+'</div></div>'+markup+'<div class="actions" style="margin-top:10px"><button type="button" class="ghost" data-detail-open-benefits>Consultar / registrar cuidados</button></div></div>';
+ const b=box.querySelector('[data-detail-open-benefits]');
+ if(b)b.onclick=()=>window.openPlanControl(ctx.clientId,ctx.vehicleId);
+};
+
 async function voidRecord(id){
  if(saving||!allowed())return;
  const reason=window.prompt('Motivo da anulação (mínimo 6 caracteres):');if(reason===null)return;if(reason.trim().length<6)return message('Informe o motivo da anulação com pelo menos 6 caracteres.',true);
