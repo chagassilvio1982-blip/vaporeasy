@@ -10,7 +10,7 @@ function ensureDialog(){
  d.innerHTML='<div class="stack"><div class="actions"><h3 id="pc-title" style="flex:3;margin:8px 0">Controle dos planos</h3><button id="pc-close" type="button" class="ghost">Fechar</button></div><div id="pc-msg" class="notice hidden" role="status"></div><label>Mês do plano<input id="pc-month" type="month"></label><label>Veículo e plano<select id="pc-sub"></select></label><div id="pc-summary"></div><div id="pc-body" class="hidden"><h3>Serviços efetuados no plano</h3><div id="pc-history"></div><details id="pc-register"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Registrar serviço incluído</summary><form id="pc-form" class="stack" style="padding-top:12px"><div class="notice">Registra um benefício realizado, sem cobrança adicional. A contagem de estéticas vem dos atendimentos concluídos na agenda.</div><label>Serviço<select id="pc-kind"><option>Aplicação de hidrorrepelente</option><option>Enceramento manual</option><option>Hidratação do couro</option><option>Higienização dos bancos</option><option>Tratamento do couro</option><option value="other">Outro serviço incluído</option></select></label><label id="pc-custom-wrap" class="hidden">Nome do serviço<input id="pc-custom" maxlength="120"></label><label>Vincular a uma estética concluída<select id="pc-appt"><option value="">Registro independente</option></select></label><label>Data da execução<input id="pc-date" type="date" required></label><label>Observações<textarea id="pc-notes" maxlength="2000"></textarea></label><button id="pc-save" type="submit" class="primary">Salvar serviço realizado</button></form></details></div></div>';
  document.body.appendChild(d);
  const spec=document.createElement('div');spec.id='pc-spec';
- spec.innerHTML='<div id="pc-benefit-list"></div><details id="pc-define"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Definir benefício contratado</summary><form id="pc-define-form" class="stack" style="padding:12px"><div class="meta">Cadastre somente benefícios efetivamente combinados para este veículo. A definição será válida a partir do mês selecionado, sem gerar cobrança.</div><label>Benefício previsto<input id="pc-define-label" maxlength="120" required placeholder="Ex.: Enceramento manual"></label><label>Frequência<select id="pc-define-frequency"><option value="monthly">Quantidade por mês</option><option value="per_visit">Em cada estética do plano</option></select></label><label id="pc-define-qty-wrap">Quantidade mensal<input id="pc-define-qty" type="number" min="1" max="12" value="1" required></label><button class="primary" type="submit">Adicionar ao plano</button></form></details>';
+ spec.innerHTML='<div id="pc-benefit-list"></div><details id="pc-define"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Definir benefício contratado</summary><form id="pc-define-form" class="stack" style="padding:12px"><div class="meta">Cadastre somente benefícios comprovadamente contratados para este veículo, inclusive se o mês for anterior. A definição vale a partir do mês selecionado e não cria cobrança.</div><label>Benefício previsto<input id="pc-define-label" maxlength="120" required placeholder="Ex.: Enceramento manual"></label><label>Frequência<select id="pc-define-frequency"><option value="monthly">Quantidade por mês</option><option value="per_visit">Em cada estética do plano</option></select></label><label id="pc-define-qty-wrap">Quantidade mensal<input id="pc-define-qty" type="number" min="1" max="12" value="1" required></label><button class="primary" type="submit">Adicionar ao plano</button></form></details>';
  el('pc-summary').insertAdjacentElement('afterend',spec);
  el('pc-define-frequency').onchange=()=>el('pc-define-qty-wrap').classList.toggle('hidden',el('pc-define-frequency').value==='per_visit');
  el('pc-define-form').onsubmit=defineBenefit;
@@ -28,12 +28,12 @@ function lockWriting(){
  el('pc-history').querySelectorAll('[data-pc-void]').forEach(b=>b.disabled=saving);
 }
 function selected(){return data.find(s=>s.id===el('pc-sub').value)}
-window.openPlanControl=async function(id,vehicleId=''){
+window.openPlanControl=async function(id,vehicleId='',month=''){
  if(saving)return;
  if(!allowed())return show('msg','Seu perfil não pode consultar os planos.','error');
  ensureDialog();clientId=id;data=[];el('pc-sub').innerHTML='';el('pc-summary').innerHTML='';el('pc-body').classList.add('hidden');
  const c=clients.find(x=>x.id===id);el('pc-title').textContent='Planos • '+(c?.name||'Cliente');
- el('pc-month').value=today().slice(0,7);el('pc-month').max=today().slice(0,7);el('plancontrol').showModal();await load(vehicleId);
+ el('pc-month').value=month&&month<=today().slice(0,7)?month:today().slice(0,7);el('pc-month').max=today().slice(0,7);el('plancontrol').showModal();await load(vehicleId);
 };
 function message(text,error=false){const b=el('pc-msg');b.textContent=text;b.className='notice'+(error?' error':'')+(text?'':' hidden')}
 async function load(vehicleId=''){
@@ -60,7 +60,7 @@ function render(){
  el('pc-summary').innerHTML='<div class="item"><h3>'+esc(s.plan)+'</h3><div class="meta">'+esc(s.vehicle)+' • '+esc(el('pc-month').value.split('-').reverse().join('/'))+'</div><div style="font-size:23px;font-weight:900;margin:12px 0">'+done+(known?' de '+limit:'')+' estéticas concluídas</div><div class="meta">'+(known?remaining+' restante'+(remaining===1?'':'s')+' no mês':'Limite deste mês não registrado')+' • '+scheduled+' agendada'+(scheduled===1?'':'s')+'</div>'+(known&&extra?'<div class="notice" style="margin-top:10px">'+extra+' estética'+(extra===1?'':'s')+' acima da quantidade contratada. Confira o histórico.</div>':'')+(s.limit_source==='current_contract'?'<div class="meta" style="margin-top:8px">Quantidade de referência do contrato atual.</div>':'')+'</div>';
  const history=[...(s.visits||[]).map(v=>({...v,label:'Estética do plano',kind:'visit',notes:''})),...(s.services||[]).map(v=>({...v,kind:'benefit'}))].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  el('pc-benefit-list').innerHTML=benefitsHtml(s,el('pc-month').value);
- el('pc-define').classList.toggle('hidden',saving||el('pc-month').value<today().slice(0,7));
+ el('pc-define').classList.remove('hidden');
  const defined=forMonth(s,el('pc-month').value);
  el('pc-kind').innerHTML='<option value="">Selecione o serviço realizado</option>'+defined.map(b=>'<option value="'+esc(b.service_label)+'">'+esc(b.service_label)+'</option>').join('')+
   '<option>Aplicação de hidrorrepelente</option><option>Enceramento manual</option><option>Hidratação do couro</option><option>Higienização dos bancos</option><option>Tratamento do couro</option><option value="other">Outro serviço incluído</option>';
@@ -115,7 +115,7 @@ function benefitsHtml(s,month,withActions=true){
 async function defineBenefit(e){
  e.preventDefault();if(saving||!allowed())return;
  const s=selected(),month=el('pc-month').value,label=el('pc-define-label').value.trim(),frequency=el('pc-define-frequency').value,qty=frequency==='per_visit'?1:Number(el('pc-define-qty').value);
- if(!s||label.length<3||label.length>120||!['monthly','per_visit'].includes(frequency)||!Number.isInteger(qty)||qty<1||qty>12||month<today().slice(0,7))return message('Verifique o benefício e o mês de início.',true);
+ if(!s||label.length<3||label.length>120||!['monthly','per_visit'].includes(frequency)||!Number.isInteger(qty)||qty<1||qty>12)return message('Verifique o benefício e o mês de início.',true);
  saving=true;lockWriting();message('');
  try{
   const r=await sb.rpc('add_package_included_benefit',{p_subscription_id:s.id,p_service_label:label,p_frequency:frequency,p_monthly_quantity:qty,p_effective_from_month:month+'-01'});
@@ -159,7 +159,7 @@ window.renderPlanBenefitsForAppointment=async function(ctx){
  const quantity=s.limit_visits===null||s.limit_visits===undefined?'Previsão mensal não registrada':s.completed+' de '+s.limit_visits+' estéticas concluídas';
  box.innerHTML='<div><div class="item" style="margin-top:10px"><b>Controle do plano • '+esc(ctx.month.split('-').reverse().join('/'))+'</b><div class="meta">'+esc(quantity)+'</div></div>'+markup+'<div class="actions" style="margin-top:10px"><button type="button" class="ghost" data-detail-open-benefits>Consultar / registrar cuidados</button></div></div>';
  const b=box.querySelector('[data-detail-open-benefits]');
- if(b)b.onclick=()=>window.openPlanControl(ctx.clientId,ctx.vehicleId);
+ if(b)b.onclick=()=>window.openPlanControl(ctx.clientId,ctx.vehicleId,ctx.month);
 };
 
 async function voidRecord(id){
