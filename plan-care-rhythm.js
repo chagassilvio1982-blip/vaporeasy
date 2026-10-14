@@ -2,6 +2,19 @@
 (function(root){
  'use strict';
  const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+ // Only known operational synonyms are grouped. Do not infer arbitrary products as identical.
+ const synonyms=new Map([
+  ['aplicacao de hidrorrepelente','hidro_parabrisa'],
+  ['hidrorrepelente','hidro_parabrisa'],
+  ['hidro repelente','hidro_parabrisa'],
+  ['hidrorrepelente do parabrisa','hidro_parabrisa'],
+  ['protecao hidrorrepelente do para brisa','hidro_parabrisa'],
+  ['protecao hidrorrepelente do parabrisa','hidro_parabrisa'],
+  ['selante com grafeno da pintura','grafeno_pintura'],
+  ['selante com grafeno','grafeno_pintura'],
+  ['hidratacao do couro','hidratacao_couro']
+ ]);
+ const category=x=>synonyms.get(norm(x))||norm(x);
  const date=x=>String(x||'').slice(0,10);
  function difference(a,b){
   const parse=x=>{if(!/^\d{4}-\d\d-\d\d$/.test(date(x)))return NaN;const [y,m,d]=date(x).split('-').map(Number),n=Date.UTC(y,m-1,d);return new Date(n).toISOString().slice(0,10)===date(x)?n:NaN};
@@ -13,7 +26,7 @@
   const ref=date(visitDate),past=(history||[]).filter(e=>date(e.date)<=ref);
   return (defs||[]).map(b=>{
    const label=String(b.label||b.service_label||'').trim(),frequency=b.frequency||b.cadence_type;
-   const performed=past.filter(x=>norm(x.label)===norm(label)).sort((a,b)=>date(b.date).localeCompare(date(a.date)));
+   const performed=past.filter(x=>category(x.label)===category(label)).sort((a,b)=>date(b.date).localeCompare(date(a.date)));
    const last=performed[0]||null,previous=last?date(last.date):null;
    const nowDone=performed.some(e=>e.appointment_id&&b.appointment_id&&e.appointment_id===b.appointment_id);
    const min=positiveInt(b.min_days??b.cadence_min_days,0),max=positiveInt(b.max_days??b.cadence_max_days,min);
@@ -50,7 +63,7 @@
  function lastVisit(visits,visitDate){
   return (visits||[]).filter(v=>date(v.date)<date(visitDate)).sort((a,b)=>date(b.date).localeCompare(date(a.date)))[0]||null;
  }
- const api={evaluate,lastVisit,difference,norm};
+ const api={evaluate,lastVisit,difference,norm,category};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  if(root)root.VaporeasyCareRhythm=api;
 })(typeof window!=='undefined'?window:null);
