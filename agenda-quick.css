@@ -11,3 +11,14 @@
   .agenda-date-picker{width:100%}
   #agendaToday{min-height:50px}
 }
+
+/* Ação principal e observações visíveis antes de abrir detalhes. */
+.agenda-visible-notes,.operator-notes-open{
+ margin-top:10px;padding:11px 12px;border-radius:11px;border:1px solid #355366;
+ background:#102b3a;color:#ecf5fa;font-size:13px;line-height:1.5;
+ white-space:pre-wrap;overflow-wrap:anywhere;
+}
+.agenda-visible-notes b,.operator-notes-open b{font-size:13px;color:#f6fafc}
+.operator-notes-open>div{padding-top:4px}
+.agenda-quick-actions{margin-top:10px}
+.agenda-quick-actions button{min-height:50px;width:100%;font-size:15px}
