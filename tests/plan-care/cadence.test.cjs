@@ -158,3 +158,22 @@ test('nova frequência é avaliada sem mutar histórico ou contrato anterior',()
  assert.ok(h.includes('Após o pagamento, envie o comprovante para confirmarmos o recebimento.'));
  assert.ok(!h.includes('confirmarmos o recebimento e realizarmos a baixa'));
  });
+
+test('prazos contratados: hidro e grafeno 45 dias, hidratação do couro 60 dias',()=>{
+ const ref='2026-10-14';
+ for(const [label,historicLabel] of [
+  ['Hidro repelente','Proteção hidrorrepelente do para-brisa'],
+  ['Selante Grafeno','Selante com grafeno da pintura']
+ ]){
+  const care=rule('interval_days',45,45,label);
+  const events=performed(ref,historicLabel);
+  assert.equal(state(care,events,'2026-11-27').status,'ok',label);
+  assert.equal(state(care,events,'2026-11-28').status,'due',label);
+  assert.equal(state(care,events,'2026-11-28').nextDate,'2026-11-28',label);
+ }
+ const leather=rule('interval_days',60,60,'Hidratação do couro');
+ const history=performed(ref,'Hidratação do couro');
+ assert.equal(state(leather,history,'2026-12-12').status,'ok');
+ assert.equal(state(leather,history,'2026-12-13').status,'due');
+ assert.equal(state(leather,history,'2026-12-13').nextDate,'2026-12-13');
+});
