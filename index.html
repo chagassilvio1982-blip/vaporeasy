@@ -1154,7 +1154,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/main-menu.css?v=20261015-4">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 <link rel="stylesheet" href="/agenda-quick.css?v=20261015-3">
-<link rel="stylesheet" href="/finance-clean.css?v=20261015-1">
+<link rel="stylesheet" href="/finance-clean.css?v=20261015-2">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -2944,7 +2944,7 @@ async function openMonthlyClientReceipt(clientId,month){
 
 function financeApptCard(a,p,maps,paid=false){
   const cl=maps.cm.get(a.client_id),v=maps.vm.get(a.vehicle_id),sv=maps.sm.get(a.service_id),when=paid?(p?.paid_at||a.completed_at):a.completed_at;
-  return '<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+esc(sv?.name||"Serviço")+'<br>'+esc(receiptDate(when))+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(p?.amount??a.final_value))+'</div></div><div class="actions" style="margin-top:8px">'+(!paid?'<button type="button" class="success" data-fin-pay="'+a.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-fin-receipt="'+a.id+'">Comprovante</button>':'<button type="button" class="ghost" data-fin-receipt="'+a.id+'">Recibo</button>')+'</div></div>'
+  return '<div class="item'+(!paid?' finance-pending-card':'')+'" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+esc(sv?.name||"Serviço")+'<br>'+esc(receiptDate(when))+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(p?.amount??a.final_value))+'</div></div><div class="actions" style="margin-top:8px">'+(!paid?'<button type="button" class="success" data-fin-pay="'+a.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-fin-receipt="'+a.id+'">Atendimento / Pix</button>':'<button type="button" class="ghost" data-fin-receipt="'+a.id+'">Recibo</button>')+'</div></div>'
 }
 function financePackageDate(d){
   if(!d)return "—";
@@ -2988,9 +2988,9 @@ function financePackageGroupCard(group,maps,paid=false){
   const dateLine=paid
     ?("Recebido"+(first.paid_at?" em "+financePackageDate(first.paid_at):"")+(sameMethod&&first.payment_method?" • "+esc(first.payment_method):""))
     :"Mensalidade conjunta • "+group.length+" veículos";
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+detail+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(total))+'</div></div>'+
+  return '<div class="item'+(!paid?' finance-pending-card':'')+'" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+detail+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(total))+'</div></div>'+
     (!paid
-      ?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-group-pay="'+esc(ids)+'">Confirmar pagamento conjunto</button><button type="button" class="ghost" data-pkg-group-share="'+esc(ids)+'">Mensalidade conjunta / Pix</button></div>'
+      ?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-group-pay="'+esc(ids)+'">Confirmar pagamento conjunto</button><button type="button" class="ghost" data-pkg-group-share="'+esc(ids)+'">Mensalidades / Pix</button></div>'
       :'<div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-pkg-group-share="'+esc(ids)+'">Recibo conjunto</button></div>')+
   '</div>'
 }
@@ -3010,14 +3010,17 @@ function financePackageCards(rows,maps,paid=false,monthRows=[]){
     return group.map(c=>financePackageChargeCard(c,maps,paid,paid?financePackageUpgradeTarget(c,monthRows):null)).join("")
   }).join("")
 }
+function financePlanDisplayName(name){
+  return String(name||"Plano").replace(/^Pacote(?=\s|$)/i,"Plano").trim();
+}
 function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
   const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),commercialDiscount=packageChargeCommercialDiscount(c);
-  const baseDetail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
+  const baseDetail=esc(financePlanDisplayName(sv?.name))+' • '+esc(freq)+' • '+visits+' estéticas/mês';
   const targetMeta=upgradeTarget?packageFrequencyMeta(upgradeTarget.frequency):null;
   const targetService=upgradeTarget?maps.sm.get(upgradeTarget.service_id):null;
   const historyTitle=upgradeTarget&&paid?'Pagamento inicial do pacote':baseDetail;
   const historyDetail=upgradeTarget&&paid
-    ?'<br><span>'+baseDetail+'</span><br><span>Incorporado ao upgrade para '+esc(targetService?.name||sv?.name||"pacote")+' '+esc(targetMeta?.label||upgradeTarget.frequency||"")+'</span>'
+    ?'<br><span>'+baseDetail+'</span><br><span>Incorporado ao upgrade para '+esc(financePlanDisplayName(targetService?.name||sv?.name))+' '+esc(targetMeta?.label||upgradeTarget.frequency||"")+'</span>'
     :"";
   const dateLine=paid?("Recebido em "+financePackageDate(c.paid_at)+(c.payment_method?" • "+esc(c.payment_method):"")):("Vencimento "+financePackageDate(c.due_date));
   let adjustment="";
@@ -3036,7 +3039,7 @@ function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
     :(credit>0
       ?'Complemento pago. Mensalidade total de '+esc(money(gross))+' quitada.'
       :'Mensalidade do pacote paga.');
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Mensalidade / Pix</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Recibo de pagamento</button></div>'))+'</div>'
+  return '<div class="item'+(!paid?' finance-pending-card':'')+'" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Mensalidade / Pix</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Recibo de pagamento</button></div>'))+'</div>'
 }
 async function getPackageChargeShareData(id){
   const cr=await sb.from("package_charges").select("*").eq("id",id).single();if(cr.error)throw cr.error;
@@ -5317,7 +5320,7 @@ async function openPackagePayment(id){
     if(r.error)throw r.error;
     const c=r.data,maps=currentFinanceMonthReport?.maps,cl=maps?.cm.get(c.client_id),v=maps?.vm.get(c.vehicle_id),sv=maps?.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency);
     currentPaymentQuote={id,gross:Number(c.amount||0),status:"package"};
-    $("paysummary").innerHTML='<div><span>'+esc(sv?.name||"Pacote")+' • '+esc(meta?.label||c.frequency)+' • '+Number(c.visits_per_month||meta?.visits||0)+' estéticas/mês</span><b>'+esc(money(c.amount))+'</b></div><div class="meta">'+esc(cl?.name||"Cliente")+' • '+esc(v?(v.brand+" "+v.model):"Veículo")+'</div>';
+    $("paysummary").innerHTML='<div><span>'+esc(financePlanDisplayName(sv?.name))+' • '+esc(meta?.label||c.frequency)+' • '+Number(c.visits_per_month||meta?.visits||0)+' estéticas/mês</span><b>'+esc(money(c.amount))+'</b></div><div class="meta">'+esc(cl?.name||"Cliente")+' • '+esc(v?(v.brand+" "+v.model):"Veículo")+'</div>';
     $("paydiscounttype").value="none";$("paydiscountvalue").value="";updatePaymentDiscountPreview()
   }catch(err){$("paysummary").innerHTML="";show("paymsg",fail(err),"error")}
 }
