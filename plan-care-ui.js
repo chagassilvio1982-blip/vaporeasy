@@ -194,12 +194,17 @@ function nextText(x){
 function summary(d){
  const limit=d.limit_visits??d.visits_limit,done=d.completed??(d.visits||[]).length,
  scheduled=d.scheduled,known=limit!==null&&limit!==undefined;
+ const remaining=known?Math.max(0,Number(limit)-Number(done)):null;
+ const explanation=known&&scheduled!==undefined&&scheduled!==null?
+  'Faltam realizar '+remaining+' estética(s): '+Number(scheduled)+' já agendada(s) e '+Math.max(0,remaining-Number(scheduled))+' ainda sem agendamento.'+
+  (Number(scheduled)>remaining?' Atenção: há mais agendamentos que o saldo do plano.':''):
+  'Agendar não desconta estéticas do plano. A contagem muda quando o atendimento é concluído.';
  return '<div class="care-counts" aria-label="Estéticas do mês">'+[
  ['Contratadas',known?limit:'—'],['Concluídas',done],['Agendadas',scheduled??'—'],
  ['Restantes',known?Math.max(0,Number(limit)-Number(done)):'—']
  ].map(([label,value])=>'<div><b>'+html(value)+'</b><span>'+label+'</span></div>').join('')+
- '</div><div class="care-meta">Restantes = contratadas menos concluídas; inclui as agendadas.'+
- (scheduled===undefined?' Agendadas: consulte a agenda.':'')+'</div>';
+ '</div><div class="care-meta">'+html(explanation)+(Number(done)===0?' Nenhuma estética foi concluída.':'')+
+ (scheduled===undefined||scheduled===null?' Agendadas: consulte a agenda.':'')+'</div>';
 }
 function task(name,items,css){
  if(!items.length)return '';

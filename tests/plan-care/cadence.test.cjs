@@ -146,3 +146,15 @@ test('nova frequência é avaliada sem mutar histórico ou contrato anterior',()
  assert.equal(JSON.stringify(h),original);
  assert.equal(b.min_days,60);
 });
+
+ test('quatro contratadas e três agendadas continuam quatro por realizar',()=>{
+ const h=catalog.summary({limit_visits:4,completed:0,scheduled:3});
+ assert.match(h,/<b>4<\/b><span>Restantes/);
+ assert.ok(h.includes('Faltam realizar 4 estética(s): 3 já agendada(s) e 1 ainda sem agendamento.'));
+ assert.ok(h.includes('Nenhuma estética foi concluída.'));
+ });
+ test('instrução de pagamento termina em confirmação do recebimento',()=>{
+ const h=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ assert.ok(h.includes('Após o pagamento, envie o comprovante para confirmarmos o recebimento.'));
+ assert.ok(!h.includes('confirmarmos o recebimento e realizarmos a baixa'));
+ });
