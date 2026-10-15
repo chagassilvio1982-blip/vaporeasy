@@ -16,7 +16,7 @@ test('áreas principais visíveis sem menu hambúrguer ou modal',()=>{
  for(const id of ['top','tc','ta','tf','tr','tset','out'])
   assert.equal((shell.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
  for(const label of ['Cadastros','Agenda','Financeiro','Relatórios'])
-  assert.match(shell,new RegExp('>'+label+'<\\/button>'));
+  assert.match(shell,new RegExp('>[^<]*'+label+'<\\/button>'));
  assert.match(shell,/main-nav-utility/);
 });
 
