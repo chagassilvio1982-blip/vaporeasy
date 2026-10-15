@@ -1151,7 +1151,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 </style>
 <style id="vaporeasy-recurring-multi-20260929"></style>
-<link rel="stylesheet" href="/main-menu.css?v=20261015-3">
+<link rel="stylesheet" href="/main-menu.css?v=20261015-4">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 <link rel="stylesheet" href="/agenda-quick.css?v=20261014-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
@@ -1269,15 +1269,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button id="nc" class="primary section-primary">+ Cliente</button>
       <details id="cad-more-actions" class="cad-more-actions">
         <summary aria-label="Mais opções de cadastro" title="Mais opções de cadastro">⋯</summary>
-        <div class="cad-more-panel">
-          <div class="cad-more-heading">Mais opções de cadastro</div>
+        <div class="cad-more-panel" aria-label="Opções adicionais de cadastro">
           <div class="tool-grid">
-            <button id="importcontacts" class="ghost hidden" type="button">📱 Importar contatos</button>
+            <button id="importcontacts" class="ghost hidden" type="button">Importar contatos</button>
             <button id="collabsbtn" class="ghost hidden" type="button">Colaboradores</button>
             <button id="teamsbtn" class="ghost hidden" type="button">Equipes</button>
             <button id="rc" class="ghost" type="button">Atualizar lista</button>
           </div>
-          <div id="contactimporthint" class="meta hidden tool-hint">Android: selecione contatos do telefone, revise e importe somente os clientes desejados.</div>
         </div>
       </details>
     </div>
@@ -2016,10 +2014,9 @@ function formatImportedPhone(v){
 }
 function configureAndroidContactImport(){
   const isAndroid=/Android/i.test(navigator.userAgent||"");
-  const btn=$("importcontacts"),hint=$("contactimporthint");
+  const btn=$("importcontacts");
   if(!btn)return;
   btn.classList.toggle("hidden",!isAndroid);
-  hint?.classList.toggle("hidden",!isAndroid);
 }
 function existingContactKeys(){
   const phones=new Set(),names=new Set();
