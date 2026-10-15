@@ -1161,7 +1161,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/settings-addons-clean.css?v=20261015-1">
 <link rel="stylesheet" href="/settings-addon-editor.css?v=20261015-1">
 <link rel="stylesheet" href="/settings-schedule-clean.css?v=20261015-1">
-<link rel="stylesheet" href="/settings-payment-clean.css?v=20261015-1">
+<link rel="stylesheet" href="/settings-payment-clean.css?v=20261015-2">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -1426,7 +1426,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <label>Rodapé dos recibos<textarea id="setfooter"></textarea></label>
     </div>
   </details>
-  <button class="primary settings-payment-save">Salvar dados de pagamento</button>
+  <button class="primary settings-payment-save" disabled>Salvar dados de pagamento</button>
 </form></details>
   </div>
 </section>
@@ -1694,7 +1694,7 @@ async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeas
 function wire(){
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);const r=await sb.auth.signOut({scope:"local"});if(r.error){show("msg","Não foi possível encerrar a sessão. Tente novamente.","error");return}const check=await sb.auth.getSession();if(check.data?.session){show("msg","A sessão anterior ainda está ativa. Tente sair novamente.","error");return}currentUserId=null;currentRole=null;currentApps=[];$("pass").value="";location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
  $("top").onclick=()=>tab("ops");$("tc").onclick=()=>tab("cad");$("ta").onclick=()=>tab("age");$("tf").onclick=()=>tab("fin");$("tr").onclick=()=>tab("rep");$("tset").onclick=()=>tab("set");$("oprefresh").onclick=async()=>{operatorMonthCache.clear();await Promise.all([loadOperatorMonth(true),loadOperatorJobs(operatorSelectedDate,false)])};$("opcalprev").onclick=()=>shiftOperatorMonth(-1);$("opcalnext").onclick=()=>shiftOperatorMonth(1);$("optoday").onclick=()=>selectOperatorDate(today());$("collabsbtn").onclick=openCollaboratorsManager;$("newcollab").onclick=()=>openCollaboratorEditor();$("collabf").onsubmit=saveCollaborator;$("collablogin").onchange=toggleCollaboratorAccessFields;$("collabtabdata").onclick=()=>switchCollaboratorSection("data");$("collabtabaccess").onclick=()=>switchCollaboratorSection("access");$("collabaccessrole").onchange=updateCollaboratorAccessSummary;$("collabemail").oninput=updateCollaboratorAccessSummary;$("collabpassgenerate").onclick=generateCollaboratorPassword;$("collabpasscopy").onclick=copyCollaboratorPassword;$("teamsbtn").onclick=openTeamsManager;$("newteam").onclick=()=>openTeamEditor();$("teamf").onsubmit=saveTeam;$("rc").onclick=loadClients;$("nc").onclick=()=>openClient();$("importcontacts").onclick=openAndroidContactsImport;$("contactsselectall").onclick=selectAllAndroidContacts;$("contactsimportsave").onclick=saveAndroidContactsImport;$("cf").onsubmit=saveClient;$("vf").onsubmit=saveVehicle;$("rgf").onsubmit=saveVehicleRG;$("rgif").onsubmit=saveRGIssue;$("rgfreq").onchange=toggleRGRecurrence;$("rgissueadd").onclick=()=>openRGIssue();$("rgreport").onclick=generateVehicleNeedsReport;$("rgissuephotofile").onchange=addRGIssuePhoto;$("rgphotoadd").onclick=()=>$("rgphoto").click();$("rgphoto").onchange=addRGPhoto;$("vb").onchange=onBrandChange;$("vm").onchange=onModelChange;$("gl").onclick=openLinkDialog;$("lclient").onchange=()=>{updateLinkPreview();clearGeneratedLink()};$("lclientsearch").oninput=()=>{if($("lclient").value)clearLinkClientPicker(true);renderLinkClientSuggestions()};$("lclientsearch").onfocus=renderLinkClientSuggestions;$("lclientsearch").onkeydown=e=>{if(e.key==="Escape"){$("lclientsuggestions").classList.add("hidden");$("lclientsearch").blur()}};$("lnewclient").onclick=useNewLinkClient;$("lat").onchange=clearGeneratedLink;$("mklink").onclick=createPublicLink;$("copylink").onclick=copyPublicLink;$("sharelink").onclick=sharePublicLink;
- $("na").onclick=openAppt;$("recorddone").onclick=openRealizedService;$("rdf").onsubmit=saveRealizedService;$("rdclient").onchange=loadRealizedVehicles;$("rdservice").onchange=applyRealizedService;$("rddisctype").onchange=updateRealizedQuote;$("rddiscvalue").oninput=updateRealizedQuote;$("rdvalue").oninput=updateRealizedQuote;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setservicesizepricing").onchange=toggleServiceSizePricingFields;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("finishf").onsubmit=saveCompletion;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=()=>{syncSingleAppointmentPackageSize();loadAvailableSlots()};$("appackagesize").onchange=()=>{updateSingleAppointmentPackagePrice()};$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaToday").onclick=()=>{$("date").value=today();agendaCalendarMonth=calendarMonthFromDate($("date").value);setAgendaView("day")};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
+ $("na").onclick=openAppt;$("recorddone").onclick=openRealizedService;$("rdf").onsubmit=saveRealizedService;$("rdclient").onchange=loadRealizedVehicles;$("rdservice").onchange=applyRealizedService;$("rddisctype").onchange=updateRealizedQuote;$("rddiscvalue").oninput=updateRealizedQuote;$("rdvalue").oninput=updateRealizedQuote;$("apf").onsubmit=saveAppt;$("apvalue").oninput=()=>{window.__appointmentValueTouched=true;updateAppointmentDiscountPreview()};$("apdiscounttype").onchange=()=>{if($("apdiscounttype").value==="none")$("apdiscountvalue").value="";updateAppointmentDiscountPreview()};$("apdiscountvalue").oninput=updateAppointmentDiscountPreview;$("exf").onsubmit=saveExpense;$("fnewexp").onclick=()=>openExpense();$("frefresh").onclick=loadFinance;$("fmonth").onchange=loadFinance;$("fmonthreport").onclick=generateMonthlyFinanceReportPdf;$("rrefresh").onclick=loadManagementReport;$("rpdf").onclick=generateManagementReportPdf;$("setnewservice").onclick=()=>openServiceSetting();$("setnewaddon").onclick=()=>openAddonSetting();$("setservicef").onsubmit=saveServiceSetting;$("setservicesizepricing").onchange=toggleServiceSizePricingFields;$("setaddonf").onsubmit=saveAddonSetting;$("setaddonall").onchange=toggleAddonServiceScope;$("setschedulef").onsubmit=saveScheduleSettings;$("setpayf").onsubmit=savePaymentSettings;$("setpayf").addEventListener("input",syncPaymentSaveAvailability);$("setpayf").addEventListener("change",syncPaymentSaveAvailability);$("finishf").onsubmit=saveCompletion;$("payf").onsubmit=savePayment;$("paydiscounttype").onchange=updatePaymentDiscountPreview;$("paydiscountvalue").oninput=updatePaymentDiscountPreview;$("paycancel").onclick=cancelPaymentDialog;$("rshare").onclick=shareReceiptVisual;$("rgroup").onclick=openSameClientReceiptGroup;$("rdiscount").onclick=openReceiptDiscount;$("rcharge").onclick=shareChargePix;$("rprint").onclick=generateReceiptPdf;$("acsearch").oninput=()=>{if($("ac").value)clearApptClientPicker(true);renderApptClientSuggestions()};$("acsearch").onfocus=renderApptClientSuggestions;$("acsearch").onkeydown=e=>{if(e.key==="Escape"){$("acsuggestions").classList.add("hidden");$("acsearch").blur()}};$("av").onchange=()=>{syncSingleAppointmentPackageSize();loadAvailableSlots()};$("appackagesize").onchange=()=>{updateSingleAppointmentPackagePrice()};$("avselectall").onclick=toggleAllAppointmentVehicles;$("as").onchange=applyServiceRule;$("acol").onchange=loadAvailableSlots;$("adt").onchange=loadAvailableSlots;$("date").onchange=()=>{agendaCalendarMonth=calendarMonthFromDate($("date").value);if(agendaViewMode==="month"){loadMonthCalendar(false);loadApps()}else if(agendaViewMode==="list")loadAgendaList();else loadApps()};$("agendaToday").onclick=()=>{$("date").value=today();agendaCalendarMonth=calendarMonthFromDate($("date").value);setAgendaView("day")};$("agendaViewMonth").onclick=()=>setAgendaView("month");$("agendaViewDay").onclick=()=>setAgendaView("day");$("agendaViewList").onclick=()=>setAgendaView("list");$("calprev").onclick=()=>shiftCalendarMonth(-1);$("calnext").onclick=()=>shiftCalendarMonth(1);$("listprev").onclick=()=>shiftAgendaListMonth(-1);$("listnext").onclick=()=>shiftAgendaListMonth(1);$("q").oninput=()=>{selectedClientId="";renderClients()};
  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 }
 
@@ -2560,6 +2560,19 @@ async function openVehicle(cid,v){try{await loadVehicleCatalog();$("vf").reset()
 async function saveVehicle(e){e.preventDefault();try{const brand=$("vb").value==="__other__"?$("vbo").value.trim():$("vb").value.trim(),model=$("vm").value==="__other__"?$("vmo").value.trim():$("vm").value.trim();if(!brand)throw Error("Selecione ou informe a montadora.");if(!model)throw Error("Selecione ou informe o modelo.");const p={client_id:$("vcid").value,brand,model,plate:plate($("vp").value)||null,year:$("vy").value.trim(),color:$("vco").value.trim(),package_size:$("vsize").value||null};let r=$("vid").value?await sb.from("vehicles").update(p).eq("id",$("vid").value):await sb.from("vehicles").insert(p);if(r.error)throw r.error;$("vd").close();show("msg","Veículo salvo.","ok");renderClients()}catch(e){show("msg",fail(e),"error")}}
 let settingServices=[],settingAddons=[],settingAddonCompat=[],settingSchedule=null,settingWeek=[],settingPayment=null;
 const WEEK_NAMES=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+const PAYMENT_SETTING_FIELDS=["setbiz","setholder","setbank","setpixtype","setpix","setbranch","setaccount","setfooter"];
+let paymentSettingsInitialValues=null,paymentSettingsSaving=false;
+function paymentSettingsSignature(){
+  return JSON.stringify(PAYMENT_SETTING_FIELDS.map(id=>$(id).value));
+}
+function syncPaymentSaveAvailability(){
+  const button=$("setpayf").querySelector(".settings-payment-save");
+  button.disabled=paymentSettingsSaving||paymentSettingsInitialValues===null||paymentSettingsSignature()===paymentSettingsInitialValues;
+}
+function markPaymentSettingsClean(){
+  paymentSettingsInitialValues=paymentSettingsSignature();
+  syncPaymentSaveAvailability();
+}
 async function loadOperationalSettings(){
   if(currentRole!=="owner")return;
   try{
@@ -2637,7 +2650,7 @@ function renderOperationalSettings(){
   $("setaddons").querySelectorAll("[data-set-addon]").forEach(b=>b.onclick=()=>openAddonSetting(settingAddons.find(x=>x.id===b.dataset.setAddon)));
   $("setstart").value=String(settingSchedule?.workday_start||"07:40").slice(0,5);$("setend").value=String(settingSchedule?.workday_end||"18:00").slice(0,5);$("setinterval").value=settingSchedule?.slot_interval_minutes||20;$("setsameday").checked=settingSchedule?.public_allow_same_day_default!==false;
   $("setweek").innerHTML=settingWeek.map(settingsScheduleWeekRow).join("");
-  const p=settingPayment||{};$("setbiz").value=p.business_name||"Vaporeasy";$("setholder").value=p.account_holder||"";$("setbank").value=p.bank_name||"";$("setbranch").value=p.branch||"";$("setaccount").value=p.account_number||"";$("setpix").value=p.pix_key||"";$("setpixtype").value=p.pix_key_type||"";$("setfooter").value=p.receipt_footer||""
+  const p=settingPayment||{};$("setbiz").value=p.business_name||"Vaporeasy";$("setholder").value=p.account_holder||"";$("setbank").value=p.bank_name||"";$("setbranch").value=p.branch||"";$("setaccount").value=p.account_number||"";$("setpix").value=p.pix_key||"";$("setpixtype").value=p.pix_key_type||"";$("setfooter").value=p.receipt_footer||"";markPaymentSettingsClean()
 }
 function toggleServiceSizePricingFields(){
   const enabled=$("setservicesizepricing").checked;
@@ -2689,10 +2702,18 @@ async function saveScheduleSettings(e){
   }catch(err){show("msg",fail(err),"error")}
 }
 async function savePaymentSettings(e){
-  e.preventDefault();if(currentRole!=="owner")return;
+  e.preventDefault();if(currentRole!=="owner"||paymentSettingsSaving||paymentSettingsInitialValues===null||paymentSettingsSignature()===paymentSettingsInitialValues)return;
   const p={business_name:$("setbiz").value.trim()||"Vaporeasy",account_holder:$("setholder").value.trim(),bank_name:$("setbank").value.trim(),branch:$("setbranch").value.trim(),account_number:$("setaccount").value.trim(),pix_key:$("setpix").value.trim(),pix_key_type:$("setpixtype").value.trim(),receipt_footer:$("setfooter").value.trim(),updated_at:new Date().toISOString()};
   if(!p.account_holder)return show("msg","Informe o favorecido do pagamento.","error");
-  const r=await sb.from("business_payment_settings").update(p).eq("id",1);if(r.error)return show("msg",fail(r.error),"error");settingPayment={...(settingPayment||{}),...p};show("msg","Dados de pagamento atualizados.","ok")
+  paymentSettingsSaving=true;syncPaymentSaveAvailability();
+  try{
+    const r=await sb.from("business_payment_settings").update(p).eq("id",1);
+    if(r.error)throw r.error;
+    settingPayment={...(settingPayment||{}),...p};
+    markPaymentSettingsClean();
+    show("msg","Dados de pagamento atualizados.","ok");
+  }catch(err){show("msg",fail(err),"error")}
+  finally{paymentSettingsSaving=false;syncPaymentSaveAvailability()}
 }
 let currentManagementReport=null;
 function firstDayCurrentMonth(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-01"}
@@ -3966,7 +3987,7 @@ function tab(x){
   }
   if(x==="fin"){if(!$("fmonth").value)$("fmonth").value=today().slice(0,7);loadFinance()}
   if(x==="rep"){setDefaultReportDates();loadManagementReport()}
-  if(x==="set")loadOperationalSettings()
+  if(x==="set"){document.querySelectorAll("#set .settings-group").forEach(group=>{group.open=false});$("setpayadvanced").open=false;paymentSettingsInitialValues=null;syncPaymentSaveAvailability();loadOperationalSettings()}
 }
 let operatorSelectedDate=today();
 let operatorCalendarMonth=operatorSelectedDate.slice(0,7)+"-01";
