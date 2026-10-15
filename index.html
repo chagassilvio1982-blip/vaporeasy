@@ -1156,6 +1156,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/agenda-quick.css?v=20261015-3">
 <link rel="stylesheet" href="/finance-clean.css?v=20261015-2">
 <link rel="stylesheet" href="/reports-clean.css?v=20261015-1">
+<link rel="stylesheet" href="/settings-service-clean.css?v=20261015-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -2488,8 +2489,30 @@ async function loadOperationalSettings(){
     renderOperationalSettings()
   }catch(e){show("msg",fail(e),"error")}
 }
+function settingsServiceDisplayName(name){
+  return String(name||"").replace(/^Pacote(?=\s|$)/i,"Plano");
+}
+function settingsServiceCard(s){
+  const price=s.size_pricing_enabled
+    ?'P/M '+esc(money(s.price_pm??s.price))+' • G '+esc(money(s.price_g??s.price))
+    :esc(money(s.price));
+  const time=durationLabel(s.duration_minutes);
+  const booking=(s.booking_mode==="request"?"Confirmação manual":"Automático")+
+    (s.first_slot_time?' • início '+esc(String(s.first_slot_time).slice(0,5)):'');
+  return '<div class="item setting-service-card">'+
+    '<div class="setting-service-card-main">'+
+      '<div class="setting-service-info">'+
+        '<div class="setting-service-heading"><b>'+esc(settingsServiceDisplayName(s.name))+'</b>'+
+          '<span class="setting-service-status '+(s.active?'is-active':'is-inactive')+'">'+(s.active?'Ativo':'Inativo')+'</span></div>'+
+        '<div class="meta setting-service-price">'+price+' • '+time+'</div>'+
+        '<div class="meta setting-service-booking">'+booking+'</div>'+
+      '</div>'+
+      '<button type="button" class="ghost setting-service-edit" data-set-service="'+esc(s.id)+'">Editar</button>'+
+    '</div>'+
+  '</div>';
+}
 function renderOperationalSettings(){
-  $("setservices").innerHTML=settingServices.length?settingServices.map(s=>'<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><b>'+esc(s.name)+'</b><div class="meta">'+(s.size_pricing_enabled?('P/M '+esc(money(s.price_pm??s.price))+' • G '+esc(money(s.price_g??s.price))):esc(money(s.price)))+' • '+durationLabel(s.duration_minutes)+' • '+(s.booking_mode==="request"?"Confirmação manual":"Automático")+(s.first_slot_time?' • início '+esc(String(s.first_slot_time).slice(0,5)):'')+'<br>'+(s.active?"Ativo":"Inativo")+'</div></div><button type="button" class="ghost" data-set-service="'+s.id+'">Editar</button></div></div>').join(""):'<div class="empty">Nenhum serviço cadastrado.</div>';
+  $("setservices").innerHTML=settingServices.length?settingServices.map(settingsServiceCard).join(""):'<div class="empty">Nenhum serviço cadastrado.</div>';
   $("setaddons").innerHTML=settingAddons.length?settingAddons.map(a=>'<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><b>'+esc(a.name)+'</b><div class="meta">'+esc(money(a.price||0))+' • '+Number(a.duration_minutes||0)+' min<br>'+(a.active?"Ativo":"Inativo")+' • '+(a.public_enabled?"Público":"Somente interno")+'</div></div><button type="button" class="ghost" data-set-addon="'+a.id+'">Editar</button></div></div>').join(""):'<div class="empty">Nenhum extra cadastrado.</div>';
   $("setservices").querySelectorAll("[data-set-service]").forEach(b=>b.onclick=()=>openServiceSetting(settingServices.find(x=>x.id===b.dataset.setService)));
   $("setaddons").querySelectorAll("[data-set-addon]").forEach(b=>b.onclick=()=>openAddonSetting(settingAddons.find(x=>x.id===b.dataset.setAddon)));

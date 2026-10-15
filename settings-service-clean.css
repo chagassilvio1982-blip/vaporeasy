@@ -1,0 +1,85 @@
+/* Configurações / Serviços: alterações restritas aos cartões renderizados.
+   Nenhum preço, duração, edição ou configuração do agendamento é modificado. */
+#set #setservices .setting-service-card{
+  padding:10px 11px!important;
+  margin:7px 0 0!important;
+  background:#081f2c;
+  border:1px solid #20485b;
+  border-radius:12px;
+}
+#set #setservices .setting-service-card-main{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  column-gap:9px;
+}
+#set #setservices .setting-service-info{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+#set #setservices .setting-service-heading{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:4px 9px;
+  font-size:14px;
+  font-weight:800;
+  line-height:1.25;
+  color:#ecf5f8;
+}
+#set #setservices .setting-service-heading b{
+  min-width:0;
+}
+#set #setservices .setting-service-status{
+  display:inline-flex;
+  align-items:center;
+  flex:0 0 auto;
+  padding:2px 6px;
+  font-size:10px;
+  font-weight:700;
+  line-height:1.2;
+  border:1px solid #315468;
+  border-radius:100px;
+  color:#a5c9d9;
+}
+#set #setservices .setting-service-status.is-inactive{
+  color:#f2c6ac;
+  border-color:#875743;
+}
+#set #setservices .setting-service-price{
+  margin-top:4px;
+  font-size:12px;
+  line-height:1.4;
+  color:#c4d8e2;
+}
+#set #setservices .setting-service-booking{
+  margin-top:1px;
+  font-size:11px;
+  line-height:1.35;
+  color:#94b0be;
+}
+#set #setservices .setting-service-edit{
+  flex:none;
+  width:auto;
+  min-width:70px;
+  max-width:83px;
+  min-height:44px;
+  margin:0;
+  padding:8px 10px;
+  font-size:13px;
+  line-height:1.25;
+  font-weight:750;
+  white-space:nowrap;
+  border-radius:9px;
+}
+#set #setservices .setting-service-edit:focus-visible{
+  outline:2px solid #73d6fb;
+  outline-offset:2px;
+}
+@media(max-width:350px){
+  #set #setservices .setting-service-card{padding:9px!important}
+  #set #setservices .setting-service-card-main{column-gap:6px}
+  #set #setservices .setting-service-heading{font-size:13px}
+  #set #setservices .setting-service-price{font-size:11px}
+  #set #setservices .setting-service-edit{min-width:64px;padding:8px 7px;font-size:12px}
+}
