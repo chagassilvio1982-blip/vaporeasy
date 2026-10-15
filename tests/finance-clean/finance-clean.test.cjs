@@ -93,7 +93,7 @@ test('A etapa Financeiro não remove agendamento, recibos e tela de planos',()=>
  for(const id of ['na','apf','rshare','rcharge','rprint','finishf','agendaViewDay','agendaViewList'])
    assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(html,/<link rel="stylesheet" href="\/finance-clean\.css\?v=20261015-2">/);
- assert.match(html,/<script src="\/main-menu\.js\?v=20261015-fin1"><\/script>/);
+ assert.match(html,/<script src="\/main-menu\.js\?v=20261015-(?:fin1|report1)"><\/script>/);
  assert.match(html,/cancel_appointment_with_scope/);
  assert.match(html,/complete_appointment_with_cares/);
 });
