@@ -1153,7 +1153,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <style id="vaporeasy-recurring-multi-20260929"></style>
 <link rel="stylesheet" href="/main-menu.css?v=20261015-4">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
-<link rel="stylesheet" href="/agenda-quick.css?v=20261015-1">
+<link rel="stylesheet" href="/agenda-quick.css?v=20261015-2">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -1302,7 +1302,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <button id="agendaViewDay" type="button" class="primary">Dia</button>
     <button id="agendaViewList" type="button" class="ghost">Lista</button>
   </div>
-  <div class="agenda-toolbar">
+  <div id="agendaDateToolbar" class="agenda-toolbar">
     <div class="agenda-date-picker">
       <label for="date">Dia selecionado<input id="date" type="date"></label>
       <button id="agendaToday" type="button" class="ghost" aria-label="Voltar para a agenda de hoje">Hoje</button>
@@ -3666,6 +3666,8 @@ function setAgendaView(mode){
   $("monthcal")?.classList.toggle("hidden",agendaViewMode!=="month");
   $("agendaDayView")?.classList.toggle("hidden",agendaViewMode==="list");
   $("agendaListView")?.classList.toggle("hidden",agendaViewMode!=="list");
+  // O seletor diário só tem utilidade na visão Dia. Mês e Lista possuem navegação própria.
+  $("agendaDateToolbar")?.classList.toggle("hidden",agendaViewMode!=="day");
   [["agendaViewMonth","month"],["agendaViewDay","day"],["agendaViewList","list"]].forEach(([id,key])=>{
     const b=$(id);if(!b)return;b.className=key===agendaViewMode?"primary":"ghost"
   });
