@@ -53,9 +53,9 @@ test('ficha do técnico destaca fazer hoje, anterior, em dia, sem HTML não conf
  const h=catalog.brief(d,false);
  assert.match(h,/FAZER NESTA ESTÉTICA/);
  assert.match(h,/ESTÉTICA ANTERIOR/);
- assert.match(h,/JÁ REALIZADOS/);
- assert.match(h,/PRÓXIMOS CUIDADOS/);
- assert.match(h,/Próxima previsão: 14\/10\/2026/);
+ assert.match(h,/JÁ REALIZADOS • EM DIA/);
+ assert.doesNotMatch(h,/PRÓXIMOS CUIDADOS/);
+ assert.match(h,/Próxima aplicação: 14\/10\/2026/);
  assert.match(h,/Plano Premium/);
  assert.doesNotMatch(h,/<script>/);
  assert.match(h,/&lt;script&gt;/);
@@ -150,8 +150,8 @@ test('nova frequência é avaliada sem mutar histórico ou contrato anterior',()
  test('quatro contratadas e três agendadas continuam quatro por realizar',()=>{
  const h=catalog.summary({limit_visits:4,completed:0,scheduled:3});
  assert.match(h,/<b>4<\/b><span>Restantes/);
- assert.ok(h.includes('Faltam realizar 4 estética(s): 3 já agendada(s) e 1 ainda sem agendamento.'));
- assert.ok(h.includes('Nenhuma estética foi concluída.'));
+ assert.match(h,/Agendadas só são descontadas quando o atendimento é concluído/);
+ assert.match(h,/<b>0<\/b><span>Concluídas/);
  });
  test('instrução de pagamento termina em confirmação do recebimento',()=>{
  const h=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
@@ -176,4 +176,40 @@ test('prazos contratados: hidro e grafeno 45 dias, hidratação do couro 60 dias
  assert.equal(state(leather,history,'2026-12-12').status,'ok');
  assert.equal(state(leather,history,'2026-12-13').status,'due');
  assert.equal(state(leather,history,'2026-12-13').nextDate,'2026-12-13');
+});
+
+
+test('ficha mobile não duplica hidrorrepelente e grafeno, e não inventa data para enceramento',()=>{
+ const d={
+  is_plan:true,plan_name:'Plano Premium',visit_date:'2026-10-14',appointment_id:'appt-20261014',
+  benefits:[
+   {label:'Enceramento',frequency:'per_visit'},
+   {label:'Hidro repelente',frequency:'interval_days',min_days:45,max_days:45},
+   {label:'Selante Grafeno',frequency:'interval_days',min_days:45,max_days:45}
+  ],
+  care_history:[
+   {label:'Aplicação de hidrorrepelente',date:'2026-10-14'},
+   {label:'Selante com grafeno da pintura',date:'2026-10-14'}
+  ],
+  visit_history:[]
+ };
+ const h=catalog.brief(d,false);
+ assert.match(h,/FAZER NESTA ESTÉTICA/);
+ assert.match(h,/Fazer em todas as estéticas do plano/);
+ assert.match(h,/JÁ REALIZADOS • EM DIA/);
+ assert.match(h,/Aplicado em 14\/10\/2026 • Próxima aplicação: 28\/11\/2026/);
+ assert.equal((h.match(/<b>Hidro repelente<\/b>/g)||[]).length,1);
+ assert.equal((h.match(/<b>Selante Grafeno<\/b>/g)||[]).length,1);
+ assert.doesNotMatch(h,/PRÓXIMOS CUIDADOS|Próxima previsão: Em cada estética|Última aplicação há 0 dias/);
+});
+test('vencido aparece só em fazer nesta estética, mas mantém referência à última aplicação',()=>{
+ const d={
+  plan_name:'Plano Premium',visit_date:'2026-11-29',appointment_id:'appt-20261129',
+  benefits:[{label:'Hidro repelente',frequency:'interval_days',min_days:45,max_days:45}],
+  care_history:[{label:'Hidro repelente',date:'2026-10-14'}],visit_history:[]
+ };
+ const h=catalog.brief(d,false);
+ assert.match(h,/Última aplicação: 14\/10\/2026 • Reaplicar nesta estética/);
+ assert.doesNotMatch(h,/JÁ REALIZADOS • EM DIA/);
+ assert.equal((h.match(/<b>Hidro repelente<\/b>/g)||[]).length,1);
 });
