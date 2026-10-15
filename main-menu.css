@@ -71,3 +71,104 @@
 @media(max-width:350px){
   #main-primary-nav.tabs button{font-size:12px}
 }
+
+
+/* Secondary information stays available but does not compete with main actions. */
+#watercard.water-compact{
+  margin:0 0 11px;
+  border:1px solid #1d3e50;
+  border-radius:11px;
+  background:#081f2a;
+  overflow:hidden;
+}
+#watercard.water-compact>summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 11px!important;
+  min-height:39px!important;
+  background:transparent;
+  font-size:12px!important;
+  font-weight:650!important;
+  color:#aec5d1!important;
+}
+#watercard.water-compact>summary strong{
+  font-size:13px;
+  font-weight:780;
+  color:#c2deea;
+  text-align:right;
+  white-space:nowrap;
+}
+#watercard.water-compact[open]>summary{border-bottom:1px solid #204657}
+#watercard.water-compact #waterdetail{padding:9px 11px;font-size:12px}
+#cad .cad-head{align-items:flex-start}
+#cad .cad-head>.cad-head-copy{min-width:0;flex:1}
+#cad .cad-head>.cad-head-actions{
+  min-width:0;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+#cad .cad-head-actions #nc{
+  min-width:104px;
+  padding:9px 11px;
+}
+#cad .cad-more-actions{position:relative;flex:0 0 auto}
+#cad .cad-more-actions>summary{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  min-width:44px;
+  min-height:48px!important;
+  padding:0!important;
+  border-radius:10px;
+  border:1px solid #285063;
+  background:#0c2836;
+  color:#d8e9ef!important;
+  font-size:26px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  list-style:none;
+}
+#cad .cad-more-actions>summary::-webkit-details-marker{display:none}
+#cad .cad-more-actions[open]>summary{
+  background:#164056;
+  border-color:#62b9da;
+}
+#cad .cad-more-panel{
+  position:absolute;
+  right:0;
+  top:calc(100% + 6px);
+  z-index:12;
+  width:min(275px,calc(100vw - 28px));
+  padding:11px;
+  border:1px solid #37687d;
+  border-radius:13px;
+  background:#0b2532;
+  box-shadow:0 14px 30px #0008;
+}
+#cad .cad-more-heading{
+  padding:2px 1px 8px;
+  color:#b9d0d9;
+  font-size:12px;
+  font-weight:800;
+}
+#cad .cad-more-panel .tool-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:7px;
+}
+#cad .cad-more-panel .tool-grid button{text-align:left;width:100%}
+#cad .cad-more-panel .tool-hint{margin-top:8px}
+#cad .cad-more-actions>summary:focus-visible{
+  outline:2px solid #73d6fb;
+  outline-offset:2px;
+}
+@media(max-width:370px){
+  #cad .cad-head{gap:8px}
+  #cad .cad-head-actions #nc{min-width:98px;padding-inline:8px;font-size:13px}
+  #cad .cad-more-actions>summary{width:42px;min-width:42px}
+}
