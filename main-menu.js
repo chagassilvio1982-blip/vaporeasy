@@ -16,4 +16,16 @@
   // Observe existing role visibility and tab changes, without adding another navigation layer.
   new MutationObserver(syncCurrent).observe(shell,{subtree:true,attributes:true,attributeFilter:['class']});
   syncCurrent();
+  const extra=document.getElementById('cad-more-actions');
+  if(extra){
+    extra.addEventListener('click',event=>{
+      if(event.target.closest('.tool-grid button'))extra.open=false;
+    });
+    extra.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&extra.open){extra.open=false;extra.querySelector('summary')?.focus();}
+    });
+    document.addEventListener('pointerdown',event=>{
+      if(extra.open&&!extra.contains(event.target))extra.open=false;
+    });
+  }
 })();
