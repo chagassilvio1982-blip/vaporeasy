@@ -135,6 +135,21 @@ test('não alteramos conteúdo de cobrança/recibo ou formulário da agenda',()=
 test('HTML não deve imprimir sequência literal de barra invertida n no cabeçalho',()=>{
  const head=html.slice(0,html.indexOf('</head>'));
  assert.doesNotMatch(head,/<link[^>]+>\\n<link/);
- assert.match(head,/<link rel="stylesheet" href="\/main-menu\.css\?v=20261015-3">\n<link/);
+ assert.match(head,/<link rel="stylesheet" href="\/main-menu\.css\?v=20261015-4">\n<link/);
  assert.match(css,/#watercard\.water-compact\{\s*padding:0!important/);
+});
+
+
+test('menu secundário é compacto e não exibe instruções permanentes de importação',()=>{
+ const start=html.indexOf('id="cad-more-actions"'),end=html.indexOf('<input id="q"',start);
+ assert.ok(start>=0&&end>start);
+ const menu=html.slice(start,end);
+ assert.doesNotMatch(menu,/cad-more-heading|contactimporthint|Android: selecione contatos|📱/);
+ for(const id of ['importcontacts','collabsbtn','teamsbtn','rc'])
+  assert.equal((menu.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
+ assert.match(css,/#cad \.cad-more-panel\{[^}]*width:min\(238px/);
+ assert.match(css,/#cad \.cad-more-panel \.tool-grid button\{[^}]*min-height:44px/);
+ assert.match(html,/id="contactsd"/);
+ assert.match(html,/Selecione somente clientes da Vaporeasy/);
+ assert.doesNotMatch(html,/hint\?\.classList\.toggle\("hidden",!isAndroid\)/);
 });
