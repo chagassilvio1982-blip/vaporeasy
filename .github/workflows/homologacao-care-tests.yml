@@ -7,6 +7,7 @@ on:
       - ux/navegacao-visivel-pagina-inicial-20261015
       - ux/agenda-clean-20261015
       - ux/financeiro-clean-20261015
+      - ux/relatorios-clean-20261015
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,6 +26,7 @@ jobs:
           node --test tests/navigation/direct-home-nav.test.cjs
           node --test tests/agenda-clean/agenda-clean.test.cjs
           node --test tests/finance-clean/finance-clean.test.cjs
+          node --test tests/reports-clean/reports-clean.test.cjs
       - name: Validate static JS syntax
         run: |
           node --check plan-care-rhythm.js
