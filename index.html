@@ -1155,6 +1155,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 <link rel="stylesheet" href="/agenda-quick.css?v=20261015-3">
 <link rel="stylesheet" href="/finance-clean.css?v=20261015-2">
+<link rel="stylesheet" href="/reports-clean.css?v=20261015-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -1353,9 +1354,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <details id="finance-paid" class="finance-section"><summary>Recebidos no mês <span id="fpaidcount"></span></summary><div id="fpaid" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 <details id="finance-expenses" class="finance-section"><summary>Despesas do mês <span id="fexpensecount"></span></summary><div id="fexpenses" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 </section>
-<section id="rep" class="hidden"><div class="title">Relatórios e gestão</div><p class="sub">Visão consolidada da operação no período selecionado.</p>
-<div class="row"><label>De<input id="rstart" type="date"></label><label>Até<input id="rend" type="date"></label></div>
-<div class="actions" style="margin:10px 0 14px"><button id="rrefresh" type="button" class="primary">Atualizar relatório</button><button id="rpdf" type="button" class="ghost">Compartilhar PDF</button></div>
+<section id="rep" class="hidden">
+<div class="section-head reports-head">
+  <div class="reports-head-copy"><div class="title">Relatórios</div></div>
+  <div class="reports-head-actions">
+    <button id="rpdf" type="button" class="ghost reports-pdf" aria-label="Compartilhar relatório em PDF">PDF</button>
+    <details id="reports-more-actions" class="reports-more-actions">
+      <summary aria-label="Mais opções dos relatórios" title="Mais opções dos relatórios">⋯</summary>
+      <div class="reports-more-panel"><button id="rrefresh" type="button" class="ghost">Atualizar relatório</button></div>
+    </details>
+  </div>
+</div>
+<div class="reports-dates" role="group" aria-label="Período do relatório">
+  <label for="rstart">De<input id="rstart" type="date"></label>
+  <label for="rend">Até<input id="rend" type="date"></label>
+</div>
+<div class="reports-period-hint">Atualize em ⋯ após mudar as datas.</div>
 <div id="rsummary" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:14px">
   <div class="item"><div class="meta">Serviços concluídos</div><div id="rcompleted" class="time">0</div></div>
   <div class="item"><div class="meta">Veículos atendidos</div><div id="rvehicles" class="time">0</div></div>
@@ -1364,10 +1378,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div class="item"><div class="meta">Ticket médio</div><div id="rticket" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">Cancelamentos</div><div id="rcancelled" class="time">0</div></div>
 </div>
-<details open><summary style="cursor:pointer;font-weight:900">Faturamento por serviço</summary><div id="rservices" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Todos os clientes atendidos</summary><div id="rclientlist" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Produtividade por equipe / responsável</summary><div id="rcollabs" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Recorrências ativas</summary><div id="rrecurrence" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
+<div class="reports-metric-hint">Faturamento = serviços concluídos no período, não pagamentos recebidos.</div>
+<details id="reports-by-service" class="reports-section" open><summary>Faturamento por serviço</summary><div id="rservices" class="reports-section-content"><div class="empty">Carregando...</div></div></details>
+<details id="reports-productivity" class="reports-section" open><summary>Produtividade por equipe / responsável</summary><div id="rcollabs" class="reports-section-content"><div class="empty">Carregando...</div></div></details>
+<details id="reports-clients" class="reports-section"><summary>Clientes atendidos <span id="rclientcount">—</span></summary><div id="rclientlist" class="reports-section-content"><div class="empty">Carregando...</div></div></details>
+<details id="reports-recurrence" class="reports-section"><summary>Recorrências ativas <span id="rrecurrencecount">—</span></summary><div class="reports-global-note">Todas as recorrências ativas, independentemente do período selecionado.</div><div id="rrecurrence" class="reports-section-content"><div class="empty">Carregando...</div></div></details>
 </section>
 <section id="set" class="hidden">
   <div class="title">Configurações</div>
@@ -2578,8 +2593,10 @@ async function loadManagementReport(){
     const recurrenceGroups=[{key:"weekly",name:"Semanal",count:0},{key:"biweekly",name:"Quinzenal",count:0},{key:"monthly",name:"Mensal",count:0}];(rr.data||[]).forEach(p=>{const g=recurrenceGroups.find(x=>x.key===p.frequency);if(g)g.count++});
     currentManagementReport={range,completed,cancelled,revenue,uniqueVehicles,uniqueClients,ticket,byService,byClient,byClientVehicle,byCollab,recurrenceGroups,recurring:rr.data||[],maps:{cm,vm,sm,com,tmMap}};
     $("rcompleted").textContent=String(completed.length);$("rvehicles").textContent=String(uniqueVehicles);$("rclients").textContent=String(uniqueClients);$("rrevenue").textContent=money(revenue);$("rticket").textContent=money(ticket);$("rcancelled").textContent=String(cancelled.length);
+    $("rclientcount").textContent="("+uniqueClients+")";
+    $("rrecurrencecount").textContent="("+(rr.data||[]).length+")";
     const maxService=Math.max(0,...byService.map(x=>x.revenue));
-    $("rservices").innerHTML=byService.length?byService.map(x=>'<div class="item" style="margin-top:8px"><div class="actions"><div style="flex:3"><b>'+esc(x.name)+'</b><div class="meta">'+x.count+' serviço'+(x.count===1?'':'s')+' • '+x.vehicles.size+' veículo'+(x.vehicles.size===1?'':'s')+'</div></div><div style="font-weight:900">'+esc(money(x.revenue))+'</div></div>'+reportBar(x.revenue,maxService)+'</div>').join(""):'<div class="empty">Nenhum serviço concluído no período.</div>';
+    $("rservices").innerHTML=byService.length?byService.map(x=>'<div class="item" style="margin-top:8px"><div class="actions"><div style="flex:3"><b>'+esc(financePlanDisplayName(x.name))+'</b><div class="meta">'+x.count+' serviço'+(x.count===1?'':'s')+' • '+x.vehicles.size+' veículo'+(x.vehicles.size===1?'':'s')+'</div></div><div style="font-weight:900">'+esc(money(x.revenue))+'</div></div>'+reportBar(x.revenue,maxService)+'</div>').join(""):'<div class="empty">Nenhum serviço concluído no período.</div>';
     const maxClient=Math.max(0,...byClient.map(x=>x.count));
     $("rclientlist").innerHTML=byClient.length?byClient.map((x,i)=>{
       const vehiclesForClient=[...(byClientVehicle.get(x.key)||new Map()).values()];
@@ -2593,7 +2610,7 @@ async function loadManagementReport(){
     const maxCollab=Math.max(0,...byCollab.map(x=>x.count));
     $("rcollabs").innerHTML=byCollab.length?byCollab.map(x=>'<div class="item" style="margin-top:8px"><div class="actions"><div style="flex:3"><b>'+esc(x.name)+'</b><div class="meta">'+x.count+' serviço'+(x.count===1?'':'s')+' • '+(completed.length?Math.round(x.count/completed.length*100):0)+'% dos concluídos</div></div><div style="font-weight:900">'+esc(money(x.revenue))+'</div></div>'+reportBar(x.count,maxCollab)+'</div>').join(""):'<div class="empty">Nenhum serviço concluído no período.</div>';
     const totalRec=(rr.data||[]).length,maxRec=Math.max(0,...recurrenceGroups.map(x=>x.count));
-    $("rrecurrence").innerHTML='<div class="item"><div class="meta">Total de veículos com recorrência ativa</div><div class="time">'+totalRec+'</div></div>'+recurrenceGroups.map(x=>'<div class="item" style="margin-top:8px"><div class="actions"><b>'+esc(x.name)+'</b><b>'+x.count+'</b></div>'+reportBar(x.count,maxRec)+'</div>').join("")
+    $("rrecurrence").innerHTML='<div class="item"><div class="meta">Total de recorrências ativas</div><div class="time">'+totalRec+'</div></div>'+recurrenceGroups.map(x=>'<div class="item" style="margin-top:8px"><div class="actions"><b>'+esc(x.name)+'</b><b>'+x.count+'</b></div>'+reportBar(x.count,maxRec)+'</div>').join("")
   }catch(e){show("msg",fail(e),"error")}
 }
 async function generateManagementReportPdf(){
@@ -5910,6 +5927,6 @@ boot();
 <script src="/plan-care-rhythm.js?v=20261014-1"></script>
 <script src="/plan-care-ui.js?v=20261014-1"></script>
 <script src="/plan-control.js?v=20261014-04"></script>
-<script src="/main-menu.js?v=20261015-fin1"></script>
+<script src="/main-menu.js?v=20261015-report1"></script>
 <script src="/agenda-quick-search.js?v=20261014-1"></script>
 </body></html>
