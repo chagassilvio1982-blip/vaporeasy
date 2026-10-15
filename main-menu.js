@@ -28,4 +28,19 @@
       if(extra.open&&!extra.contains(event.target))extra.open=false;
     });
   }
+  const agendaExtra=document.getElementById('agenda-more-actions');
+  if(agendaExtra){
+    agendaExtra.addEventListener('click',event=>{
+      if(event.target.closest('.agenda-more-panel button'))agendaExtra.open=false;
+    });
+    agendaExtra.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&agendaExtra.open){
+        agendaExtra.open=false;
+        agendaExtra.querySelector('summary')?.focus();
+      }
+    });
+    document.addEventListener('pointerdown',event=>{
+      if(agendaExtra.open&&!agendaExtra.contains(event.target))agendaExtra.open=false;
+    });
+  }
 })();

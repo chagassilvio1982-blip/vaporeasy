@@ -1153,7 +1153,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <style id="vaporeasy-recurring-multi-20260929"></style>
 <link rel="stylesheet" href="/main-menu.css?v=20261015-4">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
-<link rel="stylesheet" href="/agenda-quick.css?v=20261014-1">
+<link rel="stylesheet" href="/agenda-quick.css?v=20261015-3">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -1284,22 +1284,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div id="clients"></div>
 </section>
 <section id="age" class="hidden">
-  <div class="section-head">
-    <div><div class="title">Agenda</div><p class="sub">Organize o dia e abra os detalhes somente quando precisar.</p></div>
-    <button id="na" class="primary section-primary">+ Agendamento</button>
+  <div class="section-head agenda-head">
+    <div class="agenda-head-copy"><div class="title">Agenda</div></div>
+    <div class="agenda-head-actions">
+      <button id="na" type="button" class="primary section-primary">+ Agendamento</button>
+      <details id="agenda-more-actions" class="agenda-more-actions">
+        <summary aria-label="Mais opções da agenda" title="Mais opções da agenda">⋯</summary>
+        <div class="agenda-more-panel" aria-label="Opções adicionais da agenda">
+          <button id="gl" class="ghost" type="button">Gerar link público</button>
+          <button id="recorddone" class="ghost" type="button">Registrar serviço realizado</button>
+        </div>
+      </details>
+    </div>
   </div>
-  <div class="actions" style="margin:10px 0 12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px">
+  <div class="agenda-view-switch" role="group" aria-label="Visualização da agenda">
     <button id="agendaViewMonth" type="button" class="ghost">Mês</button>
     <button id="agendaViewDay" type="button" class="primary">Dia</button>
     <button id="agendaViewList" type="button" class="ghost">Lista</button>
   </div>
-  <div class="agenda-toolbar">
-    <div class="agenda-date-picker"><label>Dia selecionado<input id="date" type="date"></label><button id="agendaToday" type="button" class="ghost" aria-label="Voltar para a agenda de hoje">Hoje</button></div>
-    <details class="compact-tools">
-      <summary>Ações da agenda</summary>
-      <button id="gl" class="ghost" type="button">Gerar link público</button>
-<button id="recorddone" class="ghost" type="button">Registrar serviço realizado</button>
-    </details>
+  <div id="agendaDateToolbar" class="agenda-toolbar">
+    <div class="agenda-date-picker">
+      <label for="date">Dia selecionado<input id="date" type="date"></label>
+      <button id="agendaToday" type="button" class="ghost" aria-label="Voltar para a agenda de hoje">Hoje</button>
+    </div>
   </div>
   <div id="monthcal" class="calendar-shell hidden" style="margin:14px 0 18px;padding:12px;border:1px solid #20495d;border-radius:16px;background:#0d2632">
     <div class="calendar-head"><button id="calprev" type="button" class="ghost" style="padding:9px 0">‹</button><div id="caltitle"></div><button id="calnext" type="button" class="ghost" style="padding:9px 0">›</button></div>
@@ -3659,6 +3666,12 @@ function setAgendaView(mode){
   $("monthcal")?.classList.toggle("hidden",agendaViewMode!=="month");
   $("agendaDayView")?.classList.toggle("hidden",agendaViewMode==="list");
   $("agendaListView")?.classList.toggle("hidden",agendaViewMode!=="list");
+  // O seletor diário só tem utilidade na visão Dia. Mês e Lista possuem navegação própria.
+  const dateControls=$("agendaDateToolbar");
+  if(dateControls){
+    dateControls.hidden=agendaViewMode!=="day";
+    dateControls.classList.toggle("hidden",dateControls.hidden);
+  }
   [["agendaViewMonth","month"],["agendaViewDay","day"],["agendaViewList","list"]].forEach(([id,key])=>{
     const b=$(id);if(!b)return;b.className=key===agendaViewMode?"primary":"ghost"
   });
@@ -3768,7 +3781,12 @@ function tab(x){
   $("tr").classList.toggle("active",x==="rep");
   $("tset").classList.toggle("active",x==="set");
   if(x==="ops"){loadOperatorMonth();loadOperatorJobs(operatorSelectedDate,false)}
-  if(x==="age"){agendaCalendarMonth=calendarMonthFromDate($("date").value||today());if(agendaViewMode==="month")loadMonthCalendar(false);else if(agendaViewMode==="list")loadAgendaList();else loadApps()}
+  if(x==="age"){
+    const dateControls=$("agendaDateToolbar");
+    if(dateControls){dateControls.hidden=agendaViewMode!=="day";dateControls.classList.toggle("hidden",dateControls.hidden);}
+    agendaCalendarMonth=calendarMonthFromDate($("date").value||today());
+    if(agendaViewMode==="month")loadMonthCalendar(false);else if(agendaViewMode==="list")loadAgendaList();else loadApps()
+  }
   if(x==="fin"){if(!$("fmonth").value)$("fmonth").value=today().slice(0,7);loadFinance()}
   if(x==="rep"){setDefaultReportDates();loadManagementReport()}
   if(x==="set")loadOperationalSettings()
@@ -4533,7 +4551,7 @@ async function saveAppt(e){
   if(!serviceId)return show("apmsg","Selecione o serviço.","error");
   if(!date)return show("apmsg","Selecione a data.","error");
   if(!time)return show("apmsg","Selecione um horário disponível.","error");
-  if(!id&&date<today())return show("apmsg","Para datas passadas, use Ações da agenda → Registrar serviço realizado. Isso registra o histórico sem criar ou alterar recorrências futuras.","error");
+  if(!id&&date<today())return show("apmsg","Para datas passadas, use Agenda → ⋯ → Registrar serviço realizado. Isso registra o histórico sem criar ou alterar recorrências futuras.","error");
   const s=services.find(x=>x.id===serviceId);
   if(!s)return show("apmsg","Serviço inválido. Feche e abra o agendamento novamente.","error");
   const packageSizes=serviceUsesVehicleSizePricing(s)
@@ -5778,6 +5796,12 @@ async function cancelAppointmentAction(x){
   await loadApps()
 }
 
+function agendaEmptyStateText(isoDate,completedCount,cancelledCount){
+  if(completedCount>0||cancelledCount>0)return "Nenhum atendimento pendente nesta data.";
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(isoDate||""))return "Nenhum atendimento para a data selecionada.";
+  const day=isoDate.slice(8,10),month=isoDate.slice(5,7);
+  return "Nenhum atendimento agendado para "+day+"/"+month+".";
+}
 async function loadApps(){
   const req=++agendaLoadSeq,d=$("date").value||today();
   const a=new Date(d+"T00:00:00-03:00").toISOString(),z=new Date(d+"T23:59:59.999-03:00").toISOString();
@@ -5819,7 +5843,7 @@ async function loadApps(){
     const context='<div class="appt-secondary"><span>'+esc(team)+'</span>'+(financeAllowed()?'<span>'+esc(packageVisit?"Incluído no plano":money(x.final_value))+'</span>':"")+'</div>';
     return '<div class="item appt-card" data-detail="'+x.id+'" style="cursor:pointer"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(c?.name||"Cliente")+'</h3><div class="appt-core"><b>'+esc(v?v.brand+" "+v.model:"Veículo")+'</b><span>'+esc(s?.name||"Serviço")+'</span></div><div class="appt-tap-hint">Toque no cartão para ver detalhes</div>'+(x.notes?'<div class="agenda-visible-notes" role="note"><b>Observações:</b> '+esc(x.notes)+'</div>':'')+(quickAction?'<div class="agenda-quick-actions">'+quickAction+'</div>':'')+'<details class="appt-actions"><summary>Ações e informações</summary>'+context+'<div class="actions">'+actionButtons+'</div></details></div>'
   };
-  let out=activeRows.length?activeRows.map(card).join(""):'<div class="empty">Nenhum atendimento ativo.</div>';
+  let out=activeRows.length?activeRows.map(card).join(""):'<div class="empty">'+esc(agendaEmptyStateText(d,completedRows.length,cancelledRows.length))+'</div>';
   if(completedRows.length)out+='<details style="margin-top:12px"><summary class="meta" style="cursor:pointer;font-weight:900">Concluídos do dia ('+completedRows.length+')</summary><div style="margin-top:9px">'+completedRows.map(card).join("")+'</div></details>';
   if(cancelledRows.length)out+='<details style="margin-top:12px"><summary class="meta" style="cursor:pointer;font-weight:900">Cancelados ('+cancelledRows.length+')</summary><div style="margin-top:9px">'+cancelledRows.map(card).join("")+'</div></details>';
   $("apps").innerHTML=out;

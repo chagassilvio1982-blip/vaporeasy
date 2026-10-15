@@ -27,7 +27,7 @@ test('navegação reutiliza páginas e botões originais',()=>{
  }
  assert.match(html,/if\(operator\)x="ops"/);
  assert.match(html,/if\(x==="set"&&currentRole!=="owner"\)/);
- assert.match(html,/id="na" class="primary section-primary"/);
+ assert.match(html,/id="na"[^>]*class="primary section-primary"/);
  assert.match(html,/id="collabsbtn"/);
 });
 
@@ -127,7 +127,7 @@ test('ações secundárias ficam dentro de Cadastros, sem segunda faixa abaixo d
 test('não alteramos conteúdo de cobrança/recibo ou formulário da agenda',()=>{
  assert.match(html,/<dialog id="rd">/);
  assert.match(html,/<button id="rprint"/);
- assert.match(html,/<button id="na" class="primary section-primary">\+ Agendamento<\/button>/);
+ assert.match(html,/<button id="na"[^>]*class="primary section-primary">\+ Agendamento<\/button>/);
  assert.match(html,/id="rcharge"/);
 });
 
