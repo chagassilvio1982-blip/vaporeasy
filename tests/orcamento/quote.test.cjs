@@ -30,9 +30,27 @@ test('Orcamento nao cria agendamento ou cobranca',()=>{
 test('Valores nao aparecem a colaboradores e PDF depende de autorizacao',()=>{
   assert.match(main,/\$\("rgibudget"\),\$\("rgiinclude"\)/);
   assert.match(main,/if\(\["owner","admin"\]\.includes\(currentRole\)\)\{/);
-  assert.match(main,/if\(issue\.show_value&&currentRGQuotes\.has\(String\(issue\.id\)\)/);
+  assert.match(main,/if\(!isQuote&&issue\.show_value&&currentRGQuotes\.has\(String\(issue\.id\)\)/);
   assert.match(sql,/enable row level security/i);
   assert.match(sql,/private\.current_app_role\(\) in \('owner','admin'\)/);
   assert.match(sql,/revoke all on table public\.vehicle_service_quotes from public, anon, authenticated/i);
   assert.doesNotMatch(sql,/grant [^;]* to anon/i);
+});
+
+test('Orçamento PDF é acessível em um botão próprio no RG',()=>{
+  assert.match(html,/id="rgquote" type="button"/);
+  assert.match(main,/\$\("rgquote"\)\.onclick=\(\)=>generateVehicleNeedsReport\("quote"\)/);
+  assert.match(main,/const isQuote=kind==="quote"/);
+  assert.match(main,/if\(isQuote&&!\["owner","admin"\]\.includes\(currentRole\)\)/);
+});
+test('Orçamento contém valores e total mesmo sem seleção do relatório técnico',()=>{
+  const pdf=main.slice(main.indexOf('async function generateVehicleNeedsReport('),main.indexOf('function recurrenceLabel(',main.indexOf('async function generateVehicleNeedsReport(')));
+  assert.match(pdf,/totalCents=isQuote\?selected\.reduce/);
+  assert.match(pdf,/Orçamento de serviços/);
+  assert.match(pdf,/VALOR TOTAL ORÇADO/);
+  assert.match(pdf,/Valor orçado: /);
+  assert.match(pdf,/if\(!isQuote&&issue\.show_value/);
+  assert.match(pdf,/orcamento-vaporeasy-/);
+  assert.match(pdf,/Este documento não constitui cobrança nem comprovante de pagamento/);
+  assert.doesNotMatch(pdf,/\.from\(["'](?:appointment_payments|package_charges)["']\)/);
 });
