@@ -80,3 +80,50 @@ test('seção ativa recebe aria-current e outra perde o indicador',()=>{
  callbacks[0]();
  assert.equal(b.getAttribute('aria-current'),undefined);
 });
+
+test('indicador de água fica recolhido e conserva os IDs originais de leitura',()=>{
+ const start=html.indexOf('<details id="watercard"');
+ const end=html.indexOf('<section id="ops"',start);
+ assert.ok(start>0&&end>start);
+ const water=html.slice(start,end);
+ assert.match(water,/<details id="watercard" class="water-compact">/);
+ assert.doesNotMatch(water,/<details[^>]*\sopen(?:\s|>|=)/);
+ assert.match(water,/<summary>/);
+ assert.match(water,/id="watertotal"/);
+ assert.match(water,/id="waterdetail"/);
+ assert.equal((html.match(/id="watertotal"/g)||[]).length,1);
+ assert.equal((html.match(/id="waterdetail"/g)||[]).length,1);
+ assert.match(css,/#watercard\.water-compact>summary/);
+ assert.match(css,/#watercard\.water-compact #waterdetail/);
+ assert.match(html,/\$\("watertotal"\)\.textContent=/);
+ assert.match(html,/\$\("waterdetail"\)\.textContent=/);
+});
+
+test('ações secundárias ficam dentro de Cadastros, sem segunda faixa abaixo da busca',()=>{
+ const start=html.indexOf('<section id="cad"');
+ const end=html.indexOf('<section id="age"',start);
+ assert.ok(start>0&&end>start);
+ const cad=html.slice(start,end);
+ assert.match(cad,/<details id="cad-more-actions" class="cad-more-actions">/);
+ assert.match(cad,/<summary aria-label="Mais opções de cadastro"/);
+ assert.doesNotMatch(cad,/<details[^>]*\sopen(?:\s|>|=)/);
+ assert.match(cad,/<button id="nc" class="primary section-primary">/);
+ for(const id of ['importcontacts','collabsbtn','teamsbtn','rc']){
+  assert.equal((cad.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
+  assert.ok(cad.indexOf('id="'+id+'"')<cad.indexOf('id="q"'),id+' must remain within cadastro header overflow');
+ }
+ assert.match(cad,/id="q" class="section-search"/);
+ assert.doesNotMatch(cad,/Ações de cadastro/);
+ assert.ok(!cad.includes('<details class="section-tools">'));
+ assert.match(css,/#cad \.cad-more-panel/);
+ assert.match(navScript,/event\.target\.closest\('\.tool-grid button'\)/);
+ assert.match(navScript,/event\.key==='Escape'/);
+ assert.match(navScript,/event\.type|pointerdown/);
+});
+
+test('não alteramos conteúdo de cobrança/recibo ou formulário da agenda',()=>{
+ assert.match(html,/<dialog id="rd">/);
+ assert.match(html,/<button id="rprint"/);
+ assert.match(html,/<button id="na" class="primary section-primary">\+ Agendamento<\/button>/);
+ assert.match(html,/id="rcharge"/);
+});
