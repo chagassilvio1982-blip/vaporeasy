@@ -1724,6 +1724,7 @@ async function enter(session){
     const p=await sb.from("app_profiles").select("name,role,active").eq("user_id",sessionUser.id).maybeSingle();
     if(p.error)throw p.error;if(!p.data||!p.data.active)throw Error("Este usuário ainda não possui acesso ao staging.");
     currentUserId=sessionUser.id;currentRole=p.data.role;
+    $("main-primary-nav").dataset.role=currentRole;
     const operator=currentRole==="operator",manager=["owner","admin"].includes(currentRole);
     $("pname").textContent=p.data.name||(sessionUser.email||"Usuário").split("@")[0];
     $("prole").textContent=operator?"Colaborador":currentRole==="admin"?"Gerente":"Proprietário";
