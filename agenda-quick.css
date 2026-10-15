@@ -112,6 +112,9 @@
  display:block;
  margin:0 0 10px;
 }
+/* A classe JS e o atributo nativo precisam vencer o layout geral da toolbar. */
+#age #agendaDateToolbar[hidden],
+#age #agendaDateToolbar.hidden{display:none!important}
 #age .agenda-date-picker{display:flex;align-items:end;gap:7px;width:100%}
 #age .agenda-date-picker label{flex:1;min-width:0;font-size:12px;gap:4px}
 #age .agenda-date-picker input{
