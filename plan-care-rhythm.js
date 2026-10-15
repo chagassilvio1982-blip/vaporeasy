@@ -12,6 +12,7 @@
   ['protecao hidrorrepelente do parabrisa','hidro_parabrisa'],
   ['selante com grafeno da pintura','grafeno_pintura'],
   ['selante com grafeno','grafeno_pintura'],
+  ['selante grafeno','grafeno_pintura'],
   ['hidratacao do couro','hidratacao_couro']
  ]);
  const category=x=>synonyms.get(norm(x))||norm(x);
@@ -58,6 +59,11 @@
      const since=(visits||[]).filter(v=>date(v.date)>previous&&date(v.date)<=ref).length;
      status=since+1>=every?'due':'ok';why=since+' visita(s) concluídas após o último cuidado; a cada '+every+' visitas';
     }
+   }
+   // A confirmed event in this appointment wins over recurrence estimates.
+   if(nowDone){status='done';why='Concluído neste atendimento';}
+   if(frequency==='monthly'&&status==='done'){
+    const [y,m]=ref.split('-').map(Number);next=new Date(Date.UTC(y,m,1)).toISOString().slice(0,10);
    }
    return {label,frequency,status,why,lastDate:previous,nextDate:next,daysSince:previous?difference(ref,previous):null};
   });

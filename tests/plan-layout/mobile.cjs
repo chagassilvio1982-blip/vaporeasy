@@ -1,0 +1,51 @@
+// Browser integration with deterministic fixtures; no requests to live data.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium}=require(require.resolve('playwright',{paths:[process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES||process.cwd()]}));
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ const page=await browser.newPage({viewport:{width:360,height:800},isMobile:true,deviceScaleFactor:1});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/*',r=>r.abort());
+ const base=fs.readFileSync('index.html','utf8');
+ const css=[...base.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(x=>x[1]).join('\n')+fs.readFileSync('plan-care.css','utf8');
+ await page.setContent('<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style></head><body><div id="msg"></div><div id="preview"></div></body></html>');
+ await page.evaluate(()=>{
+  window.currentRole='owner';window.today=()=> '2026-10-14';window.clients=[{id:'client',name:'Cliente de teste'}];
+  window.esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');window.fail=e=>e.message;window.show=()=>{};
+  window.fixture={id:'sub',vehicle_id:'car',vehicle:'Toyota Corolla',plate:'HML2605',plan:'Pacote Premium',active:true,starts_on:'2026-08-01',limit_visits:4,completed:1,scheduled:2,visits:[{id:'a',date:'2026-10-01'}],services:[]};
+  window.defs=[{id:'b',subscription_id:'sub',service_label:'Selante com grafeno',frequency:'monthly',monthly_quantity:1,effective_from_month:'2026-08-01',retired_from_month:null},{id:'h',subscription_id:'sub',service_label:'Hidrorepelente',frequency:'interval_days',cadence_min_days:60,cadence_max_days:90,effective_from_month:'2026-08-01',retired_from_month:null}];
+  window.events=[{subscription_id:'sub',performed_on:'2026-08-15',service_label:'Hidrorepelente',appointment_id:'past'}];window.writes=[];
+  window.sb={rpc:async(name,args)=>{if(name==='get_client_plan_control')return {data:{subscriptions:[fixture]}};writes.push({name,args});return {data:'ok'}},from:name=>{const q={};for(const key of ['select','in','is','lt','order','limit'])q[key]=()=>q;q.then=(ok)=>Promise.resolve({data:name==='package_included_benefits'?defs:name==='package_service_events'?events:[]}).then(ok);return q;}};
+ });
+ for(const name of ['plan-care-rhythm.js','plan-care-ui.js','plan-control.js'])await page.addScriptTag({content:fs.readFileSync(name,'utf8')});
+ await page.evaluate(()=>openPlanControl('client','car'));
+ assert.equal(await page.locator('#pc-admin').getAttribute('open'),null);
+ assert.equal(await page.locator('#pcv-new').isVisible(),false);
+ assert.match(await page.locator('#pc-operational').innerText(),/PROGRAMAR NA PRÓXIMA ESTÉTICA/);
+ assert.match(await page.locator('#pc-summary').innerText(),/Contratadas/);
+ await page.screenshot({path:'tests/plan-layout/mobile-operational.png',fullPage:true});
+ await page.locator('#pc-admin > summary').click();
+ assert.equal(await page.locator('#pcv-new').isVisible(),true);
+ await page.locator('#pcv-new').click();
+ await page.locator('#pcv-label').fill('Hidratação do couro');
+ await page.locator('#pcv-min').fill('60');await page.locator('#pcv-max').fill('60');
+ await page.locator('#pcv-form button[type=submit]').click();
+ const calls=await page.evaluate(()=>writes);
+ assert.equal(calls.length,1);assert.equal(calls[0].name,'save_subscription_care_rule');assert.equal(calls[0].args.p_month,'2026-10-01');
+ await page.locator('#pc-admin > summary').click();
+ await page.locator('#pc-register > summary').click();
+ await page.locator('#pc-kind').selectOption('Selante com grafeno');
+ await page.locator('#pc-save').click();
+ assert.equal((await page.evaluate(()=>writes)).at(-1).name,'register_package_service');
+ await page.locator('#pc-close').click();
+ await page.evaluate(()=>{currentRole='operator';return openPlanControl('client','car')});
+ assert.equal(await page.locator('#plancontrol').evaluate(e=>e.open),false);
+ await page.evaluate(()=>{document.getElementById('preview').innerHTML=VaporeasyCareUI.brief({plan_name:'Plano Premium',month:'2026-10',visits_limit:4,visits:[{date:'2026-10-01'}],appointment_id:'today',visit_date:'2026-10-14',benefits:defs,care_history:events.map(e=>({label:e.service_label,date:e.performed_on})),visit_history:[]},true)});
+ assert.equal(await page.locator('#preview button').count(),0);
+ assert.match(await page.locator('#preview').innerText(),/FAZER NESTA ESTÉTICA/);
+ for(const width of [320,360,412]){await page.setViewportSize({width,height:800});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'horizontal overflow '+width)}
+ await page.screenshot({path:'tests/plan-layout/mobile-appointment.png',fullPage:true});
+ assert.deepEqual(errors,[]);
+ console.log('PASS: collapsed administration; existing save RPC; execution confirmation RPC; operator restriction; appointment/vehicle states; widths 320/360/412; zero browser errors. Mock data, not authenticated E2E.');
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

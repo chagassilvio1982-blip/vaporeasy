@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/v2-busca-agenda-20261014
+      - ux/planos-operacional-20261014
   workflow_dispatch:
 permissions:
   contents: read

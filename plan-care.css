@@ -19,3 +19,27 @@
 .pc-input-row label{margin:0}
 .pc-cadence-hint{font-size:12px;color:#aac6d4;line-height:1.45}
 @media(max-width:500px){.pc-input-row{grid-template-columns:1fr}.pc-template-row{flex-direction:column}.pc-template-row button{width:100%}}
+
+/* Compact operational summary; administration remains collapsed. */
+.care-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0}
+.care-counts div{padding:8px 2px;text-align:center;background:#0b2b39;border-radius:8px}
+.care-counts b{display:block;font-size:21px;color:#fff}
+.care-counts span{font-size:12px;color:#bed0d9;overflow-wrap:anywhere}
+#pc-admin{margin-top:12px;border:1px solid #244b5e;border-radius:12px;padding:10px}
+#pc-admin>summary,#pc-history-panel>summary,.care-group>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:800}
+#plancontrol button,#plancontrol input,#plancontrol select{min-height:44px}
+#plancontrol{box-sizing:border-box;max-width:calc(100vw - 20px)}
+.care-task small{font-size:13px;line-height:1.5}
+.care-task b{font-size:15px}.care-brief .care-meta{font-size:12px}
+@media(max-width:360px){.care-counts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Final confirmation: three counters and full-width care decisions on phones. */
+.care-counts-compact{grid-template-columns:repeat(3,minmax(0,1fr))}
+#finish-care-checks .finish-care-checklist{margin:12px 0;padding:12px;border-radius:12px;background:#102f3d;border:1px solid #2aa6c4}
+#finish-care-checks h4{margin:0 0 6px;font-size:16px}
+#finish-care-checks .finish-care-item{border:0;border-top:1px solid rgba(190,220,235,.18);margin:12px 0 0;padding:10px 0 0;min-width:0}
+#finish-care-checks .finish-care-item legend{font-size:15px;font-weight:800;padding:0;float:left;width:100%}
+#finish-care-checks .finish-care-item label{display:flex;gap:10px;align-items:center;margin:9px 0 0;padding:9px 12px;border:1px solid #376176;border-radius:10px;cursor:pointer;min-height:44px}
+#finish-care-checks .finish-care-item input[type=radio]{width:22px;height:22px;min-height:22px;min-width:22px;margin:0;accent-color:#1fb5df}
+#finish-care-checks .finish-care-item input:checked{accent-color:#26c9aa}
+@media(max-width:360px){.care-counts-compact{grid-template-columns:repeat(3,minmax(0,1fr))}.care-counts-compact span{font-size:11px}}

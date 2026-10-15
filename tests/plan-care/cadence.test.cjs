@@ -53,7 +53,9 @@ test('ficha do técnico destaca fazer hoje, anterior, em dia, sem HTML não conf
  const h=catalog.brief(d,false);
  assert.match(h,/FAZER NESTA ESTÉTICA/);
  assert.match(h,/ESTÉTICA ANTERIOR/);
- assert.match(h,/JÁ REALIZADO \/ DENTRO DO PRAZO/);
+ assert.match(h,/JÁ REALIZADOS • EM DIA/);
+ assert.doesNotMatch(h,/PRÓXIMOS CUIDADOS/);
+ assert.match(h,/Última aplicação: 15\/08\/2026 • Reaplicar nesta estética/);
  assert.match(h,/Plano Premium/);
  assert.doesNotMatch(h,/<script>/);
  assert.match(h,/&lt;script&gt;/);
@@ -106,7 +108,194 @@ test('cadastro do veículo usa programação futura, não sinaliza execução em
  const h=catalog.brief(d,true);
  assert.match(h,/PROGRAMAR NA PRÓXIMA ESTÉTICA/);
  assert.doesNotMatch(h,/FAZER NESTA ESTÉTICA/);
- assert.match(h,/consulte o atendimento para confirmar/);
+ assert.match(h,/confirme no atendimento/);
  const record=rhythm.evaluate([{label:'Enceramento manual',frequency:'per_visit'}],[],[],'2026-10-14')[0];
  assert.equal(record.status,'check');
+});
+
+test('confirmação neste atendimento conclui benefício por ciclo sem exigi-lo novamente',()=>{
+ const b={label:'Enceramento',frequency:'every_n_visits',every_n_visits:1,appointment_id:'a'};
+ const h=[{label:'Enceramento',date:'2026-10-14',appointment_id:'a'}];
+ assert.equal(state(b,h).status,'done');
+ assert.equal(state({...b,frequency:'per_visit'},[]).status,'due');
+});
+test('resumo Premium quatro visitas não desconta agendadas como concluídas',()=>{
+ const h=catalog.summary({limit_visits:4,completed:1,scheduled:2});
+ assert.match(h,/<b>4<\/b><span>Contratadas/);
+ assert.match(h,/<b>1<\/b><span>Concluídas/);
+ assert.match(h,/<b>2<\/b><span>Agendadas/);
+ assert.match(h,/<b>3<\/b><span>A realizar/);
+});
+test('intervalo exato 90 dias, data da próxima aplicação e histórico futuro ignorado',()=>{
+ const b=rule('interval_days',90,90);
+ const h=performed('2026-07-16').concat(performed('2026-11-01'));
+ assert.equal(state(b,h,'2026-10-13').status,'ok');
+ assert.equal(state(b,h).status,'due');
+ assert.equal(state(b,h).nextDate,'2026-10-14');
+ assert.equal(state(b,h).lastDate,'2026-07-16');
+});
+test('mensal concluído mostra previsão no próximo mês e não inventa execução',()=>{
+ const b=rule('monthly',null,null,'Grafeno');
+ assert.equal(state(b,performed('2026-10-02','Grafeno')).nextDate,'2026-11-01');
+ assert.equal(state(b,[]).lastDate,null);
+});
+test('nova frequência é avaliada sem mutar histórico ou contrato anterior',()=>{
+ const h=performed('2026-08-15'),original=JSON.stringify(h),b=rule('interval_days',60,60);
+ assert.equal(state(b,h).status,'due');
+ assert.equal(state({...b,min_days:90,max_days:90},h).status,'ok');
+ assert.equal(JSON.stringify(h),original);
+ assert.equal(b.min_days,60);
+});
+
+ test('quatro contratadas e três agendadas continuam quatro por realizar',()=>{
+ const h=catalog.summary({limit_visits:4,completed:0,scheduled:3});
+ assert.match(h,/<b>4<\/b><span>A realizar/);
+ assert.match(h,/Agendadas só são descontadas quando o atendimento é concluído/);
+ assert.match(h,/<b>0<\/b><span>Concluídas/);
+ });
+ test('instrução de pagamento termina em confirmação do recebimento',()=>{
+ const h=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ assert.ok(h.includes('Após o pagamento, envie o comprovante para confirmarmos o recebimento.'));
+ assert.ok(!h.includes('confirmarmos o recebimento e realizarmos a baixa'));
+ });
+
+test('prazos contratados: hidro e grafeno 45 dias, hidratação do couro 60 dias',()=>{
+ const ref='2026-10-14';
+ for(const [label,historicLabel] of [
+  ['Hidro repelente','Proteção hidrorrepelente do para-brisa'],
+  ['Selante Grafeno','Selante com grafeno da pintura']
+ ]){
+  const care=rule('interval_days',45,45,label);
+  const events=performed(ref,historicLabel);
+  assert.equal(state(care,events,'2026-11-27').status,'ok',label);
+  assert.equal(state(care,events,'2026-11-28').status,'due',label);
+  assert.equal(state(care,events,'2026-11-28').nextDate,'2026-11-28',label);
+ }
+ const leather=rule('interval_days',60,60,'Hidratação do couro');
+ const history=performed(ref,'Hidratação do couro');
+ assert.equal(state(leather,history,'2026-12-12').status,'ok');
+ assert.equal(state(leather,history,'2026-12-13').status,'due');
+ assert.equal(state(leather,history,'2026-12-13').nextDate,'2026-12-13');
+});
+
+
+test('ficha mobile não duplica hidrorrepelente e grafeno, e não inventa data para enceramento',()=>{
+ const d={
+  is_plan:true,plan_name:'Plano Premium',visit_date:'2026-10-14',appointment_id:'appt-20261014',
+  benefits:[
+   {label:'Enceramento',frequency:'per_visit'},
+   {label:'Hidro repelente',frequency:'interval_days',min_days:45,max_days:45},
+   {label:'Selante Grafeno',frequency:'interval_days',min_days:45,max_days:45}
+  ],
+  care_history:[
+   {label:'Aplicação de hidrorrepelente',date:'2026-10-14'},
+   {label:'Selante com grafeno da pintura',date:'2026-10-14'}
+  ],
+  visit_history:[]
+ };
+ const h=catalog.brief(d,false);
+ assert.match(h,/FAZER NESTA ESTÉTICA/);
+ assert.match(h,/Fazer em todas as estéticas do plano/);
+ assert.match(h,/JÁ REALIZADOS • EM DIA/);
+ assert.match(h,/Aplicado em 14\/10\/2026 • Próxima aplicação: 28\/11\/2026/);
+ assert.equal((h.match(/<b>Hidro repelente<\/b>/g)||[]).length,1);
+ assert.equal((h.match(/<b>Selante Grafeno<\/b>/g)||[]).length,1);
+ assert.doesNotMatch(h,/PRÓXIMOS CUIDADOS|Próxima previsão: Em cada estética|Última aplicação há 0 dias/);
+});
+test('vencido aparece só em fazer nesta estética, mas mantém referência à última aplicação',()=>{
+ const d={
+  plan_name:'Plano Premium',visit_date:'2026-11-29',appointment_id:'appt-20261129',
+  benefits:[{label:'Hidro repelente',frequency:'interval_days',min_days:45,max_days:45}],
+  care_history:[{label:'Hidro repelente',date:'2026-10-14'}],visit_history:[]
+ };
+ const h=catalog.brief(d,false);
+ assert.match(h,/Última aplicação: 14\/10\/2026 • Reaplicar nesta estética/);
+ assert.doesNotMatch(h,/JÁ REALIZADOS • EM DIA/);
+ assert.equal((h.match(/<b>Hidro repelente<\/b>/g)||[]).length,1);
+});
+
+
+test('grade com quatro contadores é fechada antes das seções de cuidados no celular',()=>{
+ const markup=catalog.brief({
+  plan_name:'Plano Premium',visit_date:'2026-10-14',appointment_id:'appt-layout',
+  limit_visits:4,completed:0,scheduled:null,
+  benefits:[{label:'Enceramento',frequency:'per_visit'},
+   {label:'Hidro repelente',frequency:'interval_days',min_days:45,max_days:45}],
+  care_history:[{label:'Hidro repelente',date:'2026-10-14'}],
+  visit_history:[]
+ },false);
+ const gridStart=markup.indexOf('<div class="care-counts"');
+ const firstGroup=markup.indexOf('<section class="care-group');
+ assert.ok(gridStart>=0&&firstGroup>gridStart);
+ let depth=0,gridEnd=-1;
+ for(const match of markup.slice(gridStart,firstGroup).matchAll(/<\/?div\b[^>]*>/g)){
+  depth+=match[0].startsWith('</')?-1:1;
+  assert.ok(depth>=0,'etiqueta div não pode fechar além do nível atual');
+  if(depth===0&&gridEnd===-1)gridEnd=gridStart+match.index+match[0].length;
+ }
+ assert.ok(gridEnd>gridStart&&gridEnd<firstGroup,'grade dos contadores deve terminar antes dos cuidados');
+ const grid=markup.slice(gridStart,gridEnd);
+ assert.equal((grid.match(/<span>/g)||[]).length,4);
+ assert.doesNotMatch(grid,/care-meta|care-group|FAZER NESTA/);
+ assert.match(markup.slice(gridEnd,firstGroup),/Agendadas só são descontadas/);
+ assert.match(markup.slice(firstGroup),/FAZER NESTA ESTÉTICA/);
+});
+
+test('conclusão oculta agendadas e não repete quantidade do plano no rodapé',()=>{
+ const s=catalog.summary({visits_limit:4,completed:0,scheduled:null,completion_mode:true});
+ assert.match(s,/Contratadas/);
+ assert.match(s,/Concluídas/);
+ assert.match(s,/A realizar/);
+ assert.equal((s.match(/<span>/g)||[]).length,3);
+ assert.doesNotMatch(s,/Agendadas|Consulte os agendamentos/);
+ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const open=html.slice(html.indexOf('async function openCompletion(id){'),html.indexOf('async function saveCompletion(e){'));
+ assert.doesNotMatch(open,/Visitas nesta competência:|get_client_plan_control/);
+ assert.match(open,/renderCompletionCareChoices\(care\)/);
+});
+test('cuidado deve ser explicitamente marcado e não realizado não gera evento automático no frontend',()=>{
+ const id1='6667efb7-2751-43c3-9d1a-d0f7931a6171';
+ const id2='d7bcddd8-1f94-4fd3-ad47-4a8567298400';
+ const id3='ef6da10a-f43e-464e-afbc-784dab95b959';
+ const d={is_plan:true,appointment_id:'156dcdc2-cc67-421b-8988-e13a7bae00bf',visit_date:'2026-10-14',
+  benefits:[
+   {id:id1,label:'Enceramento',frequency:'per_visit'},
+   {id:id2,label:'Hidro repelente',frequency:'interval_days',min_days:45,max_days:45},
+   {id:id3,label:'Selante Grafeno',frequency:'interval_days',min_days:45,max_days:45}
+  ],care_history:[
+   {label:'Hidro repelente',date:'2026-10-14'},
+   {label:'Selante Grafeno',date:'2026-10-14'}
+  ],visit_history:[]};
+ const tasks=catalog.completionTasks(d);
+ assert.deepEqual(tasks,[{id:id1,label:'Enceramento'}]);
+ const h=catalog.brief({...d,completion_mode:true},false);
+ assert.doesNotMatch(h,/FAZER NESTA ESTÉTICA/);
+ assert.match(h,/Conferência final/);
+ assert.match(h,/JÁ REALIZADOS • EM DIA/);
+ assert.doesNotMatch(h,/Agendadas/);
+ const markup=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const save=markup.slice(markup.indexOf('async function saveCompletion(e){'),markup.indexOf('async function loadRemoteImage(url){'));
+ assert.match(save,/input\[name="finish-care-/);
+ assert.match(save,/complete_appointment_with_cares/);
+ assert.doesNotMatch(save,/operator_complete_job|\.from\("appointments"\)\.update/);
+ const migration=fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261015_complete_appointment_with_cares.sql'),'utf8');
+ assert.match(migration,/status_name='performed'/);
+ assert.match(migration,/outcome IN \('performed','not_performed'\)/);
+ assert.match(migration,/REVOKE ALL ON FUNCTION public\.complete_appointment_with_cares/);
+});
+
+
+test('funções inline de conclusão compilam e o modal tem controles exclusivos',()=>{
+ const markup=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const begin=markup.indexOf('let finishCareContext=null;');
+ const end=markup.indexOf('async function loadRemoteImage(url){',begin);
+ assert.ok(begin>0&&end>begin);
+ assert.doesNotThrow(()=>new Function(markup.slice(begin,end)));
+ assert.equal((markup.match(/id="finish-care-checks"/g)||[]).length,1);
+ assert.equal((markup.match(/id="finish-care-brief"/g)||[]).length,1);
+ assert.match(markup.slice(begin,end),/value="yes"/);
+ assert.match(markup.slice(begin,end),/value="no"/);
+ const css=fs.readFileSync(path.resolve(__dirname,'../../plan-care.css'),'utf8');
+ assert.match(css,/\.care-counts-compact/);
+ assert.match(css,/\.finish-care-item/);
 });

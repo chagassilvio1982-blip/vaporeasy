@@ -1354,8 +1354,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <input id="finishid" type="hidden"><h3 id="finishtitle">Concluir atendimento</h3>
 <div id="finishsummary" class="meta"></div>
 <div id="finish-care-brief" aria-live="polite"></div>
-<div id="finishkind" class="notice">A conclusão registra o serviço realizado, sem exigir fotografia.</div>
-<div class="meta">A data e o horário são registrados pelo sistema. O financeiro diferencia plano contratado, recorrência sem plano e serviço avulso.</div>
+<div id="finish-care-checks" aria-live="polite"></div>
+<div id="finishkind" class="notice hidden"></div>
 <div id="finishmsg" class="notice hidden"></div>
 <div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button id="finishsave" class="success">Confirmar conclusão</button></div>
 </form></dialog>
@@ -3035,7 +3035,7 @@ function packageDocumentModel(d){
     subtitle:paid?"Mensalidade recebida":"Sua mensalidade",
     status:paid?"PAGAMENTO RECEBIDO":"PAGAMENTO A CONFIRMAR",
     fields,amounts,bank,
-    paymentInstruction:paid?"":"Após o pagamento, envie o comprovante para confirmarmos o recebimento e realizarmos a baixa da mensalidade.",
+    paymentInstruction:paid?"":"Após o pagamento, envie o comprovante para confirmarmos o recebimento.",
     total:money(c.amount||0),
     totalLabel:paid?"Valor recebido":"Valor da mensalidade",
     introTitle:paid?"Pagamento confirmado":"Cuidado contínuo, com padrão Vaporeasy",
@@ -3175,7 +3175,7 @@ function packageGroupDocumentModel(d){
     status:paid?"PAGAMENTO RECEBIDO":"DADOS PARA PAGAMENTO",
     client:d.client?.name||"Cliente",items,bank,total,
     totalLabel:paid?"Valor recebido":"Total da mensalidade",
-    paymentInstruction:paid?"":"Após o pagamento, envie o comprovante para confirmarmos o recebimento e realizarmos a baixa da mensalidade.",
+    paymentInstruction:paid?"":"Após o pagamento, envie o comprovante para confirmarmos o recebimento.",
     introTitle:paid?"Pagamento confirmado":"Cuidado contínuo, com padrão Vaporeasy",
     intro:paid?"Este documento confirma o recebimento conjunto das mensalidades dos seus Planos Vaporeasy.":"Seus Planos Vaporeasy foram organizados em uma única mensalidade para facilitar o pagamento e o acompanhamento dos cuidados com seus veículos.",
     intro2:paid?"Agradecemos pela confiança e pela continuidade dos cuidados com seus veículos.":"Cada veículo continua com seu plano, frequência e valor individual registrados no sistema.",
@@ -4783,61 +4783,91 @@ async function fileToCompressedJpeg(file){
     cleanup();return blob
   }catch(e){cleanup();throw e}
 }
+let finishCareContext=null;
+function renderCompletionCareChoices(d){
+ const tasks=window.VaporeasyCareUI?.completionTasks?.(d)||[];
+ const wrap=$("finish-care-checks");
+ wrap.innerHTML=tasks.length?
+  '<section class="finish-care-checklist" aria-label="Confirmar cuidados realizados"><h4>CONFIRMAR EXECUÇÃO</h4>'+
+  '<div class="meta">Marque o que realmente foi feito. Nada é registrado automaticamente.</div>'+
+  tasks.map((x,i)=>'<fieldset class="finish-care-item" data-care-benefit="'+esc(x.id)+'">'+
+   '<legend>'+esc(x.label)+'</legend>'+
+   '<label><input type="radio" name="finish-care-'+i+'" value="yes"> Realizado</label>'+
+   '<label><input type="radio" name="finish-care-'+i+'" value="no"> Não realizado</label>'+
+   '</fieldset>').join('')+'</section>':
+  (d?.is_plan?'<div class="meta">Nenhum cuidado adicional pendente de confirmação.</div>':'');
+ return tasks;
+}
 async function openCompletion(id){
-  const a=currentApps.find(x=>x.id===id);
-  if(!a)return show("msg","Atendimento não encontrado.","error");
-  if(a.status==="completed")return show("msg","Este atendimento já está concluído.","error");
-  if(a.status!=="in_progress")return show("msg","Inicie o atendimento antes de concluir.","error");
-  const operator=currentRole==="operator";
-  const clientLabel=operator?a.client_name:(clients.find(x=>x.id===a.client_id)?.name||"Cliente");
-  const vehicleLabel=operator?a.vehicle_label:(()=>{const v=findVehicleLocal(a.vehicle_id);return v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo"})();
-  $("finishf").reset();$("finishid").value=id;show("finishmsg","");
-  $("finishtitle").textContent="Concluir atendimento";
-  $("finishsave").textContent="Confirmar conclusão";
-  $("finishsummary").innerHTML='<b>'+esc(clientLabel||"Cliente")+'</b><br>'+esc(vehicleLabel||"Veículo");
-  let detail="Serviço avulso: cobrança individual após a conclusão.";
-  if(operator) detail="O sistema registra a execução. A classificação do plano e da cobrança é controlada pelo financeiro.";
-  else if(a.recurring_plan_id){
-    const check=await sb.from("package_subscriptions").select("id,visits_per_month").eq("recurring_plan_id",a.recurring_plan_id).maybeSingle();
-    if(check.error)return show("msg","Não foi possível conferir o vínculo do plano: "+fail(check.error),"error");
-    if(check.data?.id){
-      detail="Visita de plano contratado: contabilizar a execução, sem nova cobrança do serviço incluído. Extras podem ser cobrados à parte.";
-      const ym=spDateTime(a.starts_at).date.slice(0,7),first=ym+"-01T00:00:00-03:00",nextMonth=new Date(Date.UTC(Number(ym.slice(0,4)),Number(ym.slice(5,7)),1)).toISOString().slice(0,10)+"T00:00:00-03:00";
-      const count=await sb.from("appointments").select("id",{count:"exact",head:true}).eq("recurring_plan_id",a.recurring_plan_id).eq("status","completed").is("deleted_at",null).gte("starts_at",first).lt("starts_at",nextMonth);
-      if(count.error)return show("msg","Não foi possível verificar as visitas do plano: "+fail(count.error),"error");
-      const done=Number(count.count||0),included=Number(check.data.visits_per_month||0);
-      if(included>0){
-        detail+=" Visitas nesta competência: "+done+" concluída(s) de "+included+" prevista(s).";
-        if(done>=included)detail+=" ATENÇÃO: a quantidade prevista já foi atingida. Confira com o administrador se este serviço deve ser avulso; o vínculo atual não gera nova cobrança automática.";
-      }
-    }else{
-      detail="Recorrência sem plano contratado: registrar a execução e gerar cobrança individual.";
-    }
+ const a=currentApps.find(x=>x.id===id);
+ if(!a)return show("msg","Atendimento não encontrado.","error");
+ if(a.status==="completed")return show("msg","Este atendimento já está concluído.","error");
+ if(a.status!=="in_progress")return show("msg","Inicie o atendimento antes de concluir.","error");
+ const operator=currentRole==="operator";
+ const clientLabel=operator?a.client_name:(clients.find(x=>x.id===a.client_id)?.name||"Cliente");
+ const vehicleLabel=operator?a.vehicle_label:(()=>{const v=findVehicleLocal(a.vehicle_id);return v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo"})();
+ $("finishf").reset();$("finishid").value=id;show("finishmsg","");
+ finishCareContext=null;
+ $("finishtitle").textContent="Concluir atendimento";
+ $("finishsave").textContent="Carregando cuidados...";
+ $("finishsave").disabled=true;
+ $("finishsummary").innerHTML='<b>'+esc(clientLabel||"Cliente")+'</b><br>'+esc(vehicleLabel||"Veículo");
+ $("finish-care-checks").innerHTML='';
+ $("finishkind").textContent='';
+ $("finishkind").classList.add("hidden");
+ $("fd").showModal();
+ try{
+  if(!window.renderQuickPlanCare)throw Error("A conferência de cuidados está indisponível. Atualize a página.");
+  const care=await window.renderQuickPlanCare(id,"finish-care-brief");
+  if(!$("fd").open||$("finishid").value!==id)return;
+  if(!care)throw Error("Não foi possível carregar os cuidados. Tente novamente.");
+  if(care.is_plan&&!window.VaporeasyCareUI?.completionTasks)throw Error("A conferência do plano está indisponível. Atualize a página.");
+  const tasks=renderCompletionCareChoices(care);
+  finishCareContext={id,plan:!!care.is_plan,tasks};
+  if(care.is_plan){
+   const limit=Number(care.visits_limit||0),done=(care.visits||[]).length;
+   if(limit>0&&done>=limit){
+    $("finishkind").textContent="Atenção: o limite de estéticas do plano foi atingido. Confirme com o administrador antes de concluir.";
+    $("finishkind").classList.remove("hidden");
+   }
+  }else if(!operator){
+   $("finishkind").textContent=a.recurring_plan_id?
+    "Recorrência sem plano contratado: o serviço será cobrado individualmente.":
+    "Serviço avulso: cobrança individual após a conclusão.";
+   $("finishkind").classList.remove("hidden");
   }
-  $("finishkind").textContent=detail;
-  $("fd").showModal();
-  if(window.renderQuickPlanCare)void window.renderQuickPlanCare(id,"finish-care-brief")
+  $("finishsave").disabled=false;
+  $("finishsave").textContent="Confirmar conclusão";
+ }catch(err){
+  if(!$("fd").open||$("finishid").value!==id)return;
+  $("finishsave").disabled=true;
+  $("finishsave").textContent="Conferência indisponível";
+  show("finishmsg",fail(err),"error");
+ }
 }
 async function saveCompletion(e){
-  e.preventDefault();
-  const id=$("finishid").value,a=currentApps.find(x=>x.id===id),b=$("finishsave");
-  if(!a)return show("finishmsg","Atendimento não encontrado.","error");
-  if(a.status!=="in_progress")return show("finishmsg","O atendimento precisa estar em execução.","error");
-  if(b.disabled)return;
-  b.disabled=true;b.textContent="Concluindo...";
-  try{
-    if(currentRole==="operator"){
-      const res=await sb.rpc("operator_complete_job",{p_appointment_id:id});
-      if(res.error)throw res.error;
-    }else{
-      const res=await sb.from("appointments").update({status:"completed"}).eq("id",id).eq("status","in_progress").select("id").single();
-      if(res.error)throw res.error;
-    }
-    $("fd").close();agendaMonthCache.clear();operatorMonthCache.clear();waterCounterLoadedAt=0;
-    show("msg","Atendimento concluído. Financeiro atualizado conforme o vínculo do plano.","ok");
-    if(currentRole==="operator")await Promise.all([loadOperatorJobs(operatorSelectedDate,false),loadOperatorMonth(true)]);else await loadApps();
-  }catch(err){show("finishmsg",fail(err),"error")}
-  finally{b.disabled=false;b.textContent="Confirmar conclusão"}
+ e.preventDefault();
+ const id=$("finishid").value,a=currentApps.find(x=>x.id===id),b=$("finishsave");
+ if(!a)return show("finishmsg","Atendimento não encontrado.","error");
+ if(a.status!=="in_progress")return show("finishmsg","O atendimento precisa estar em execução.","error");
+ if(!finishCareContext||finishCareContext.id!==id)return show("finishmsg","Aguarde o carregamento da conferência.","error");
+ if(b.disabled)return;
+ const decisions=[];
+ for(let i=0;i<finishCareContext.tasks.length;i++){
+  const t=finishCareContext.tasks[i],selected=$("finish-care-checks").querySelector('input[name="finish-care-'+i+'"]:checked');
+  if(!selected)return show("finishmsg","Indique se foi realizado: "+t.label+".","error");
+  decisions.push({benefit_id:t.id,performed:selected.value==="yes"});
+ }
+ b.disabled=true;b.textContent="Concluindo...";
+ try{
+  const res=await sb.rpc("complete_appointment_with_cares",{p_appointment_id:id,p_decisions:decisions});
+  if(res.error)throw res.error;
+  finishCareContext=null;
+  $("fd").close();agendaMonthCache.clear();operatorMonthCache.clear();waterCounterLoadedAt=0;
+  show("msg","Atendimento concluído e conferência de cuidados registrada.","ok");
+  if(currentRole==="operator")await Promise.all([loadOperatorJobs(operatorSelectedDate,false),loadOperatorMonth(true)]);else await loadApps();
+ }catch(err){show("finishmsg",fail(err),"error")}
+ finally{b.disabled=false;b.textContent="Confirmar conclusão"}
 }
 async function loadRemoteImage(url){
   if(!url)return null;

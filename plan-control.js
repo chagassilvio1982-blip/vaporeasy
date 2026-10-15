@@ -7,11 +7,13 @@ function dateLabel(date){return String(date||'').slice(0,10).split('-').reverse(
 function ensureDialog(){
  if(el('plancontrol'))return;
  const d=document.createElement('dialog');d.id='plancontrol';d.setAttribute('aria-label','Controle dos planos');
- d.innerHTML='<div class="stack"><div class="actions"><h3 id="pc-title" style="flex:3;margin:8px 0">Controle dos planos</h3><button id="pc-close" type="button" class="ghost">Fechar</button></div><div id="pc-msg" class="notice hidden" role="status"></div><label>Mês do plano<input id="pc-month" type="month"></label><label>Veículo e plano<select id="pc-sub"></select></label><div id="pc-summary"></div><div id="pc-body" class="hidden"><h3>Serviços efetuados no plano</h3><div id="pc-history"></div><details id="pc-register"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Registrar serviço incluído</summary><form id="pc-form" class="stack" style="padding-top:12px"><div class="notice">Registra um benefício realizado, sem cobrança adicional. A contagem de estéticas vem dos atendimentos concluídos na agenda.</div><label>Serviço<select id="pc-kind"><option>Aplicação de hidrorrepelente</option><option>Enceramento manual</option><option>Hidratação do couro</option><option>Higienização dos bancos</option><option>Tratamento do couro</option><option value="other">Outro serviço incluído</option></select></label><label id="pc-custom-wrap" class="hidden">Nome do serviço<input id="pc-custom" maxlength="120"></label><label>Vincular a uma estética concluída<select id="pc-appt"><option value="">Registro independente</option></select></label><label>Data da execução<input id="pc-date" type="date" required></label><label>Observações<textarea id="pc-notes" maxlength="2000"></textarea></label><button id="pc-save" type="submit" class="primary">Salvar serviço realizado</button></form></details></div></div>';
+ d.innerHTML='<div class="stack"><div class="actions"><h3 id="pc-title" style="flex:3;margin:8px 0">Controle dos planos</h3><button id="pc-close" type="button" class="ghost">Fechar</button></div><div id="pc-msg" class="notice hidden" role="status"></div><label>Mês do plano<input id="pc-month" type="month"></label><label>Veículo e plano<select id="pc-sub"></select></label><div id="pc-summary"></div><div id="pc-operational"></div><details id="pc-admin"><summary>Configuração do plano</summary><div class="meta">Benefícios e frequências por veículo. Defina a vigência no formulário. Histórico preservado.</div></details><div id="pc-body" class="hidden"><details id="pc-history-panel"><summary>Histórico completo do mês</summary><div id="pc-history"></div></details><details id="pc-register"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Registrar serviço incluído</summary><form id="pc-form" class="stack" style="padding-top:12px"><div class="notice">Registra um benefício realizado, sem cobrança adicional. A contagem de estéticas vem dos atendimentos concluídos na agenda.</div><label>Serviço<select id="pc-kind"><option>Aplicação de hidrorrepelente</option><option>Enceramento manual</option><option>Hidratação do couro</option><option>Higienização dos bancos</option><option>Tratamento do couro</option><option value="other">Outro serviço incluído</option></select></label><label id="pc-custom-wrap" class="hidden">Nome do serviço<input id="pc-custom" maxlength="120"></label><label>Vincular a uma estética concluída<select id="pc-appt"><option value="">Registro independente</option></select></label><label>Data da execução<input id="pc-date" type="date" required></label><label>Observações<textarea id="pc-notes" maxlength="2000"></textarea></label><button id="pc-save" type="submit" class="primary">Salvar serviço realizado</button></form></details></div></div>';
  document.body.appendChild(d);
  const spec=document.createElement('div');spec.id='pc-spec';
  spec.innerHTML='<div id="pc-benefit-list"></div><details id="pc-define"><summary style="cursor:pointer;padding:12px;font-weight:850">+ Definir benefício contratado</summary><form id="pc-define-form" class="stack" style="padding:12px"><div class="meta">Cadastre somente benefícios comprovadamente contratados para este veículo, inclusive se o mês for anterior. A definição vale a partir do mês selecionado e não cria cobrança.</div><label>Benefício previsto<input id="pc-define-label" maxlength="120" required placeholder="Ex.: Enceramento manual"></label><label>Frequência<select id="pc-define-frequency"><option value="monthly">Quantidade por mês</option><option value="per_visit">Em cada estética do plano</option></select></label><label id="pc-define-qty-wrap">Quantidade mensal<input id="pc-define-qty" type="number" min="1" max="12" value="1" required></label><button class="primary" type="submit">Adicionar ao plano</button></form></details>';
  el('pc-summary').insertAdjacentElement('afterend',spec);
+ el('pc-admin').appendChild(spec);
+ el('pc-admin').appendChild(el('pc-history-panel'));
  window.VaporeasyCareUI?.init();
  el('pc-define-frequency').onchange=()=>el('pc-define-qty-wrap').classList.toggle('hidden',el('pc-define-frequency').value==='per_visit');
  el('pc-define-form').onsubmit=defineBenefit;
@@ -32,14 +34,14 @@ function selected(){return data.find(s=>s.id===el('pc-sub').value)}
 window.openPlanControl=async function(id,vehicleId='',month=''){
  if(saving)return;
  if(!allowed())return show('msg','Seu perfil não pode consultar os planos.','error');
- ensureDialog();clientId=id;data=[];el('pc-sub').innerHTML='';el('pc-summary').innerHTML='';el('pc-body').classList.add('hidden');
+ ensureDialog();el('pc-admin').open=false;el('pc-operational').innerHTML='';clientId=id;data=[];el('pc-sub').innerHTML='';el('pc-summary').innerHTML='';el('pc-body').classList.add('hidden');
  const c=clients.find(x=>x.id===id);el('pc-title').textContent='Planos • '+(c?.name||'Cliente');
  el('pc-month').value=month&&month<=today().slice(0,7)?month:today().slice(0,7);el('pc-month').max=today().slice(0,7);el('plancontrol').showModal();await load(vehicleId);
 };
 function message(text,error=false){const b=el('pc-msg');b.textContent=text;b.className='notice'+(error?' error':'')+(text?'':' hidden')}
 async function load(vehicleId=''){
  const token=++sequence,month=el('pc-month').value,previous=el('pc-sub').value;
- el('pc-body').classList.add('hidden');el('pc-summary').textContent='Consultando plano...';el('pc-sub').disabled=true;message('');
+ el('pc-body').classList.add('hidden');el('pc-operational').innerHTML='';el('pc-admin').classList.add('hidden');el('pc-summary').textContent='Consultando plano...';el('pc-sub').disabled=true;message('');
  if(!/^\d{4}-\d{2}$/.test(month)){el('pc-summary').textContent='Selecione o mês.';return}
  try{
   const r=await sb.rpc('get_client_plan_control',{p_client_id:clientId,p_month:month+'-01'});if(token!==sequence)return;if(r.error)throw r.error;
@@ -58,10 +60,13 @@ async function load(vehicleId=''){
  }catch(e){if(token===sequence){data=[];el('pc-sub').innerHTML='';el('pc-summary').textContent='Não foi possível consultar o plano.';message(fail(e),true)}}
 }
 function render(){
- const s=selected();requestKey='';el('pc-register').open=false;el('pc-define').open=false;
+ const s=selected();el('pc-admin').classList.toggle('hidden',!s);el('pc-operational').innerHTML='';requestKey='';el('pc-register').open=false;el('pc-define').open=false;
  if(!s){window.VaporeasyCareUI?.refresh(null,[],el('pc-month').value);el('pc-benefit-list').innerHTML='';el('pc-define').classList.add('hidden');el('pc-summary').innerHTML='<div class="empty">Nenhum plano registrado para este cliente neste mês.</div>';el('pc-body').classList.add('hidden');return}
  const known=s.limit_visits!==null&&s.limit_visits!==undefined,limit=Number(s.limit_visits||0),done=Number(s.completed||0),scheduled=Number(s.scheduled||0),remaining=Math.max(0,limit-done),extra=Math.max(0,done-limit);
- el('pc-summary').innerHTML='<div class="item"><h3>'+esc(s.plan.replace(/^Pacote\s+/i,'Plano '))+'</h3><div class="meta">'+esc(s.vehicle)+' • '+esc(el('pc-month').value.split('-').reverse().join('/'))+'</div><div style="font-size:23px;font-weight:900;margin:12px 0">'+done+(known?' de '+limit:'')+' estéticas concluídas</div><div class="meta">'+(known?remaining+' restante'+(remaining===1?'':'s')+' no mês':'Limite deste mês não registrado')+' • '+scheduled+' agendada'+(scheduled===1?'':'s')+'</div>'+(known&&extra?'<div class="notice" style="margin-top:10px">'+extra+' estética'+(extra===1?'':'s')+' acima da quantidade contratada. Confira o histórico.</div>':'')+(s.limit_source==='current_contract'?'<div class="meta" style="margin-top:8px">Quantidade de referência do contrato atual.</div>':'')+'</div>';
+ el('pc-summary').innerHTML='<div class="item"><h3>'+esc(s.plan.replace(/^Pacote\s+/i,'Plano '))+'</h3><div class="meta">'+esc(s.vehicle)+(s.plate?' • '+esc(s.plate):'')+' • '+esc(el('pc-month').value.split('-').reverse().join('/'))+'</div>'+window.VaporeasyCareUI.summary(s)+(known&&extra?'<div class="notice">'+extra+' estética(s) acima do contratado.</div>':'')+'</div>';
+ const reference=el('pc-month').value===today().slice(0,7)?today():new Date(Date.UTC(Number(el('pc-month').value.slice(0,4)),Number(el('pc-month').value.slice(5,7)),0)).toISOString().slice(0,10);
+ el('pc-operational').innerHTML=window.VaporeasyCareUI.brief({is_plan:true,plan_name:s.plan,hide_summary:true,month:el('pc-month').value,visit_date:reference,benefits:forMonth(s,el('pc-month').value),care_history:s.care_history||[],visit_history:s.visits||[]},true);
+
  const history=[...(s.visits||[]).map(v=>({...v,label:'Estética do plano',kind:'visit',notes:''})),...(s.services||[]).map(v=>({...v,kind:'benefit'}))].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  el('pc-benefit-list').innerHTML='';
  window.VaporeasyCareUI?.refresh(s,benefitConfigs,el('pc-month').value);
@@ -159,11 +164,8 @@ window.renderPlanBenefitsForAppointment=async function(ctx){
  const care=await sb.rpc('appointment_care_brief',{p_appointment_id:ctx.appointmentId});
  if(!box.isConnected||box.dataset.appointment!==ctx.appointmentId)return;
  if(care.error)throw care.error;
- const markup=window.VaporeasyCareUI?.brief?.(care.data||{},false)||'<div class="notice error">Resumo de cuidados indisponível.</div>';
- const doneHere=(s.services||[]).filter(x=>x.appointment_id===ctx.appointmentId);
- const thisAppointment='<div class="item" style="margin-top:10px"><b>Cuidados vinculados a este atendimento</b><div class="meta">'+(doneHere.length?doneHere.map(x=>esc(x.label)+' • '+esc(dateLabel(x.date))).join('<br>'):'Nenhum cuidado vinculado diretamente a esta estética. Consulte a ficha de cuidados acima.')+'</div></div>';
- const quantity=s.limit_visits===null||s.limit_visits===undefined?'Previsão mensal não registrada':s.completed+' de '+s.limit_visits+' estéticas concluídas';
- box.innerHTML='<div><div class="item" style="margin-top:10px"><b>Controle do plano • '+esc(ctx.month.split('-').reverse().join('/'))+'</b><div class="meta">'+esc(quantity)+'</div></div>'+markup+thisAppointment+'<div class="actions" style="margin-top:10px"><button type="button" class="ghost" data-detail-open-benefits>Consultar / registrar cuidados</button></div></div>';
+ const markup=window.VaporeasyCareUI?.brief?.({...care.data,completed:s.completed,scheduled:s.scheduled,limit_visits:s.limit_visits},false)||'<div class="notice error">Resumo de cuidados indisponível.</div>';
+ box.innerHTML='<div>'+markup+'<div class="actions" style="margin-top:10px"><button type="button" class="ghost" data-detail-open-benefits>Registrar cuidado / configurar plano</button></div></div>';
  const b=box.querySelector('[data-detail-open-benefits]');
  if(b)b.onclick=()=>window.openPlanControl(ctx.clientId,ctx.vehicleId,ctx.month);
 };
@@ -223,7 +225,9 @@ window.renderQuickPlanCare=async function(appointmentId,elementId){
   const r=await sb.rpc('appointment_care_brief',{p_appointment_id:appointmentId});
   if(!node.isConnected||node.dataset.careRequest!==appointmentId)return;
   if(r.error)throw r.error;
-  node.innerHTML=briefHtml(r.data||{},!!node.closest('.operator-job'));
+  const inCompletion=elementId==='finish-care-brief';
+  node.innerHTML=briefHtml({...r.data,completion_mode:inCompletion,hide_scheduled:inCompletion},!!node.closest('.operator-job'));
+  return r.data;
  }catch(err){
   if(node.isConnected&&node.dataset.careRequest===appointmentId)
    node.innerHTML='<div class="notice error">Não foi possível consultar os cuidados: '+esc(fail(err))+'</div>';
@@ -274,14 +278,11 @@ window.renderClientVehicleCare=async function(clientId){
      }));
     const history=(hist.data||[]).filter(x=>x.subscription_id===p.id)
      .map(x=>({date:x.performed_on,label:x.service_label,appointment_id:x.appointment_id}));
-    const title='<div class="meta"><b>'+esc(p.plan.replace(/^Pacote\s+/i,'Plano '))+'</b> • '+
-      esc(p.limit_visits===null||p.limit_visits===undefined?p.completed+' estéticas, limite a confirmar':
-        p.completed+' de '+p.limit_visits+' estéticas concluídas no mês')+'</div>';
     const care=window.VaporeasyCareUI?.brief?.({
-      is_plan:true,plan_name:p.plan,benefits:defs,care_history:history,visit_history:visits,
+      is_plan:true,plan_name:p.plan,completed:p.completed,scheduled:p.scheduled,limit_visits:p.limit_visits,benefits:defs,care_history:history,visit_history:visits,
       visit_date:today(),vehicle_notes:notes.get(vehicleId)||''
     },true)||'<div class="meta">Cuidados indisponíveis.</div>';
-    return title+care;
+    return care;
    }).join('');
    const observation=notes.get(vehicleId)?'<div class="meta" style="margin-top:8px"><b>Observações do veículo:</b> '+esc(notes.get(vehicleId))+'</div>':'';
    node.innerHTML='<div class="item" style="margin:6px 0 12px;padding:12px"><b>Resumo do veículo</b>'+
