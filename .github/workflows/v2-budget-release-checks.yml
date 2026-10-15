@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - release/v2-orcamento-servico-20261015
+      - release/v2-orcamento-pdf-20261015
   workflow_dispatch:
 permissions:
   contents: read
