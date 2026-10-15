@@ -1442,7 +1442,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <details><summary style="cursor:pointer;font-weight:900">Recorrência do atendimento</summary><div class="stack" style="margin-top:10px"><label>Frequência<select id="rgfreq"><option value="">Sem recorrência</option><option value="weekly">Semanal</option><option value="biweekly">Quinzenal</option><option value="monthly">Mensal</option></select></label><div id="rgrecfields" class="stack hidden"><label>Serviço padrão<select id="rgservice"></select></label><div class="row"><label>Dia da semana<select id="rgweekday"><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option><option value="0">Domingo</option></select></label><label>Horário<input id="rgtime" type="time"></label></div><div class="meta">A equipe não fica fixa. O colaborador é definido na operação semanal.</div></div></div></details>
 <details><summary style="cursor:pointer;font-weight:900">Fotos gerais do RG</summary><div class="stack" style="margin-top:10px"><input id="rgphoto" type="file" accept="image/*" capture="environment" class="hidden"><button id="rgphotoadd" type="button" class="primary">📷 Tirar foto geral do veículo</button><div class="meta">Use esta área para fotos gerais. Fotos de problemas específicos devem ser adicionadas dentro da necessidade correspondente.</div><div id="rgphotos"><div class="empty">Nenhuma foto geral cadastrada.</div></div></div></details>
 <details><summary style="cursor:pointer;font-weight:900">Histórico de atendimentos</summary><div id="rghistory" style="margin-top:10px"><div class="empty">Carregando histórico...</div></div></details><div id="rgmsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar RG</button></div></form></dialog>
-<dialog id="rgid"><form id="rgif" class="stack"><input id="rgissueid" type="hidden"><div class="actions"><h3 id="rgissuetitle" style="margin:8px 0;flex:3">Registrar necessidade</h3><button type="button" class="ghost" data-close>Fechar</button></div><label>Categoria<select id="rgicategory" required><option value="">Selecione</option><option>Funilaria / Pintura</option><option>Interior</option><option>Vidros</option><option>Proteção / Acabamento</option><option>Rodas / Pneus</option><option>Outro</option></select></label><label>Local / peça<input id="rgiarea" required placeholder="Ex.: banco do motorista, porta traseira direita"></label><label>Descrição da necessidade<textarea id="rgidesc" required placeholder="Descreva o que foi identificado"></textarea></label><label>Prioridade<select id="rgipriority" required><option value="immediate">Atenção imediata</option><option value="recommended" selected>Recomendado</option><option value="preventive">Preventivo</option></select></label><label>Recomendação<textarea id="rgirecommendation" placeholder="O que a Vaporeasy recomenda fazer"></textarea></label><label>Serviço sugerido<select id="rgiservice"><option value="">Sem serviço definido</option></select></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgiinclude" type="checkbox" checked style="width:22px;min-height:22px">Incluir esta necessidade no relatório do cliente</label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgishowvalue" type="checkbox" style="width:22px;min-height:22px">Mostrar valor do serviço sugerido no relatório</label><div id="rgimsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar necessidade</button></div></form></dialog>
+<dialog id="rgid"><form id="rgif" class="stack"><input id="rgissueid" type="hidden"><div class="actions"><h3 id="rgissuetitle" style="margin:8px 0;flex:3">Registrar necessidade</h3><button type="button" class="ghost" data-close>Fechar</button></div><label>Categoria<select id="rgicategory" required><option value="">Selecione</option><option>Funilaria / Pintura</option><option>Interior</option><option>Vidros</option><option>Proteção / Acabamento</option><option>Rodas / Pneus</option><option>Outro</option></select></label><label>Local / peça<input id="rgiarea" required placeholder="Ex.: banco do motorista, porta traseira direita"></label><label>Descrição da necessidade<textarea id="rgidesc" required placeholder="Descreva o que foi identificado"></textarea></label><label>Prioridade<select id="rgipriority" required><option value="immediate">Atenção imediata</option><option value="recommended" selected>Recomendado</option><option value="preventive">Preventivo</option></select></label><label>Recomendação<textarea id="rgirecommendation" placeholder="O que a Vaporeasy recomenda fazer"></textarea></label><label>Serviço sugerido<select id="rgiservice"><option value="">Sem serviço definido</option></select></label><label>Valor orçado (R$)<input id="rgibudget" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Valor a oferecer ao cliente"><small class="meta">Uso interno. Não gera cobrança nem agendamento.</small></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgiinclude" type="checkbox" checked style="width:22px;min-height:22px">Incluir esta necessidade no relatório do cliente</label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="rgishowvalue" type="checkbox" style="width:22px;min-height:22px">Incluir valor orçado no relatório do cliente</label><div id="rgimsg" class="notice hidden"></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar necessidade</button></div></form></dialog>
 <dialog id="rdd"><form id="rdf" class="stack" novalidate>
 <h3 style="margin:4px 0">Registrar serviço realizado</h3>
 <div class="notice"><b>Lançamento retroativo:</b> use este fluxo para serviços que já aconteceram, inclusive em meses anteriores. O registro entra como <b>Concluído</b> no histórico e no Financeiro. <b>Este fluxo não cria recorrência e não altera a agenda futura.</b></div>
@@ -2179,7 +2179,7 @@ async function archiveVehicle(cid,id){
 function openClient(c){$("cf").reset();$("cid").value=c?.id||"";$("cn").value=c?.name||"";$("cp").value=c?.phone||"";$("cw").value=c?.whatsapp||"";$("ca").value=c?.address||"";$("co").value=c?.notes||"";$("cc").value="";$("cd").showModal()}
 async function saveClient(e){e.preventDefault();try{let condo=null, name=$("cc").value.trim();if(name){let f=await sb.from("condominiums").select("id").ilike("name",name).limit(1).maybeSingle();if(f.error)throw f.error;if(f.data)condo=f.data.id;else{let n=await sb.from("condominiums").insert({name}).select("id").single();if(n.error)throw n.error;condo=n.data.id}}const p={name:$("cn").value.trim(),phone:$("cp").value.trim(),whatsapp:$("cw").value.trim(),address:$("ca").value.trim(),notes:$("co").value.trim(),condominium_id:condo};let r=$("cid").value?await sb.from("clients").update(p).eq("id",$("cid").value):await sb.from("clients").insert(p);if(r.error)throw r.error;$("cd").close();show("msg","Cliente salvo.","ok");await loadClients()}catch(e){show("msg",fail(e),"error")}}
 async function showVehicles(cid){const box=$("v-"+cid),canDelete=["owner","admin"].includes(currentRole);box.classList.toggle("hidden");if(box.classList.contains("hidden"))return;let r=await sb.from("vehicles").select("*").eq("client_id",cid).is("archived_at",null).order("brand");if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}vehicles.set(cid,r.data||[]);box.innerHTML=(r.data||[]).length?(r.data||[]).map(v=>'<details class="vehicle-card"><summary><span><b>'+esc(v.brand+" "+v.model)+'</b><small>'+esc(v.plate||"Sem placa")+'</small></span><span class="vehicle-open-label">Opções</span></summary><div class="vehicle-card-actions"><button class="primary" data-rg="'+v.id+'" data-c="'+cid+'">RG / Histórico</button><button class="ghost" data-ve="'+v.id+'" data-c="'+cid+'">Editar</button>'+(canDelete?'<button class="danger subtle-danger" data-vx="'+v.id+'" data-c="'+cid+'">Excluir veículo</button>':"")+'</div></details>').join(""):'<div class="empty">Nenhum veículo.</div>';box.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>openVehicleRG(cid,(r.data||[]).find(x=>x.id===b.dataset.rg)));box.querySelectorAll("[data-ve]").forEach(b=>b.onclick=()=>openVehicle(cid,(r.data||[]).find(x=>x.id===b.dataset.ve)));box.querySelectorAll("[data-vx]").forEach(b=>b.onclick=()=>archiveVehicle(cid,b.dataset.vx))}
-let currentRGPhotos=[],currentRGIssues=[],currentRGPhotoIssueId="";
+let currentRGPhotos=[],currentRGIssues=[],currentRGPhotoIssueId="",currentRGQuotes=new Map();
 function priorityLabel(v){return v==="immediate"?"Atenção imediata":v==="preventive"?"Preventivo":"Recomendado"}
 function priorityPill(v){return '<span class="pill">'+esc(priorityLabel(v))+'</span>'}
 function buildRGDiagnostics(){return{bodywork:$("rgbody").value.trim(),glass:$("rgglass").value.trim(),interior:$("rginterior").value.trim(),protection:$("rgprotection").value.trim(),issues:currentRGIssues}}
@@ -2213,7 +2213,7 @@ async function renderRGIssues(){
   box.innerHTML=currentRGIssues.map(issue=>{
     const photos=issuePhotoRows.filter(x=>x.p.issue_id===issue.id),service=services.find(s=>s.id===issue.service_id);
     const operator=currentRole==="operator";const photoHtml=photos.length?'<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px">'+photos.map(x=>{const p=x.p,u=urlMap.get(x.i),when=p.captured_at?spDateTime(p.captured_at):null;return '<div style="border:1px solid #31576a;border-radius:12px;padding:7px">'+(u?'<img src="'+esc(u)+'" style="width:100%;height:120px;object-fit:cover;border-radius:9px;display:block" alt="Foto da necessidade">':'<div class="empty">Foto indisponível</div>')+(operator?'':'<label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:6px;margin-top:7px;font-size:12px"><input type="checkbox" data-rgphoto-report="'+x.i+'" '+(p.include_in_report!==false?'checked':'')+' style="width:18px;min-height:18px">Incluir no relatório</label>')+(when?'<div class="meta">'+esc(when.date+" • "+when.time)+'</div>':'')+(["owner","admin"].includes(currentRole)?'<button type="button" class="danger" data-rgphoto-delete="'+x.i+'" style="width:100%;margin-top:6px">Excluir</button>':"")+'</div>'}).join("")+'</div>':'<div class="meta" style="margin-top:8px">Nenhuma foto vinculada a esta necessidade.</div>';
-    return '<div class="item" style="margin-top:9px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(issue.category)+' — '+esc(issue.area)+'</div><div style="margin-top:5px">'+priorityPill(issue.priority)+'</div></div>'+(operator?'':'<label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:6px;font-size:12px;flex:2"><input type="checkbox" data-issue-report="'+esc(issue.id)+'" '+(issue.include_in_report!==false?'checked':'')+' style="width:18px;min-height:18px">No relatório</label>')+'</div><div class="meta" style="margin-top:8px"><b>Identificado:</b> '+esc(issue.description||"—")+'</div>'+(issue.recommendation?'<div class="meta" style="margin-top:6px"><b>Recomendação:</b> '+esc(issue.recommendation)+'</div>':'')+(!operator&&service?'<div class="meta" style="margin-top:6px"><b>Serviço sugerido:</b> '+esc(service.name)+(issue.show_value?' • '+money(service.price):'')+'</div>':'')+photoHtml+'<div class="actions" style="margin-top:9px"><button type="button" class="primary" data-issue-photo="'+esc(issue.id)+'">📷 Foto desta necessidade</button><button type="button" class="ghost" data-issue-edit="'+esc(issue.id)+'">Editar</button>'+(["owner","admin"].includes(currentRole)?'<button type="button" class="danger" data-issue-delete="'+esc(issue.id)+'">Excluir</button>':"")+'</div></div>'
+    return '<div class="item" style="margin-top:9px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(issue.category)+' — '+esc(issue.area)+'</div><div style="margin-top:5px">'+priorityPill(issue.priority)+'</div></div>'+(operator?'':'<label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:6px;font-size:12px;flex:2"><input type="checkbox" data-issue-report="'+esc(issue.id)+'" '+(issue.include_in_report!==false?'checked':'')+' style="width:18px;min-height:18px">No relatório</label>')+'</div><div class="meta" style="margin-top:8px"><b>Identificado:</b> '+esc(issue.description||"—")+'</div>'+(issue.recommendation?'<div class="meta" style="margin-top:6px"><b>Recomendação:</b> '+esc(issue.recommendation)+'</div>':'')+(!operator&&(service||currentRGQuotes.has(String(issue.id)))?'<div class="meta" style="margin-top:6px">'+(service?'<b>Serviço sugerido:</b> '+esc(service.name):'')+(currentRGQuotes.has(String(issue.id))&&currentRGQuotes.get(String(issue.id))!==null?(service?' • ':'')+'<b>Orçamento:</b> '+money(currentRGQuotes.get(String(issue.id))):'')+'</div>':'')+photoHtml+'<div class="actions" style="margin-top:9px"><button type="button" class="primary" data-issue-photo="'+esc(issue.id)+'">📷 Foto desta necessidade</button><button type="button" class="ghost" data-issue-edit="'+esc(issue.id)+'">Editar</button>'+(["owner","admin"].includes(currentRole)?'<button type="button" class="danger" data-issue-delete="'+esc(issue.id)+'">Excluir</button>':"")+'</div></div>'
   }).join("");
   box.querySelectorAll("[data-issue-edit]").forEach(b=>b.onclick=()=>openRGIssue(b.dataset.issueEdit));
   box.querySelectorAll("[data-issue-photo]").forEach(b=>b.onclick=()=>captureRGIssuePhoto(b.dataset.issuePhoto));
@@ -2240,6 +2240,7 @@ function openRGIssue(id=""){
   $("rgif").reset();show("rgimsg","");$("rgissueid").value=id;$("rgissuetitle").textContent=id?"Editar necessidade":"Registrar necessidade";
   setRGOperatorMode(operator);
   $("rgiservice").innerHTML=operator?'<option value="">Sem serviço definido</option>':'<option value="">Sem serviço definido</option>'+services.filter(s=>s.active!==false).map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
+  $("rgiservice").onchange=()=>{if(operator||$("rgibudget").value!=="")return;const item=services.find(s=>s.id===$("rgiservice").value);if(item&&Number.isFinite(Number(item.price)))$("rgibudget").value=Number(item.price).toFixed(2)};
   if(id){
     const i=currentRGIssues.find(x=>x.id===id);if(!i)return;
     $("rgicategory").value=i.category||"";
@@ -2248,20 +2249,33 @@ function openRGIssue(id=""){
     $("rgipriority").value=i.priority||"recommended";
     $("rgirecommendation").value=i.recommendation||"";
     $("rgiservice").value=operator?"":(i.service_id||"");
+    $("rgibudget").value=operator?"":(currentRGQuotes.get(String(i.id))??"");
     $("rgiinclude").checked=i.include_in_report!==false;
     $("rgishowvalue").checked=!!i.show_value
   }else{
-    $("rgiinclude").checked=true;$("rgishowvalue").checked=false;$("rgipriority").value="recommended"
+    $("rgibudget").value="";$("rgiinclude").checked=true;$("rgishowvalue").checked=false;$("rgipriority").value="recommended"
   }
   $("rgid").showModal()
 }
 async function saveRGIssue(e){
-  e.preventDefault();const id=$("rgissueid").value||crypto.randomUUID(),existing=currentRGIssues.find(x=>x.id===id),operator=currentRole==="operator",serviceId=operator?null:($("rgiservice").value||null);
-  const issue={id,category:$("rgicategory").value,area:$("rgiarea").value.trim(),description:$("rgidesc").value.trim(),priority:$("rgipriority").value,recommendation:$("rgirecommendation").value.trim(),service_id:serviceId,include_in_report:operator?(existing?.include_in_report!==false):$("rgiinclude").checked,show_value:operator?false:$("rgishowvalue").checked,created_at:existing?.created_at||new Date().toISOString(),updated_at:new Date().toISOString()};
+  e.preventDefault();const id=$("rgissueid").value||crypto.randomUUID(),existing=currentRGIssues.find(x=>x.id===id),operator=currentRole==="operator",serviceId=operator?(existing?.service_id||null):($("rgiservice").value||null);
+  const rawBudget=operator?"":$("rgibudget").value.trim(),amount=rawBudget===""?null:Number(rawBudget);
+  if(!operator&&rawBudget!==""&&(!Number.isFinite(amount)||amount<0||amount>1000000))return show("rgimsg","Informe um orçamento válido, de R$ 0 a R$ 1.000.000.","error");
+  if(!operator&&$("rgishowvalue").checked&&amount===null&&!(existing?.show_value&&!currentRGQuotes.has(String(id))))return show("rgimsg","Informe o valor do orçamento antes de incluí-lo no relatório.","error");
+  const issue={id,category:$("rgicategory").value,area:$("rgiarea").value.trim(),description:$("rgidesc").value.trim(),priority:$("rgipriority").value,recommendation:$("rgirecommendation").value.trim(),service_id:serviceId,include_in_report:operator?(existing?.include_in_report!==false):$("rgiinclude").checked,show_value:operator?!!existing?.show_value:$("rgishowvalue").checked,created_at:existing?.created_at||new Date().toISOString(),updated_at:new Date().toISOString()};
   if(!issue.category||!issue.area||!issue.description)return show("rgimsg","Preencha categoria, local e descrição.","error");
   const prev=currentRGIssues.map(x=>({...x}));
   if(existing)currentRGIssues=currentRGIssues.map(x=>x.id===id?issue:x);else currentRGIssues.push(issue);
-  try{await saveRGPhotoProfile();$("rgid").close();await renderRGIssues();show("rgmsg","Necessidade salva no RG.","ok")}catch(err){currentRGIssues=prev;show("rgimsg",fail(err),"error")}
+  let rgSaved=false;
+  try{
+    await saveRGPhotoProfile();rgSaved=true;
+    if(!operator&&(rawBudget!==""||currentRGQuotes.has(String(id)))){
+      const q=await sb.from("vehicle_service_quotes").upsert({vehicle_id:$("rgvid").value,issue_id:String(id),amount,updated_at:new Date().toISOString()},{onConflict:"vehicle_id,issue_id"});
+      if(q.error)throw q.error;
+      currentRGQuotes.set(String(id),amount);
+    }
+    $("rgid").close();await renderRGIssues();show("rgmsg","Necessidade e orçamento salvos no RG.","ok")
+  }catch(err){if(!rgSaved)currentRGIssues=prev;else $("rgissueid").value=id;show("rgimsg",(rgSaved?"Necessidade salva, mas orçamento não confirmado. Tente salvar novamente: ":"")+fail(err),"error")}
 }
 function captureRGIssuePhoto(issueId){currentRGPhotoIssueId=issueId;$("rgissuephotofile").value="";$("rgissuephotofile").click()}
 async function addRGIssuePhoto(){
@@ -2315,7 +2329,8 @@ async function generateVehicleNeedsReport(){
       const writeField=(label,value)=>{if(!value)return;doc.setFont("helvetica","bold");doc.text(label,margin,y);doc.setFont("helvetica","normal");const lines=doc.splitTextToSize(value,150);doc.text(lines,52,y);y+=Math.max(7,lines.length*5+2)};
       writeField("Identificado:",issue.description);
       writeField("Recomendação:",issue.recommendation||"Avaliação e acompanhamento conforme necessidade.");
-      if(service){writeField("Serviço sugerido:",service.name+(issue.show_value?" — "+money(service.price):""))}
+      if(service)writeField("Serviço sugerido:",service.name);
+      if(issue.show_value&&currentRGQuotes.has(String(issue.id))&&currentRGQuotes.get(String(issue.id))!==null)writeField("Valor orçado:",money(currentRGQuotes.get(String(issue.id))))
       if(photos.length){
         y+=2;doc.setFont("helvetica","bold");doc.text("Fotos selecionadas:",margin,y);y+=5;
         for(let p=0;p<photos.length;p++){
@@ -2367,6 +2382,12 @@ async function openVehicleRG(cid,v){
     const profile=pr.data||{},d=profile.diagnostics||{};
     currentRGPhotos=Array.isArray(profile.photos)?profile.photos.filter(p=>p&&p.path).map(p=>({...p,issue_id:p.issue_id||null,include_in_report:p.include_in_report!==false})):[];
     currentRGIssues=Array.isArray(d.issues)?d.issues.filter(i=>i&&i.id).map(i=>({...i,include_in_report:i.include_in_report!==false})):[];
+    currentRGQuotes=new Map();
+    if(["owner","admin"].includes(currentRole)){
+      const quoted=await sb.from("vehicle_service_quotes").select("issue_id,amount").eq("vehicle_id",v.id);
+      if(quoted.error)throw quoted.error;
+      currentRGQuotes=new Map((quoted.data||[]).map(row=>[String(row.issue_id),row.amount]));
+    }
     $("rgbody").value=d.bodywork||"";$("rgglass").value=d.glass||"";$("rginterior").value=d.interior||"";$("rgprotection").value=d.protection||"";$("rgnotes").value=profile.notes||"";
     const plan=rp.data||null;if(plan){$("rgplanid").value=plan.id;$("rgfreq").value=plan.frequency;$("rgservice").value=plan.service_id;$("rgweekday").value=String(plan.weekday);$("rgtime").value=String(plan.local_time||"").slice(0,5)}else{$("rgfreq").value="";$("rgtime").value=""}
     toggleRGRecurrence();$("rgd").showModal();await Promise.all([renderRGIssues(),renderRGPhotos(),loadVehicleHistory(v.id)])
@@ -3861,7 +3882,7 @@ function setRGOperatorMode(on){
   if(history)history.classList.toggle("hidden",on);
   const needsMeta=$("rgissueadd")?.closest("details")?.querySelector(".meta");
   if(needsMeta)needsMeta.classList.toggle("hidden",on);
-  [$("rgiservice"),$("rgiinclude"),$("rgishowvalue")].forEach(el=>{
+  [$("rgiservice"),$("rgibudget"),$("rgiinclude"),$("rgishowvalue")].forEach(el=>{
     const label=el?.closest("label");
     if(label)label.classList.toggle("hidden",on)
   });
@@ -3879,6 +3900,7 @@ async function openOperatorVehicleRG(job){
     const profile=pr.data||{},d=profile.diagnostics||{};
     currentRGPhotos=Array.isArray(profile.photos)?profile.photos.filter(p=>p&&p.path).map(p=>({...p,issue_id:p.issue_id||null,include_in_report:p.include_in_report!==false})):[];
     currentRGIssues=Array.isArray(d.issues)?d.issues.filter(i=>i&&i.id).map(i=>({...i,include_in_report:i.include_in_report!==false})):[];
+    currentRGQuotes=new Map();
     $("rgbody").value=d.bodywork||"";
     $("rgglass").value=d.glass||"";
     $("rginterior").value=d.interior||"";
