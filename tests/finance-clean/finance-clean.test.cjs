@@ -97,3 +97,104 @@ test('A etapa Financeiro não remove agendamento, recibos e tela de planos',()=>
  assert.match(html,/cancel_appointment_with_scope/);
  assert.match(html,/complete_appointment_with_cares/);
 });
+
+test('rótulo Plano e cartões compactos não afetam dados financeiros',()=>{
+ const start=html.indexOf('function financePlanDisplayName('),end=html.indexOf('async function getPackageChargeShareData(',start);
+ assert.ok(start>0&&end>start);
+ const context={
+  esc:x=>String(x??''),
+  money:n=>'R$ '+Number(n||0).toFixed(2),
+  packageFrequencyMeta:()=>({label:'Semanal',visits:4}),
+  packageChargeCommercialDiscount:()=>0,
+  financePackageDate:()=> '14/10/2026'
+ };
+ const code=html.slice(start,end)+';({financePlanDisplayName,financePackageChargeCard});';
+ const model=vm.runInNewContext(code,context);
+ assert.equal(model.financePlanDisplayName('Pacote Premium'),'Plano Premium');
+ assert.equal(model.financePlanDisplayName('Pacote'),'Plano');
+ assert.equal(model.financePlanDisplayName('Plano Plus'),'Plano Plus');
+ const ids={
+  cm:new Map([['c',{name:'Silvio'}]]),
+  vm:new Map([['v',{brand:'BMW',model:'M4',plate:'DDD7177'}]]),
+  sm:new Map([['s',{name:'Pacote Premium'}]])
+ };
+ const row={id:'charge',client_id:'c',vehicle_id:'v',service_id:'s',
+  frequency:'weekly',visits_per_month:4,amount:780,due_date:'2026-10-14',status:'pending'};
+ const unpaid=model.financePackageChargeCard(row,ids,false);
+ assert.match(unpaid,/class="item finance-pending-card"/);
+ assert.match(unpaid,/Plano Premium/);
+ assert.doesNotMatch(unpaid,/Pacote Premium/);
+ assert.match(unpaid,/R\$ 780\.00/);
+ assert.match(unpaid,/Vencimento 14\/10\/2026/);
+ assert.match(unpaid,/data-pkg-pay="charge"/);
+ assert.match(unpaid,/data-pkg-charge-share="charge"/);
+ const paid=model.financePackageChargeCard({...row,status:'paid'},ids,true);
+ assert.doesNotMatch(paid,/finance-pending-card/);
+ assert.doesNotMatch(paid,/data-pkg-pay=/);
+ assert.match(paid,/Recibo de pagamento/);
+});
+
+test('comprovante em atendimento a receber é claramente nomeado Atendimento / Pix',()=>{
+ const start=html.indexOf('function financeApptCard(');
+ const end=html.indexOf('function financePackageDate(',start);
+ assert.ok(start>0&&end>start);
+ const fn=vm.runInNewContext(html.slice(start,end)+';financeApptCard;',{
+  esc:x=>String(x??''),
+  money:n=>'R$ '+Number(n||0).toFixed(2),
+  receiptDate:()=> '07/10/2026'
+ });
+ const maps={
+  cm:new Map([['c',{name:'Enrico piccioto'}]]),
+  vm:new Map([['v',{brand:'Porsche',model:'Panamera',plate:'SRQ1H67'}]]),
+  sm:new Map([['s',{name:'Polimento técnico'}]])
+ };
+ const row={id:'appointment',client_id:'c',vehicle_id:'v',service_id:'s',
+  completed_at:'2026-10-07T09:04:00Z',final_value:1500};
+ const unpaid=fn(row,{status:'pending',amount:1500},maps,false);
+ assert.match(unpaid,/finance-pending-card/);
+ assert.match(unpaid,/data-fin-pay="appointment"/);
+ assert.match(unpaid,/data-fin-receipt="appointment">Atendimento \/ Pix<\/button>/);
+ assert.doesNotMatch(unpaid,/>Recibo<\/button>/);
+ assert.match(unpaid,/Porsche Panamera/);
+ const paid=fn(row,{status:'paid',amount:1500},maps,true);
+ assert.doesNotMatch(paid,/finance-pending-card/);
+ assert.match(paid,/data-fin-receipt="appointment">Recibo<\/button>/);
+ assert.doesNotMatch(paid,/data-fin-pay=/);
+});
+
+test('documento do atendimento pendente não finge quitação nem realiza baixa',()=>{
+ const begin=html.indexOf('async function openReceipt(id){'),end=html.indexOf('async function openSameClientReceiptGroup()',begin);
+ assert.ok(begin>0&&end>begin);
+ const opener=html.slice(begin,end);
+ assert.match(opener,/const paid=currentReceipt\.payment\?\.status==="paid"/);
+ assert.match(opener,/paid\?"Compartilhar recibo":"Compartilhar comprovante"/);
+ assert.match(opener,/receiptHtml\(currentReceipt\)/);
+ assert.doesNotMatch(opener,/confirm_payment_with_discount|confirm_package_charge|savePayment/);
+ const receiptStart=html.indexOf('function receiptHtml(d){');
+ const receiptEnd=html.indexOf('async function getReceiptGroupData(',receiptStart);
+ const receipt=html.slice(receiptStart,receiptEnd);
+ assert.match(receipt,/if\(!paid\)\{/);
+ assert.match(receipt,/PAGAMENTO PENDENTE/);
+ assert.match(receipt,/PAGAMENTO RECEBIDO/);
+ assert.match(html,/data-fin-receipt/);
+ assert.match(html,/\.onclick=\(\)=>openReceipt\(b\.dataset\.finReceipt\)/);
+});
+
+test('baixa financeira permanece no formulário de confirmação preexistente',()=>{
+ assert.match(html,/<dialog id="pd">/);
+ assert.match(html,/id="paysubmit"[^>]*>Confirmar recebimento/);
+ assert.match(html,/async function openPayment\(id,mode="receive"\)/);
+ assert.match(html,/async function openPackagePayment\(id\)/);
+ assert.match(html,/async function savePayment\(e\)/);
+ assert.match(html,/sb\.rpc\("confirm_package_charge"/);
+ assert.match(html,/sb\.rpc\("confirm_payment_with_discount"/);
+ assert.match(html,/\$\("paytitle"\)\.textContent="Confirmar mensalidade do plano"/);
+});
+
+test('CSS compacto mantém dois botões operacionais com alvo mínimo de 44px',()=>{
+ assert.match(css,/#fin #fpending \.finance-pending-card\{/);
+ assert.match(css,/#fin #fpending \.finance-pending-card>\.actions:last-child\{/);
+ assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(css,/#fin #fpending \.finance-pending-card>\.actions:last-child button\{[^}]*min-height:44px/s);
+ assert.match(html,/<link rel="stylesheet" href="\/finance-clean\.css\?v=20261015-2">/);
+});
