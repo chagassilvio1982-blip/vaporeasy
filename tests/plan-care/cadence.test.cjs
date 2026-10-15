@@ -280,6 +280,6 @@ test('cuidado deve ser explicitamente marcado e não realizado não gera evento 
  assert.doesNotMatch(save,/operator_complete_job|\.from\("appointments"\)\.update/);
  const migration=fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261015_complete_appointment_with_cares.sql'),'utf8');
  assert.match(migration,/status_name='performed'/);
- assert.match(migration,/status_name='not_performed'/);
+ assert.match(migration,/outcome IN \('performed','not_performed'\)/);
  assert.match(migration,/REVOKE ALL ON FUNCTION public\.complete_appointment_with_cares/);
 });
