@@ -193,49 +193,72 @@ function nextText(x){
 }
 function summary(d){
  const limit=d.limit_visits??d.visits_limit,done=d.completed??(d.visits||[]).length,
- scheduled=d.scheduled,known=limit!==null&&limit!==undefined;
+  scheduled=d.scheduled,known=limit!==null&&limit!==undefined;
  const remaining=known?Math.max(0,Number(limit)-Number(done)):null;
- const explanation=known&&scheduled!==undefined&&scheduled!==null?
-  'Faltam realizar '+remaining+' estética(s): '+Number(scheduled)+' já agendada(s) e '+Math.max(0,remaining-Number(scheduled))+' ainda sem agendamento.'+
-  (Number(scheduled)>remaining?' Atenção: há mais agendamentos que o saldo do plano.':''):
-  'Agendar não desconta estéticas do plano. A contagem muda quando o atendimento é concluído.';
+ const overbooked=known&&scheduled!==null&&scheduled!==undefined&&Number(scheduled)>remaining;
+ const note=overbooked?'Atenção: há mais agendamentos que estéticas disponíveis no plano.':
+  'Agendadas só são descontadas quando o atendimento é concluído.';
  return '<div class="care-counts" aria-label="Estéticas do mês">'+[
- ['Contratadas',known?limit:'—'],['Concluídas',done],['Agendadas',scheduled??'—'],
- ['Restantes',known?Math.max(0,Number(limit)-Number(done)):'—']
+  ['Contratadas',known?limit:'—'],['Concluídas',done],['Agendadas',scheduled??'—'],
+  ['A realizar',known?remaining:'—']
  ].map(([label,value])=>'<div><b>'+html(value)+'</b><span>'+label+'</span></div>').join('')+
- '</div><div class="care-meta">'+html(explanation)+(Number(done)===0?' Nenhuma estética foi concluída.':'')+
- (scheduled===undefined||scheduled===null?' Agendadas: consulte a agenda.':'')+'</div>';
+ '<div class="care-meta">'+html(note)+(scheduled===undefined||scheduled===null?' Consulte os agendamentos na agenda.':'')+'</div>';
 }
-function task(name,items,css){
+function careDate(s){return String(s||'').slice(0,10).split('-').reverse().join('/');}
+function careInfo(x,mode){
+ const date=x.lastDate?careDate(x.lastDate):null;
+ const next=x.nextDate?careDate(x.nextDate):null;
+ if(mode==='due'){
+  if(x.frequency==='per_visit')return 'Fazer em todas as estéticas do plano';
+  if(x.frequency==='monthly')return date?'Última aplicação: '+date+' • Fazer neste mês':'Aplicação prevista neste mês';
+  if(x.frequency==='interval_days')return date?'Última aplicação: '+date+' • Reaplicar nesta estética':'Aplicar nesta estética';
+  if(x.frequency==='every_n_visits')return date?'Última aplicação: '+date+' • Repetir conforme ciclo de estéticas':'Conferir ciclo antes de aplicar';
+  return 'Cuidado previsto neste atendimento';
+ }
+ if(mode==='recorded'){
+  if(x.frequency==='per_visit')return 'Feito nesta estética • Repetir na próxima';
+  if(x.frequency==='every_n_visits')return 'Última aplicação: '+date+' • Repetir conforme ciclo de estéticas';
+  if(next&&date)return 'Aplicado em '+date+' • Próxima aplicação: '+next;
+  return date?'Aplicado em '+date:'Realizado neste atendimento';
+ }
+ if(x.frequency==='per_visit')return 'Fazer em cada estética do plano; confirme no atendimento';
+ if(x.frequency==='every_n_visits')return 'Conferir quando começou o ciclo de estéticas';
+ return 'Sem primeira aplicação registrada • Confirmar com o administrador';
+}
+function task(name,items,css,mode){
  if(!items.length)return '';
  return '<section class="care-group '+css+'"><h5>'+name+'</h5>'+
- items.map(x=>'<div class="care-task"><b>'+html(x.label)+'</b><small>'+html(x.why)+
-  (x.lastDate?' • Última execução: '+html(x.lastDate.split('-').reverse().join('/')):'')+
-  ' • Próxima previsão: '+html(nextText(x))+
-  '</small></div>').join('')+'</section>';
+ items.map(x=>'<div class="care-task"><b>'+html(x.label)+'</b><small>'+html(careInfo(x,mode))+
+ '</small></div>').join('')+'</section>';
 }
 function brief(d,hideAppointmentNotes){
  const rhythm=window.VaporeasyCareRhythm;
  if(!rhythm)return '<div class="notice">Cuidados do plano indisponíveis: atualize a página.</div>';
- const when=d.visit_date||today(),isAppointment=!!d.appointment_id,evaluated=rhythm.evaluate((d.benefits||[]).map(b=>({...b,appointment_id:d.appointment_id})),d.care_history||d.performed||[],d.visit_history||[],when);
- const due=evaluated.filter(x=>x.status==='due'),done=evaluated.filter(x=>x.status==='done'),ok=evaluated.filter(x=>x.status==='ok'),check=evaluated.filter(x=>x.status==='check');
+ const when=d.visit_date||today(),isAppointment=!!d.appointment_id,
+  evaluated=rhythm.evaluate((d.benefits||[]).map(b=>({...b,appointment_id:d.appointment_id})),
+  d.care_history||d.performed||[],d.visit_history||[],when);
+ const due=evaluated.filter(x=>x.status==='due'),
+  recorded=evaluated.filter(x=>x.status==='ok'||x.status==='done'),
+  check=evaluated.filter(x=>x.status==='check');
  const last=rhythm.lastVisit(d.visit_history||d.recent_visits||[],when);
  const lastCare=last?(d.care_history||[]).filter(e=>String(e.date).slice(0,10)===String(last.date).slice(0,10)):[];
- const lastText=last?'<b>Última estética: '+html(String(last.date).slice(0,10).split('-').reverse().join('/'))+'</b>'+
- (lastCare.length?'<div class="care-meta">Cuidados registrados nessa data: '+lastCare.map(x=>html(x.label)).join(' • ')+'</div>':'<div class="care-meta">Sem cuidado adicional registrado nessa data.</div>'):
+ const lastText=last?'<b>Última estética: '+html(careDate(last.date))+'</b>'+
+ (lastCare.length?'<div class="care-meta">Cuidados registrados: '+lastCare.map(x=>html(x.label)).join(' • ')+'</div>':'<div class="care-meta">Sem cuidado adicional registrado.</div>'):
  '<span class="care-meta">Nenhuma estética anterior encontrada para este veículo.</span>';
  const notes=(!hideAppointmentNotes&&d.appointment_notes?'<div class="care-group"><b>Observação desta visita</b><div class="care-meta">'+html(d.appointment_notes)+'</div></div>':'')+
  (d.vehicle_notes?'<div class="care-group"><b>Observações do veículo</b><div class="care-meta">'+html(d.vehicle_notes)+'</div></div>':'');
- return '<div class="care-brief" role="region" aria-label="Cuidados do veículo"><h4>'+html(String(d.plan_name||'Plano Vaporeasy').replace(/^Pacote\s+/i,'Plano '))+' • '+(isAppointment?'O que fazer nesta estética':'Situação dos cuidados')+'</h4>'+
+ return '<div class="care-brief" role="region" aria-label="Cuidados do veículo"><h4>'+
+ html(String(d.plan_name||'Plano Vaporeasy').replace(/^Pacote\s+/i,'Plano '))+
+ ' • '+(isAppointment?'O que fazer nesta estética':'Situação dos cuidados')+'</h4>'+
  '<div class="care-meta">'+html(String(d.month||when).slice(0,7).split('-').reverse().join('/'))+'</div>'+
  (d.hide_summary?'':summary(d))+
- task(isAppointment?'FAZER NESTA ESTÉTICA':'PROGRAMAR NA PRÓXIMA ESTÉTICA',due,'care-group-priority')+
- (!due.length&&isAppointment?'<div class="care-group care-group-priority">Nenhum cuidado adicional pendente confirmado para esta estética.</div>':'')+
- task('JÁ REALIZADOS',evaluated.filter(x=>x.lastDate).map(x=>({...x,why:x.status==='due'?'Pendente • renovar cuidado':x.status==='done'?'Concluído':'Dentro do prazo'})),'care-group-muted')+
- task('PRÓXIMOS CUIDADOS',[...done,...ok],'care-group-muted')+
- task('CONFERIR PRIMEIRA APLICAÇÃO',check,'care-group-muted')+
+ notes+
+ task(isAppointment?'FAZER NESTA ESTÉTICA':'PROGRAMAR NA PRÓXIMA ESTÉTICA',due,'care-group-priority','due')+
+ (!due.length&&isAppointment?'<div class="care-group care-group-priority"><div class="care-meta">Nenhum cuidado pendente para esta estética.</div></div>':'')+
+ task('JÁ REALIZADOS • EM DIA',recorded,'care-group-muted','recorded')+
+ task('CONFERIR REGISTROS',check,'care-group-muted','check')+
  (!evaluated.length?'<div class="care-group care-group-muted"><div class="care-meta">Nenhum cuidado adicional foi confirmado neste contrato. Confirme com o administrador antes de executar benefícios extras.</div></div>':'')+
- '<details class="care-group care-group-previous"><summary>ESTÉTICA ANTERIOR</summary>'+lastText+'</details>'+notes+'</div>';
+ '<details class="care-group care-group-previous"><summary>ESTÉTICA ANTERIOR</summary>'+lastText+'</details></div>';
 }
 window.VaporeasyCareUI={init,refresh,brief,describe,summary};
 })();
