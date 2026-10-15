@@ -1,32 +1,31 @@
-/* Reuse navigation buttons and handlers; never change role permissions. */
+/* Direct navigation for the existing V2 sections. Permissions remain in enter()/tab(). */
 (()=>{
-  const dialog=document.getElementById('main-menu-dialog');
-  const toggle=document.getElementById('main-menu-toggle');
-  const current=document.getElementById('main-menu-current');
-  const nav=dialog.querySelector('nav');
-  function updateCurrent(){
-    const active=nav.querySelector('button.active:not(.hidden)');
-    if(active)current.textContent=active.textContent;
-    nav.querySelectorAll('button').forEach(button=>{
-      if(button===active)button.setAttribute('aria-current','page');
+  'use strict';
+  const primary=document.getElementById('main-primary-nav');
+  const shell=document.getElementById('main-nav-shell');
+  const settings=document.getElementById('tset');
+  if(!primary||!shell||!settings)return;
+  const areas=[...primary.querySelectorAll('button'),settings];
+  function syncCurrent(){
+    for(const button of areas){
+      if(button.classList.contains('active')&&!button.classList.contains('hidden'))
+        button.setAttribute('aria-current','page');
       else button.removeAttribute('aria-current');
+    }
+  }
+  // Observe existing role visibility and tab changes, without adding another navigation layer.
+  new MutationObserver(syncCurrent).observe(shell,{subtree:true,attributes:true,attributeFilter:['class']});
+  syncCurrent();
+  const extra=document.getElementById('cad-more-actions');
+  if(extra){
+    extra.addEventListener('click',event=>{
+      if(event.target.closest('.tool-grid button'))extra.open=false;
+    });
+    extra.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&extra.open){extra.open=false;extra.querySelector('summary')?.focus();}
+    });
+    document.addEventListener('pointerdown',event=>{
+      if(extra.open&&!extra.contains(event.target))extra.open=false;
     });
   }
-  toggle.addEventListener('click',()=>{
-    updateCurrent();
-    dialog.showModal();
-    toggle.setAttribute('aria-expanded','true');
-  });
-  document.getElementById('main-menu-close').addEventListener('click',()=>dialog.close());
-  dialog.addEventListener('close',()=>toggle.setAttribute('aria-expanded','false'));
-  dialog.addEventListener('click',event=>{
-    if(event.target!==dialog)return;
-    const box=dialog.getBoundingClientRect();
-    if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dialog.close();
-  });
-  nav.addEventListener('click',event=>{
-    if(event.target.closest('button')){updateCurrent();dialog.close();}
-  });
-  new MutationObserver(updateCurrent).observe(nav,{subtree:true,attributes:true,attributeFilter:['class']});
-  updateCurrent();
 })();
