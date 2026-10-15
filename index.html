@@ -1161,6 +1161,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/settings-addons-clean.css?v=20261015-1">
 <link rel="stylesheet" href="/settings-addon-editor.css?v=20261015-1">
 <link rel="stylesheet" href="/settings-schedule-clean.css?v=20261015-1">
+<link rel="stylesheet" href="/settings-payment-clean.css?v=20261015-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -1407,7 +1408,26 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div class="settings-capacity-note">Máx. equipes define o limite de equipes por dia, não o número de carros. Campo vazio: sem limite.</div>
   <button class="primary settings-schedule-save">Salvar horários e dias</button>
 </form></details>
-    <details class="settings-group"><summary><span><b>Pagamento e Pix</b><small>Dados exibidos em cobranças e recibos</small></span></summary><form id="setpayf" class="stack settings-body"><label>Nome da empresa<input id="setbiz"></label><label>Favorecido<input id="setholder" required></label><div class="row"><label>Banco<input id="setbank"></label><label>Agência<input id="setbranch"></label></div><label>Conta<input id="setaccount"></label><div class="row"><label>Chave Pix<input id="setpix"></label><label>Tipo da chave<input id="setpixtype" placeholder="E-mail, CPF, telefone..."></label></div><label>Rodapé dos recibos<textarea id="setfooter"></textarea></label><button class="primary">Salvar dados de pagamento</button></form></details>
+    <details class="settings-group"><summary><span><b>Pagamento e Pix</b><small>Dados exibidos em cobranças e recibos</small></span></summary><form id="setpayf" class="stack settings-body settings-payment-form">
+  <label>Nome da empresa<input id="setbiz"></label>
+  <label>Favorecido<input id="setholder" required></label>
+  <div class="settings-payment-bank-row">
+    <label>Banco<input id="setbank"></label>
+    <label>Tipo da chave<input id="setpixtype" placeholder="CNPJ, CPF, e-mail..."></label>
+  </div>
+  <label>Chave Pix<input id="setpix"></label>
+  <details id="setpayadvanced" class="settings-payment-advanced">
+    <summary>Configurações avançadas</summary>
+    <div class="stack">
+      <div class="settings-payment-account-row">
+        <label>Agência<input id="setbranch"></label>
+        <label>Conta<input id="setaccount"></label>
+      </div>
+      <label>Rodapé dos recibos<textarea id="setfooter"></textarea></label>
+    </div>
+  </details>
+  <button class="primary settings-payment-save">Salvar dados de pagamento</button>
+</form></details>
   </div>
 </section>
 </section>
