@@ -240,3 +240,46 @@ test('grade com quatro contadores é fechada antes das seções de cuidados no c
  assert.match(markup.slice(gridEnd,firstGroup),/Agendadas só são descontadas/);
  assert.match(markup.slice(firstGroup),/FAZER NESTA ESTÉTICA/);
 });
+
+test('conclusão oculta agendadas e não repete quantidade do plano no rodapé',()=>{
+ const s=catalog.summary({visits_limit:4,completed:0,scheduled:null,completion_mode:true});
+ assert.match(s,/Contratadas/);
+ assert.match(s,/Concluídas/);
+ assert.match(s,/A realizar/);
+ assert.equal((s.match(/<span>/g)||[]).length,3);
+ assert.doesNotMatch(s,/Agendadas|Consulte os agendamentos/);
+ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const open=html.slice(html.indexOf('async function openCompletion(id){'),html.indexOf('async function saveCompletion(e){'));
+ assert.doesNotMatch(open,/Visitas nesta competência:|get_client_plan_control/);
+ assert.match(open,/renderCompletionCareChoices\(care\)/);
+});
+test('cuidado deve ser explicitamente marcado e não realizado não gera evento automático no frontend',()=>{
+ const id1='6667efb7-2751-43c3-9d1a-d0f7931a6171';
+ const id2='d7bcddd8-1f94-4fd3-ad47-4a8567298400';
+ const id3='ef6da10a-f43e-464e-afbc-784dab95b959';
+ const d={is_plan:true,appointment_id:'156dcdc2-cc67-421b-8988-e13a7bae00bf',visit_date:'2026-10-14',
+  benefits:[
+   {id:id1,label:'Enceramento',frequency:'per_visit'},
+   {id:id2,label:'Hidro repelente',frequency:'interval_days',min_days:45,max_days:45},
+   {id:id3,label:'Selante Grafeno',frequency:'interval_days',min_days:45,max_days:45}
+  ],care_history:[
+   {label:'Hidro repelente',date:'2026-10-14'},
+   {label:'Selante Grafeno',date:'2026-10-14'}
+  ],visit_history:[]};
+ const tasks=catalog.completionTasks(d);
+ assert.deepEqual(tasks,[{id:id1,label:'Enceramento'}]);
+ const h=catalog.brief({...d,completion_mode:true},false);
+ assert.doesNotMatch(h,/FAZER NESTA ESTÉTICA/);
+ assert.match(h,/Conferência final/);
+ assert.match(h,/JÁ REALIZADOS • EM DIA/);
+ assert.doesNotMatch(h,/Agendadas/);
+ const markup=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const save=markup.slice(markup.indexOf('async function saveCompletion(e){'),markup.indexOf('async function loadRemoteImage(url){'));
+ assert.match(save,/input\[name="finish-care-/);
+ assert.match(save,/complete_appointment_with_cares/);
+ assert.doesNotMatch(save,/operator_complete_job|\.from\("appointments"\)\.update/);
+ const migration=fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261015_complete_appointment_with_cares.sql'),'utf8');
+ assert.match(migration,/status_name='performed'/);
+ assert.match(migration,/status_name='not_performed'/);
+ assert.match(migration,/REVOKE ALL ON FUNCTION public\.complete_appointment_with_cares/);
+});
