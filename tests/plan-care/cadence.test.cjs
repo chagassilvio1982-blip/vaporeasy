@@ -108,7 +108,7 @@ test('cadastro do veículo usa programação futura, não sinaliza execução em
  const h=catalog.brief(d,true);
  assert.match(h,/PROGRAMAR NA PRÓXIMA ESTÉTICA/);
  assert.doesNotMatch(h,/FAZER NESTA ESTÉTICA/);
- assert.match(h,/consulte o atendimento para confirmar/);
+ assert.match(h,/confirme no atendimento/);
  const record=rhythm.evaluate([{label:'Enceramento manual',frequency:'per_visit'}],[],[],'2026-10-14')[0];
  assert.equal(record.status,'check');
 });
@@ -124,7 +124,7 @@ test('resumo Premium quatro visitas não desconta agendadas como concluídas',()
  assert.match(h,/<b>4<\/b><span>Contratadas/);
  assert.match(h,/<b>1<\/b><span>Concluídas/);
  assert.match(h,/<b>2<\/b><span>Agendadas/);
- assert.match(h,/<b>3<\/b><span>Restantes/);
+ assert.match(h,/<b>3<\/b><span>A realizar/);
 });
 test('intervalo exato 90 dias, data da próxima aplicação e histórico futuro ignorado',()=>{
  const b=rule('interval_days',90,90);
@@ -149,7 +149,7 @@ test('nova frequência é avaliada sem mutar histórico ou contrato anterior',()
 
  test('quatro contratadas e três agendadas continuam quatro por realizar',()=>{
  const h=catalog.summary({limit_visits:4,completed:0,scheduled:3});
- assert.match(h,/<b>4<\/b><span>Restantes/);
+ assert.match(h,/<b>4<\/b><span>A realizar/);
  assert.match(h,/Agendadas só são descontadas quando o atendimento é concluído/);
  assert.match(h,/<b>0<\/b><span>Concluídas/);
  });
