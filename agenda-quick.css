@@ -134,3 +134,7 @@
  #age .agenda-head-actions #na{font-size:12px;padding:8px}
  #age .agenda-head-actions{gap:5px}
 }
+
+/* Safeguard: daily picker must never occupy layout in Mês/Lista. */
+#age #agendaDateToolbar[hidden],
+#age #agendaDateToolbar.hidden{display:none!important}
