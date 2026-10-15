@@ -12,6 +12,7 @@
   ['protecao hidrorrepelente do parabrisa','hidro_parabrisa'],
   ['selante com grafeno da pintura','grafeno_pintura'],
   ['selante com grafeno','grafeno_pintura'],
+  ['selante grafeno','grafeno_pintura'],
   ['hidratacao do couro','hidratacao_couro']
  ]);
  const category=x=>synonyms.get(norm(x))||norm(x);
