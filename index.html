@@ -1157,6 +1157,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/finance-clean.css?v=20261015-2">
 <link rel="stylesheet" href="/reports-clean.css?v=20261015-1">
 <link rel="stylesheet" href="/settings-service-clean.css?v=20261015-1">
+<link rel="stylesheet" href="/settings-service-editor.css?v=20261015-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -1421,7 +1422,32 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="payreceivefields" class="stack"><label>Forma de pagamento<select id="paymethod" required><option value="">Selecione</option><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Transferência</option><option>Outro</option></select></label>
 <label>Observações<textarea id="paynotes"></textarea></label></div><div class="actions"><button id="paycancel" type="button" class="ghost">Cancelar</button><button id="paysubmit" class="success">Confirmar recebimento</button></div></form></dialog>
 <dialog id="nd"><div class="stack"><div class="actions"><h3 style="margin:8px 0;flex:3">Notificações</h3><button type="button" class="ghost" data-close>Fechar</button></div><div id="nlist"><div class="empty">Nenhuma notificação.</div></div></div></dialog>
-<dialog id="setserviced"><form id="setservicef" class="stack"><input id="setserviceid" type="hidden"><h3 id="setservicetitle">Novo serviço</h3><div id="setservicemsg" class="notice hidden"></div><label>Nome<input id="setservicename" required></label><label>Categoria<input id="setservicecat" placeholder="Ex.: Estética, Proteção, Pacote"></label><div class="row"><label>Preço base<input id="setserviceprice" type="number" min="0" step="0.01" required></label><label>Duração (minutos)<input id="setserviceduration" type="number" min="5" step="5" required></label></div><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="setservicesizepricing" type="checkbox" style="width:22px;min-height:22px">Usar preço por porte P/M e G</label><div id="setservicesizeprices" class="row hidden"><label>Preço P/M<input id="setservicepricepm" type="number" min="0" step="0.01"></label><label>Preço G<input id="setservicepriceg" type="number" min="0" step="0.01"></label></div><label>Modo de agendamento<select id="setservicemode"><option value="auto">Horário automático</option><option value="request">Sujeito à confirmação</option></select></label><label>Primeiro horário obrigatório<input id="setservicefirst" type="time"></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="setserviceactive" type="checkbox" checked style="width:22px;min-height:22px">Serviço ativo</label><label>Observações<textarea id="setservicenotes"></textarea></label><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar serviço</button></div></form></dialog>
+<dialog id="setserviced"><form id="setservicef" class="stack settings-service-editor">
+<input id="setserviceid" type="hidden">
+<h3 id="setservicetitle">Novo serviço</h3>
+<div id="setservicemsg" class="notice hidden"></div>
+<label>Nome do serviço<input id="setservicename" required></label>
+<div class="row settings-service-essential">
+  <label>Categoria<input id="setservicecat" placeholder="Ex.: Estética, Proteção, Pacote"></label>
+  <label>Duração (minutos)<input id="setserviceduration" type="number" min="5" step="5" required></label>
+</div>
+<label class="settings-service-check"><input id="setservicesizepricing" type="checkbox">Preço por porte P/M e G</label>
+<label id="setservicebasewrap">Preço base<input id="setserviceprice" type="number" min="0" step="0.01" required></label>
+<div id="setservicesizeprices" class="row hidden">
+  <label>Preço P/M<input id="setservicepricepm" type="number" min="0" step="0.01"></label>
+  <label>Preço G<input id="setservicepriceg" type="number" min="0" step="0.01"></label>
+</div>
+<details id="setserviceadvanced" class="settings-service-advanced">
+  <summary>Configurações avançadas</summary>
+  <div class="stack">
+    <label>Modo de agendamento<select id="setservicemode"><option value="auto">Horário automático</option><option value="request">Sujeito à confirmação</option></select></label>
+    <label>Primeiro horário obrigatório<input id="setservicefirst" type="time"></label>
+    <label class="settings-service-check"><input id="setserviceactive" type="checkbox" checked>Serviço ativo</label>
+    <label>Observações<textarea id="setservicenotes"></textarea></label>
+  </div>
+</details>
+<div class="actions settings-service-footer"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar serviço</button></div>
+</form></dialog>
 <dialog id="setaddond"><form id="setaddonf" class="stack"><input id="setaddonid" type="hidden"><h3 id="setaddontitle">Novo extra</h3><div id="setaddonmsg" class="notice hidden"></div><label>Nome<input id="setaddonname" required></label><label>Descrição<textarea id="setaddondesc"></textarea></label><div class="row"><label>Preço<input id="setaddonprice" type="number" min="0" step="0.01"></label><label>Tempo adicional (minutos)<input id="setaddonduration" type="number" min="0" step="5"></label></div><label>Ordem de exibição<input id="setaddonsort" type="number" step="1"></label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="setaddonactive" type="checkbox" checked style="width:22px;min-height:22px">Extra ativo</label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="setaddonpublic" type="checkbox" style="width:22px;min-height:22px">Disponível no agendamento público</label><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="setaddonall" type="checkbox" checked style="width:22px;min-height:22px">Compatível com todos os serviços</label><div id="setaddonserviceswrap" class="hidden"><div style="font-weight:800;margin-bottom:7px">Compatível com quais serviços?</div><div id="setaddonservices" class="stack"></div></div><div class="actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Salvar extra</button></div></form></dialog>
 
 <dialog id="collabsd"><div class="stack">
@@ -2523,10 +2549,12 @@ function renderOperationalSettings(){
 function toggleServiceSizePricingFields(){
   const enabled=$("setservicesizepricing").checked;
   $("setservicesizeprices").classList.toggle("hidden",!enabled);
+  $("setservicebasewrap").hidden=enabled;
+  $("setserviceprice").required=!enabled;
   $("setservicepricepm").required=enabled;$("setservicepriceg").required=enabled
 }
 function openServiceSetting(s=null){
-  $("setservicef").reset();show("setservicemsg","");$("setserviceid").value=s?.id||"";$("setservicetitle").textContent=s?"Editar serviço":"Novo serviço";$("setservicename").value=s?.name||"";$("setservicecat").value=s?.category||"";$("setserviceprice").value=s?.price??"";$("setservicesizepricing").checked=!!s?.size_pricing_enabled;$("setservicepricepm").value=s?.price_pm??s?.price??"";$("setservicepriceg").value=s?.price_g??s?.price??"";toggleServiceSizePricingFields();$("setserviceduration").value=s?.duration_minutes??90;$("setservicemode").value=s?.booking_mode||"auto";$("setservicefirst").value=s?.first_slot_time?String(s.first_slot_time).slice(0,5):"";$("setserviceactive").checked=s?!!s.active:true;$("setservicenotes").value=s?.notes||"";$("setserviced").showModal()
+  $("setservicef").reset();$("setserviceadvanced").open=false;show("setservicemsg","");$("setserviceid").value=s?.id||"";$("setservicetitle").textContent=s?"Editar serviço":"Novo serviço";$("setservicename").value=s?.name||"";$("setservicecat").value=s?.category||"";$("setserviceprice").value=s?.price??"";$("setservicesizepricing").checked=!!s?.size_pricing_enabled;$("setservicepricepm").value=s?.price_pm??s?.price??"";$("setservicepriceg").value=s?.price_g??s?.price??"";toggleServiceSizePricingFields();$("setserviceduration").value=s?.duration_minutes??90;$("setservicemode").value=s?.booking_mode||"auto";$("setservicefirst").value=s?.first_slot_time?String(s.first_slot_time).slice(0,5):"";$("setserviceactive").checked=s?!!s.active:true;$("setservicenotes").value=s?.notes||"";$("setserviced").showModal()
 }
 async function saveServiceSetting(e){
   e.preventDefault();if(currentRole!=="owner")return;
