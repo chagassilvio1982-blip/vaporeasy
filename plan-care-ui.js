@@ -202,7 +202,7 @@ function summary(d){
   ['Contratadas',known?limit:'—'],['Concluídas',done],['Agendadas',scheduled??'—'],
   ['A realizar',known?remaining:'—']
  ].map(([label,value])=>'<div><b>'+html(value)+'</b><span>'+label+'</span></div>').join('')+
- '<div class="care-meta">'+html(note)+(scheduled===undefined||scheduled===null?' Consulte os agendamentos na agenda.':'')+'</div>';
+ '</div><div class="care-meta">'+html(note)+(scheduled===undefined||scheduled===null?' Consulte os agendamentos na agenda.':'')+'</div>';
 }
 function careDate(s){return String(s||'').slice(0,10).split('-').reverse().join('/');}
 function careInfo(x,mode){
