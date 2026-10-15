@@ -283,3 +283,19 @@ test('cuidado deve ser explicitamente marcado e não realizado não gera evento 
  assert.match(migration,/outcome IN \('performed','not_performed'\)/);
  assert.match(migration,/REVOKE ALL ON FUNCTION public\.complete_appointment_with_cares/);
 });
+
+
+test('funções inline de conclusão compilam e o modal tem controles exclusivos',()=>{
+ const markup=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const begin=markup.indexOf('let finishCareContext=null;');
+ const end=markup.indexOf('async function loadRemoteImage(url){',begin);
+ assert.ok(begin>0&&end>begin);
+ assert.doesNotThrow(()=>new Function(markup.slice(begin,end)));
+ assert.equal((markup.match(/id="finish-care-checks"/g)||[]).length,1);
+ assert.equal((markup.match(/id="finish-care-brief"/g)||[]).length,1);
+ assert.match(markup.slice(begin,end),/value="yes"/);
+ assert.match(markup.slice(begin,end),/value="no"/);
+ const css=fs.readFileSync(path.resolve(__dirname,'../../plan-care.css'),'utf8');
+ assert.match(css,/\.care-counts-compact/);
+ assert.match(css,/\.finish-care-item/);
+});
