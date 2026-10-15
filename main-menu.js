@@ -43,4 +43,19 @@
       if(agendaExtra.open&&!agendaExtra.contains(event.target))agendaExtra.open=false;
     });
   }
+  const financeExtra=document.getElementById('finance-more-actions');
+  if(financeExtra){
+    financeExtra.addEventListener('click',event=>{
+      if(event.target.closest('.finance-more-panel button'))financeExtra.open=false;
+    });
+    financeExtra.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&financeExtra.open){
+        financeExtra.open=false;
+        financeExtra.querySelector('summary')?.focus();
+      }
+    });
+    document.addEventListener('pointerdown',event=>{
+      if(financeExtra.open&&!financeExtra.contains(event.target))financeExtra.open=false;
+    });
+  }
 })();

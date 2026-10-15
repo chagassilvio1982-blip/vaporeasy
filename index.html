@@ -1154,6 +1154,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/main-menu.css?v=20261015-4">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 <link rel="stylesheet" href="/agenda-quick.css?v=20261015-3">
+<link rel="stylesheet" href="/finance-clean.css?v=20261015-2">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -1326,22 +1327,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
 </section>
 <section id="fin" class="hidden">
-<div class="section-head">
-  <div><div class="title">Financeiro</div><p class="sub">Visão mensal de caixa, recebimentos e pendências.</p></div>
-  <button id="fnewexp" type="button" class="primary section-primary">+ Despesa</button>
+<div class="section-head finance-head">
+  <div class="finance-head-copy"><div class="title">Financeiro</div></div>
+  <div class="finance-head-actions">
+    <button id="fnewexp" type="button" class="primary section-primary">+ Despesa</button>
+    <details id="finance-more-actions" class="finance-more-actions">
+      <summary aria-label="Mais opções do financeiro" title="Mais opções do financeiro">⋯</summary>
+      <div class="finance-more-panel" aria-label="Ações secundárias do financeiro">
+        <button id="frefresh" type="button" class="ghost">Atualizar</button>
+        <button id="fmonthreport" type="button" class="ghost">Relatório do mês</button>
+      </div>
+    </details>
+  </div>
 </div>
-<div class="finance-toolbar finance-toolbar-report"><label>Mês<input id="fmonth" type="month"></label><button id="frefresh" type="button" class="ghost">Atualizar</button><button id="fmonthreport" type="button" class="primary">Relatório do mês</button></div>
+<div class="finance-toolbar finance-toolbar-report"><label for="fmonth">Mês<input id="fmonth" type="month"></label></div>
 <div id="fsummary" class="kpi-grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0">
   <div class="item"><div class="meta">Faturado no mês</div><div id="ffaturado" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">Recebido no mês</div><div id="frecebido" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">A receber</div><div id="fareceber" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">Despesas do mês</div><div id="fdespesas" class="time">R$ 0,00</div></div>
 </div>
-<div class="item" style="margin-bottom:12px"><div class="meta">Saldo de caixa do mês</div><div id="fsaldo" class="time">R$ 0,00</div><div class="meta" style="margin-top:5px">Recebimentos confirmados menos despesas registradas.</div></div>
-<details open><summary style="cursor:pointer;font-weight:900">Documentos mensais por cliente <span id="fmonthdoccount"></span></summary><div class="meta" style="margin:7px 0 9px">O documento usa somente os serviços concluídos no mês selecionado e agrupa a quantidade executada por veículo.</div><div id="fmonthdocs"><div class="empty">Carregando...</div></div></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">A receber no mês <span id="fpendingcount"></span></summary><div id="fpending" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
-<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Recebidos no mês <span id="fpaidcount"></span></summary><div id="fpaid" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
-<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Despesas do mês <span id="fexpensecount"></span></summary><div id="fexpenses" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
+<div class="finance-cashline" aria-label="Saldo de caixa do mês"><div><strong>Saldo de caixa do mês</strong><small>Recebido − despesas registradas</small></div><div id="fsaldo" class="time">R$ 0,00</div></div>
+<details id="finance-pending" class="finance-section finance-section-primary" open><summary>A receber no mês <span id="fpendingcount"></span></summary><div id="fpending" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
+<details id="finance-month-docs" class="finance-section"><summary>Documentos mensais por cliente <span id="fmonthdoccount"></span></summary><div class="meta" style="margin:7px 0 9px">O documento usa somente os serviços concluídos no mês selecionado e agrupa a quantidade executada por veículo.</div><div id="fmonthdocs"><div class="empty">Carregando...</div></div></details>
+<details id="finance-paid" class="finance-section"><summary>Recebidos no mês <span id="fpaidcount"></span></summary><div id="fpaid" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
+<details id="finance-expenses" class="finance-section"><summary>Despesas do mês <span id="fexpensecount"></span></summary><div id="fexpenses" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 </section>
 <section id="rep" class="hidden"><div class="title">Relatórios e gestão</div><p class="sub">Visão consolidada da operação no período selecionado.</p>
 <div class="row"><label>De<input id="rstart" type="date"></label><label>Até<input id="rend" type="date"></label></div>
@@ -2934,7 +2944,7 @@ async function openMonthlyClientReceipt(clientId,month){
 
 function financeApptCard(a,p,maps,paid=false){
   const cl=maps.cm.get(a.client_id),v=maps.vm.get(a.vehicle_id),sv=maps.sm.get(a.service_id),when=paid?(p?.paid_at||a.completed_at):a.completed_at;
-  return '<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+esc(sv?.name||"Serviço")+'<br>'+esc(receiptDate(when))+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(p?.amount??a.final_value))+'</div></div><div class="actions" style="margin-top:8px">'+(!paid?'<button type="button" class="success" data-fin-pay="'+a.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-fin-receipt="'+a.id+'">Comprovante</button>':'<button type="button" class="ghost" data-fin-receipt="'+a.id+'">Recibo</button>')+'</div></div>'
+  return '<div class="item'+(!paid?' finance-pending-card':'')+'" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+esc(sv?.name||"Serviço")+'<br>'+esc(receiptDate(when))+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(p?.amount??a.final_value))+'</div></div><div class="actions" style="margin-top:8px">'+(!paid?'<button type="button" class="success" data-fin-pay="'+a.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-fin-receipt="'+a.id+'">Atendimento / Pix</button>':'<button type="button" class="ghost" data-fin-receipt="'+a.id+'">Recibo</button>')+'</div></div>'
 }
 function financePackageDate(d){
   if(!d)return "—";
@@ -2978,9 +2988,9 @@ function financePackageGroupCard(group,maps,paid=false){
   const dateLine=paid
     ?("Recebido"+(first.paid_at?" em "+financePackageDate(first.paid_at):"")+(sameMethod&&first.payment_method?" • "+esc(first.payment_method):""))
     :"Mensalidade conjunta • "+group.length+" veículos";
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+detail+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(total))+'</div></div>'+
+  return '<div class="item'+(!paid?' finance-pending-card':'')+'" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+detail+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(total))+'</div></div>'+
     (!paid
-      ?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-group-pay="'+esc(ids)+'">Confirmar pagamento conjunto</button><button type="button" class="ghost" data-pkg-group-share="'+esc(ids)+'">Mensalidade conjunta / Pix</button></div>'
+      ?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-group-pay="'+esc(ids)+'">Confirmar pagamento conjunto</button><button type="button" class="ghost" data-pkg-group-share="'+esc(ids)+'">Mensalidades / Pix</button></div>'
       :'<div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-pkg-group-share="'+esc(ids)+'">Recibo conjunto</button></div>')+
   '</div>'
 }
@@ -3000,14 +3010,17 @@ function financePackageCards(rows,maps,paid=false,monthRows=[]){
     return group.map(c=>financePackageChargeCard(c,maps,paid,paid?financePackageUpgradeTarget(c,monthRows):null)).join("")
   }).join("")
 }
+function financePlanDisplayName(name){
+  return String(name||"Plano").replace(/^Pacote(?=\s|$)/i,"Plano").trim();
+}
 function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
   const cl=maps.cm.get(c.client_id),v=maps.vm.get(c.vehicle_id),sv=maps.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency),freq=meta?.label||c.frequency,visits=Number(c.visits_per_month||meta?.visits||0),gross=Number(c.gross_monthly_amount??c.amount??0),credit=Number(c.credit_applied||0),amount=Number(c.amount||0),commercialDiscount=packageChargeCommercialDiscount(c);
-  const baseDetail=esc(sv?.name||"Pacote")+' • '+esc(freq)+' • '+visits+' estéticas/mês';
+  const baseDetail=esc(financePlanDisplayName(sv?.name))+' • '+esc(freq)+' • '+visits+' estéticas/mês';
   const targetMeta=upgradeTarget?packageFrequencyMeta(upgradeTarget.frequency):null;
   const targetService=upgradeTarget?maps.sm.get(upgradeTarget.service_id):null;
   const historyTitle=upgradeTarget&&paid?'Pagamento inicial do pacote':baseDetail;
   const historyDetail=upgradeTarget&&paid
-    ?'<br><span>'+baseDetail+'</span><br><span>Incorporado ao upgrade para '+esc(targetService?.name||sv?.name||"pacote")+' '+esc(targetMeta?.label||upgradeTarget.frequency||"")+'</span>'
+    ?'<br><span>'+baseDetail+'</span><br><span>Incorporado ao upgrade para '+esc(financePlanDisplayName(targetService?.name||sv?.name))+' '+esc(targetMeta?.label||upgradeTarget.frequency||"")+'</span>'
     :"";
   const dateLine=paid?("Recebido em "+financePackageDate(c.paid_at)+(c.payment_method?" • "+esc(c.payment_method):"")):("Vencimento "+financePackageDate(c.due_date));
   let adjustment="";
@@ -3022,11 +3035,11 @@ function financePackageChargeCard(c,maps,paid=false,upgradeTarget=null){
   }
   const covered=c.status==="covered";
   const paidMessage=upgradeTarget
-    ?'Valor preservado como crédito no upgrade do pacote.'
+    ?'Valor preservado como crédito na atualização do plano.'
     :(credit>0
       ?'Complemento pago. Mensalidade total de '+esc(money(gross))+' quitada.'
-      :'Mensalidade do pacote paga.');
-  return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Mensalidade / Pix</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Recibo de pagamento</button></div>'))+'</div>'
+      :'Mensalidade do plano paga.');
+  return '<div class="item'+(!paid?' finance-pending-card':'')+'" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:950">'+esc(cl?.name||"Cliente")+'</div><div class="meta">'+esc(v?(v.brand+" "+v.model+(v.plate?" • "+v.plate:"")):"Veículo")+'<br>'+(upgradeTarget&&paid?'<b>'+historyTitle+'</b>'+historyDetail:baseDetail)+adjustment+'<br>'+dateLine+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(amount))+'</div></div>'+(covered?'<div class="meta" style="margin-top:8px">Mensalidade coberta por pagamento anterior no mesmo mês.</div>':(!paid?'<div class="actions" style="margin-top:8px"><button type="button" class="success" data-pkg-pay="'+c.id+'">Confirmar pagamento</button><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Mensalidade / Pix</button></div>':'<div class="meta" style="margin-top:8px">'+paidMessage+'</div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-pkg-charge-share="'+c.id+'">Recibo de pagamento</button></div>'))+'</div>'
 }
 async function getPackageChargeShareData(id){
   const cr=await sb.from("package_charges").select("*").eq("id",id).single();if(cr.error)throw cr.error;
@@ -5297,7 +5310,7 @@ async function openPackagePayment(id){
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite confirmar pagamentos.","error");
   currentPaymentMode="package_receive";currentPaymentGroupIds=[];
   $("payf").reset();$("payid").value=id;show("paymsg","");
-  $("paytitle").textContent="Confirmar mensalidade do pacote";
+  $("paytitle").textContent="Confirmar mensalidade do plano";
   $("paydiscountlabelwrap").classList.add("hidden");$("paydiscountwrap").classList.add("hidden");
   $("payreceivefields").classList.remove("hidden");$("paymethod").required=true;$("paysubmit").textContent="Confirmar recebimento";
   $("paysummary").innerHTML='<div class="empty">Carregando cobrança...</div>';$("paypreview").innerHTML="";currentPaymentQuote=null;
@@ -5307,7 +5320,7 @@ async function openPackagePayment(id){
     if(r.error)throw r.error;
     const c=r.data,maps=currentFinanceMonthReport?.maps,cl=maps?.cm.get(c.client_id),v=maps?.vm.get(c.vehicle_id),sv=maps?.sm.get(c.service_id),meta=packageFrequencyMeta(c.frequency);
     currentPaymentQuote={id,gross:Number(c.amount||0),status:"package"};
-    $("paysummary").innerHTML='<div><span>'+esc(sv?.name||"Pacote")+' • '+esc(meta?.label||c.frequency)+' • '+Number(c.visits_per_month||meta?.visits||0)+' estéticas/mês</span><b>'+esc(money(c.amount))+'</b></div><div class="meta">'+esc(cl?.name||"Cliente")+' • '+esc(v?(v.brand+" "+v.model):"Veículo")+'</div>';
+    $("paysummary").innerHTML='<div><span>'+esc(financePlanDisplayName(sv?.name))+' • '+esc(meta?.label||c.frequency)+' • '+Number(c.visits_per_month||meta?.visits||0)+' estéticas/mês</span><b>'+esc(money(c.amount))+'</b></div><div class="meta">'+esc(cl?.name||"Cliente")+' • '+esc(v?(v.brand+" "+v.model):"Veículo")+'</div>';
     $("paydiscounttype").value="none";$("paydiscountvalue").value="";updatePaymentDiscountPreview()
   }catch(err){$("paysummary").innerHTML="";show("paymsg",fail(err),"error")}
 }
@@ -5434,7 +5447,7 @@ async function savePayment(e){
     if(packageGroupReceive){
       show("msg","Mensalidades confirmadas em uma única baixa.","ok")
     }else if(packageReceive){
-      show("msg","Mensalidade do pacote confirmada como recebida.","ok")
+      show("msg","Mensalidade do plano confirmada como recebida.","ok")
     }else if(receive){
       show("msg",q.discount>0?"Pagamento confirmado com desconto de "+money(q.discount)+".":"Pagamento confirmado. O documento agora é um recibo de pagamento.","ok")
     }else if(groupDiscount){
@@ -5897,6 +5910,6 @@ boot();
 <script src="/plan-care-rhythm.js?v=20261014-1"></script>
 <script src="/plan-care-ui.js?v=20261014-1"></script>
 <script src="/plan-control.js?v=20261014-04"></script>
-<script src="/main-menu.js?v=20261015-2"></script>
+<script src="/main-menu.js?v=20261015-fin1"></script>
 <script src="/agenda-quick-search.js?v=20261014-1"></script>
 </body></html>
