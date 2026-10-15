@@ -1151,7 +1151,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 </style>
 <style id="vaporeasy-recurring-multi-20260929"></style>
-<link rel="stylesheet" href="/main-menu.css?v=20261001">\n<link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
+<link rel="stylesheet" href="/main-menu.css?v=20261015-1">\n<link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 <link rel="stylesheet" href="/agenda-quick.css?v=20261014-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
@@ -1220,9 +1220,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <form id="af" class="stack" autocomplete="on" novalidate><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<div class="password-wrap"><input id="pass" name="password" type="password" autocomplete="current-password" required><button id="passtoggle" class="password-toggle" type="button" aria-label="Mostrar senha">Mostrar</button></div></label><button id="ab" class="primary" type="submit">Entrar no Vaporeasy</button></form><div id="loginready" class="login-ready">Carregando sistema...</div><div class="meta" style="text-align:center;margin-top:6px">Vaporeasy · build 2026.09.28-11</div>
 </div></section>
 <section id="main" class="hidden">
-<div class="main-menu-bar"><button id="main-menu-toggle" class="ghost" type="button" aria-haspopup="dialog" aria-controls="main-menu-dialog" aria-expanded="false"><span aria-hidden="true">☰</span> Menu</button><span id="main-menu-current" aria-live="polite">👥 Clientes</span></div>
-<dialog id="main-menu-dialog" aria-labelledby="main-menu-title"><div class="main-menu-heading"><h2 id="main-menu-title">Menu</h2><button id="main-menu-close" class="ghost" type="button" aria-label="Fechar menu">Fechar</button></div>
-<nav class="tabs" aria-label="Navegação principal"><button id="top" class="ghost hidden">🧰 Operação</button><button id="tc" class="ghost active">👥 Clientes</button><button id="ta" class="ghost">📅 Agenda</button><button id="tf" class="ghost hidden">💰 Financeiro</button><button id="tr" class="ghost hidden">📊 Relatórios</button><button id="tset" class="ghost hidden">⚙️ Configurações</button><button id="out" class="ghost">↩ Sair</button></nav></dialog>
+<div id="main-nav-shell" class="main-nav-shell">
+  <nav id="main-primary-nav" class="tabs main-nav-primary" aria-label="Áreas principais">
+    <button id="top" type="button" class="ghost hidden">🧰 Meus atendimentos</button>
+    <button id="tc" type="button" class="ghost active">👥 Cadastros</button>
+    <button id="ta" type="button" class="ghost">📅 Agenda</button>
+    <button id="tf" type="button" class="ghost hidden">💰 Financeiro</button>
+    <button id="tr" type="button" class="ghost hidden">📊 Relatórios</button>
+  </nav>
+  <div class="main-nav-utility" aria-label="Outras ações">
+    <button id="tset" type="button" class="ghost hidden">⚙️ Configurações</button>
+    <button id="out" type="button" class="ghost">Sair</button>
+  </div>
+</div>
 <div id="msg" class="notice hidden"></div>
 <div id="watercard" class="card" style="margin-bottom:14px;background:linear-gradient(145deg,#0b3043,#10465e);border-color:#1d607c">
   <div class="meta" style="font-weight:900;letter-spacing:.4px">ECONOMIA ESTIMADA DE ÁGUA</div>
@@ -5857,6 +5867,6 @@ boot();
 <script src="/plan-care-rhythm.js?v=20261014-1"></script>
 <script src="/plan-care-ui.js?v=20261014-1"></script>
 <script src="/plan-control.js?v=20261014-04"></script>
-<script src="/main-menu.js?v=20261001"></script>
+<script src="/main-menu.js?v=20261015-1"></script>
 <script src="/agenda-quick-search.js?v=20261014-1"></script>
 </body></html>
