@@ -1151,7 +1151,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 </style>
 <style id="vaporeasy-recurring-multi-20260929"></style>
-<link rel="stylesheet" href="/main-menu.css?v=20261015-1">\n<link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
+<link rel="stylesheet" href="/main-menu.css?v=20261015-2">\n<link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 <link rel="stylesheet" href="/agenda-quick.css?v=20261014-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
@@ -1234,11 +1234,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
 </div>
 <div id="msg" class="notice hidden"></div>
-<div id="watercard" class="card" style="margin-bottom:14px;background:linear-gradient(145deg,#0b3043,#10465e);border-color:#1d607c">
-  <div class="meta" style="font-weight:900;letter-spacing:.4px">ECONOMIA ESTIMADA DE ÁGUA</div>
-  <div id="watertotal" style="font-size:28px;font-weight:950;color:#73d6fb;margin-top:4px">—</div>
-  <div id="waterdetail" class="meta" style="margin-top:5px">Atualizando contador...</div>
-</div>
+<details id="watercard" class="water-compact">
+  <summary><span>💧 Economia de água</span><strong id="watertotal" aria-live="polite">—</strong></summary>
+  <div id="waterdetail" class="meta">Atualizando contador...</div>
+</details>
 <section id="ops" class="hidden">
   <div class="section-head operator-head">
     <div><div class="title">Meus atendimentos</div><p class="sub">Somente os serviços atribuídos a você.</p></div>
@@ -1260,21 +1259,26 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div id="opjobs"><div class="empty">Carregando atendimentos...</div></div>
 </section>
 <section id="cad">
-  <div class="section-head">
-    <div><div class="title">Clientes</div><p class="sub">Digite o nome para localizar rapidamente um cadastro.</p></div>
-    <button id="nc" class="primary section-primary">+ Cliente</button>
+  <div class="section-head cad-head">
+    <div class="cad-head-copy"><div class="title">Clientes</div><p class="sub">Digite o nome para localizar rapidamente um cadastro.</p></div>
+    <div class="cad-head-actions">
+      <button id="nc" class="primary section-primary">+ Cliente</button>
+      <details id="cad-more-actions" class="cad-more-actions">
+        <summary aria-label="Mais opções de cadastro" title="Mais opções de cadastro">⋯</summary>
+        <div class="cad-more-panel">
+          <div class="cad-more-heading">Mais opções de cadastro</div>
+          <div class="tool-grid">
+            <button id="importcontacts" class="ghost hidden" type="button">📱 Importar contatos</button>
+            <button id="collabsbtn" class="ghost hidden" type="button">Colaboradores</button>
+            <button id="teamsbtn" class="ghost hidden" type="button">Equipes</button>
+            <button id="rc" class="ghost" type="button">Atualizar lista</button>
+          </div>
+          <div id="contactimporthint" class="meta hidden tool-hint">Android: selecione contatos do telefone, revise e importe somente os clientes desejados.</div>
+        </div>
+      </details>
+    </div>
   </div>
   <input id="q" class="section-search" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="words" spellcheck="false">
-  <details class="section-tools">
-    <summary>Ações de cadastro</summary>
-    <div class="tool-grid">
-      <button id="importcontacts" class="ghost hidden" type="button">📱 Importar contatos</button>
-      <button id="collabsbtn" class="ghost hidden">Colaboradores</button>
-      <button id="teamsbtn" class="ghost hidden">Equipes</button>
-      <button id="rc" class="ghost">Atualizar lista</button>
-    </div>
-    <div id="contactimporthint" class="meta hidden tool-hint">Android: selecione contatos do telefone, revise e importe somente os clientes desejados.</div>
-  </details>
   <div id="clients"></div>
 </section>
 <section id="age" class="hidden">
@@ -5868,6 +5872,6 @@ boot();
 <script src="/plan-care-rhythm.js?v=20261014-1"></script>
 <script src="/plan-care-ui.js?v=20261014-1"></script>
 <script src="/plan-control.js?v=20261014-04"></script>
-<script src="/main-menu.js?v=20261015-1"></script>
+<script src="/main-menu.js?v=20261015-2"></script>
 <script src="/agenda-quick-search.js?v=20261014-1"></script>
 </body></html>
