@@ -9,6 +9,7 @@ on:
       - ux/financeiro-clean-20261015
       - ux/relatorios-clean-20261015
       - ux/config-servicos-clean-20261015
+      - ux/config-servico-editor-clean-20261015
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +30,7 @@ jobs:
           node --test tests/finance-clean/finance-clean.test.cjs
           node --test tests/reports-clean/reports-clean.test.cjs
           node --test tests/settings-service-clean/settings-service-clean.test.cjs
+          node --test tests/settings-service-editor/settings-service-editor.test.cjs
       - name: Validate static JS syntax
         run: |
           node --check plan-care-rhythm.js
