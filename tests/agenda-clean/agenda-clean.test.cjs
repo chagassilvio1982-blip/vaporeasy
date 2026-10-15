@@ -130,16 +130,19 @@ test('seletor de data aparece no Dia, mas não compete com Mês e Lista',()=>{
  };
  const change=vm.runInNewContext(html.slice(start,end)+';setAgendaView;',context);
  change('list');
+ assert.equal(elements.get('agendaDateToolbar').hidden,true);
  assert.ok(elements.get('agendaDateToolbar').classList.contains('hidden'));
  assert.ok(elements.get('agendaDayView').classList.contains('hidden'));
  assert.ok(!elements.get('agendaListView').classList.contains('hidden'));
  assert.equal(date.value,'2026-10-15');
  assert.equal(loads.list,1);
  change('month');
+ assert.equal(elements.get('agendaDateToolbar').hidden,true);
  assert.ok(elements.get('agendaDateToolbar').classList.contains('hidden'));
  assert.ok(!elements.get('monthcal').classList.contains('hidden'));
  assert.equal(loads.month,1);
  change('day');
+ assert.equal(elements.get('agendaDateToolbar').hidden,false);
  assert.ok(!elements.get('agendaDateToolbar').classList.contains('hidden'));
  assert.ok(!elements.get('agendaDayView').classList.contains('hidden'));
  assert.ok(elements.get('agendaListView').classList.contains('hidden'));
@@ -153,4 +156,17 @@ test('menu secundário ocupa largura reduzida, mantendo duas ações e área toc
  assert.match(agenda,/Gerar link público/);
  assert.match(agenda,/Registrar serviço realizado/);
  assert.doesNotMatch(agenda,/Ações da agenda/);
+});
+
+
+test('seletor diário fica escondido também ao reabrir a Agenda na visão Lista',()=>{
+ const start=html.indexOf('function tab(x){');
+ const end=html.indexOf('function calendarMonthFromDate(',start);
+ assert.ok(start>0);
+ const snippet=html.slice(start,start+1900);
+ assert.match(snippet,/if\(x==="age"\)\{/);
+ assert.match(snippet,/dateControls\.hidden=agendaViewMode!=="day"/);
+ assert.match(snippet,/dateControls\.classList\.toggle\("hidden",dateControls\.hidden\)/);
+ assert.match(css,/#age #agendaDateToolbar\[hidden\],[\s\S]*?#age #agendaDateToolbar\.hidden\{display:none!important\}/);
+ assert.match(html,/<link rel="stylesheet" href="\/agenda-quick\.css\?v=20261015-3">/);
 });
