@@ -13,7 +13,7 @@ test('configurações bancárias conservam IDs, tipos e botão Salvar originais'
   assert.equal((form.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
  }
  assert.match(form,/<input id="setholder" required>/);
- assert.match(form,/<button class="primary settings-payment-save">Salvar dados de pagamento<\/button>/);
+ assert.match(form,/<button class="primary settings-payment-save" disabled>Salvar dados de pagamento<\/button>/);
  assert.equal((form.match(/<button\b/g)||[]).length,1);
  assert.match(html,/\$\("setpayf"\)\.onsubmit=savePaymentSettings/);
 });
@@ -70,7 +70,7 @@ test('CSS mantém controles legíveis no mobile sem ocultar campos principais',(
  assert.match(css,/#set #setpayf \.settings-payment-advanced>summary\{[^}]*min-height:44px/s);
  assert.match(css,/#set #setpayf \.settings-payment-save\{[^}]*min-height:44px/s);
  assert.match(css,/@media\(max-width:360px\)/);
- assert.match(html,/<link rel="stylesheet" href="\/settings-payment-clean\.css\?v=20261015-1">/);
+ assert.match(html,/<link rel="stylesheet" href="\/settings-payment-clean\.css\?v=20261015-2">/);
 });
 
 test('demais áreas, recibos e operações financeiras preservados',()=>{
@@ -82,4 +82,38 @@ test('demais áreas, recibos e operações financeiras preservados',()=>{
  assert.match(html,/confirm_payment_with_discount/);
  assert.match(html,/generateMonthlyFinanceReportPdf/);
  assert.match(html,/function receiptHtml\(d\)/);
+});
+
+test('Pagamento e Pix inicia recolhido e volta recolhido ao entrar em Configurações',()=>{
+ const p=html.indexOf('<b>Pagamento e Pix</b>');
+ assert.ok(p>0);
+ const start=html.lastIndexOf('<details class="settings-group">',p);
+ assert.ok(start>=0);
+ assert.doesNotMatch(html.slice(start,p),/\bopen\b/);
+ assert.ok(html.includes('document.querySelectorAll("#set .settings-group").forEach(group=>{group.open=false})'));
+ assert.ok(html.includes('$("setpayadvanced").open=false'));
+});
+test('botão Salvar ativa só com alteração, desativa ao reverter e enquanto grava',()=>{
+ const vm=require('node:vm');
+ const begin=html.indexOf('const PAYMENT_SETTING_FIELDS=');
+ const end=html.indexOf('async function loadOperationalSettings(){',begin);
+ assert.ok(begin>=0&&end>begin);
+ const ids=['setbiz','setholder','setbank','setpixtype','setpix','setbranch','setaccount','setfooter'];
+ const fields=Object.fromEntries(ids.map(id=>[id,{value:''}]));
+ const button={disabled:false};
+ const elements={...fields,setpayf:{querySelector:()=>button}};
+ const ctx=vm.createContext({$:id=>elements[id],JSON});
+ vm.runInContext(html.slice(begin,end)+'\nglobalThis.sync=syncPaymentSaveAvailability;globalThis.clean=markPaymentSettingsClean;globalThis.saving=v=>{paymentSettingsSaving=v};globalThis.clear=()=>{paymentSettingsInitialValues=null};',ctx);
+ ctx.sync();assert.equal(button.disabled,true,'ainda sem dados');
+ ctx.clean();assert.equal(button.disabled,true,'sem alterações');
+ fields.setpix.value='nova';ctx.sync();assert.equal(button.disabled,false,'Pix alterado');
+ fields.setpix.value='';ctx.sync();assert.equal(button.disabled,true,'Pix restaurado');
+ fields.setfooter.value='rodapé';ctx.sync();assert.equal(button.disabled,false,'campo avançado alterado');
+ ctx.saving(true);ctx.sync();assert.equal(button.disabled,true,'enquanto grava');
+ ctx.saving(false);ctx.sync();assert.equal(button.disabled,false,'tentativa após erro');
+ ctx.clean();assert.equal(button.disabled,true,'após salvar');
+ ctx.clear();ctx.sync();assert.equal(button.disabled,true,'novo carregamento');
+ assert.ok(css.includes('.settings-payment-save:disabled{'));
+ assert.ok(html.includes('addEventListener("input",syncPaymentSaveAvailability)'));
+ assert.ok(html.includes('addEventListener("change",syncPaymentSaveAvailability)'));
 });
