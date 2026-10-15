@@ -1153,7 +1153,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <style id="vaporeasy-recurring-multi-20260929"></style>
 <link rel="stylesheet" href="/main-menu.css?v=20261015-4">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
-<link rel="stylesheet" href="/agenda-quick.css?v=20261015-2">
+<link rel="stylesheet" href="/agenda-quick.css?v=20261015-3">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -3667,7 +3667,11 @@ function setAgendaView(mode){
   $("agendaDayView")?.classList.toggle("hidden",agendaViewMode==="list");
   $("agendaListView")?.classList.toggle("hidden",agendaViewMode!=="list");
   // O seletor diário só tem utilidade na visão Dia. Mês e Lista possuem navegação própria.
-  $("agendaDateToolbar")?.classList.toggle("hidden",agendaViewMode!=="day");
+  const dateControls=$("agendaDateToolbar");
+  if(dateControls){
+    dateControls.hidden=agendaViewMode!=="day";
+    dateControls.classList.toggle("hidden",dateControls.hidden);
+  }
   [["agendaViewMonth","month"],["agendaViewDay","day"],["agendaViewList","list"]].forEach(([id,key])=>{
     const b=$(id);if(!b)return;b.className=key===agendaViewMode?"primary":"ghost"
   });
@@ -3777,7 +3781,12 @@ function tab(x){
   $("tr").classList.toggle("active",x==="rep");
   $("tset").classList.toggle("active",x==="set");
   if(x==="ops"){loadOperatorMonth();loadOperatorJobs(operatorSelectedDate,false)}
-  if(x==="age"){agendaCalendarMonth=calendarMonthFromDate($("date").value||today());if(agendaViewMode==="month")loadMonthCalendar(false);else if(agendaViewMode==="list")loadAgendaList();else loadApps()}
+  if(x==="age"){
+    const dateControls=$("agendaDateToolbar");
+    if(dateControls){dateControls.hidden=agendaViewMode!=="day";dateControls.classList.toggle("hidden",dateControls.hidden);}
+    agendaCalendarMonth=calendarMonthFromDate($("date").value||today());
+    if(agendaViewMode==="month")loadMonthCalendar(false);else if(agendaViewMode==="list")loadAgendaList();else loadApps()
+  }
   if(x==="fin"){if(!$("fmonth").value)$("fmonth").value=today().slice(0,7);loadFinance()}
   if(x==="rep"){setDefaultReportDates();loadManagementReport()}
   if(x==="set")loadOperationalSettings()
