@@ -55,7 +55,7 @@ test('ficha do técnico destaca fazer hoje, anterior, em dia, sem HTML não conf
  assert.match(h,/ESTÉTICA ANTERIOR/);
  assert.match(h,/JÁ REALIZADOS • EM DIA/);
  assert.doesNotMatch(h,/PRÓXIMOS CUIDADOS/);
- assert.match(h,/Próxima aplicação: 14\/10\/2026/);
+ assert.match(h,/Última aplicação: 15\/08\/2026 • Reaplicar nesta estética/);
  assert.match(h,/Plano Premium/);
  assert.doesNotMatch(h,/<script>/);
  assert.match(h,/&lt;script&gt;/);
