@@ -225,7 +225,9 @@ window.renderQuickPlanCare=async function(appointmentId,elementId){
   const r=await sb.rpc('appointment_care_brief',{p_appointment_id:appointmentId});
   if(!node.isConnected||node.dataset.careRequest!==appointmentId)return;
   if(r.error)throw r.error;
-  node.innerHTML=briefHtml(r.data||{},!!node.closest('.operator-job'));
+  const inCompletion=elementId==='finish-care-brief';
+  node.innerHTML=briefHtml({...r.data,completion_mode:inCompletion,hide_scheduled:inCompletion},!!node.closest('.operator-job'));
+  return r.data;
  }catch(err){
   if(node.isConnected&&node.dataset.careRequest===appointmentId)
    node.innerHTML='<div class="notice error">Não foi possível consultar os cuidados: '+esc(fail(err))+'</div>';
