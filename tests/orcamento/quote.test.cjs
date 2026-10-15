@@ -8,7 +8,7 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'../..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const sql=fs.readFileSync(path.join(root,'supabase/migrations/20261015_rg_service_budget.sql'),'utf8');
-const scripts=[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)].map(m=>m[1]).filter(Boolean);
+const scripts=html.split('<script').slice(1).map(block=>block.slice(block.indexOf('>')+1).split('</script>')[0]).filter(Boolean);
 const main=scripts.find(s=>s.includes('const SUPABASE_URL='));
 
 test('V2: JavaScript inline principal tem sintaxe valida',()=>{
