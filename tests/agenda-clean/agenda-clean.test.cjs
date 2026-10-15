@@ -104,3 +104,53 @@ test('financeiro, recibos e salvamento de agendamento não foram removidos',()=>
  assert.match(html,/\$\("rcharge"\)\.onclick=shareChargePix/);
  assert.match(html,/public\.|sb\.rpc\("cancel_appointment_with_scope"/);
 });
+
+test('seletor de data aparece no Dia, mas não compete com Mês e Lista',()=>{
+ assert.match(agenda,/id="agendaDateToolbar" class="agenda-toolbar"/);
+ assert.match(agenda,/id="date" type="date"/);
+ const start=html.indexOf('function setAgendaView(mode){');
+ const end=html.indexOf('function calendarMonthFromDate(',start);
+ assert.ok(start>=0&&end>start);
+ const elements=new Map();
+ for(const id of ['monthcal','agendaDayView','agendaListView','agendaDateToolbar','agendaViewMonth','agendaViewDay','agendaViewList']){
+  const classes=new Set();
+  elements.set(id,{className:'',classList:{
+   toggle:(name,enabled)=>{if(enabled)classes.add(name);else classes.delete(name)},
+   contains:name=>classes.has(name)
+  }});
+ }
+ const date={value:'2026-10-15'};
+ elements.set('date',date);
+ const loads={month:0,day:0,list:0};
+ const context={
+  agendaViewMode:'day',$:id=>elements.get(id),
+  loadMonthCalendar:()=>{loads.month++},
+  loadApps:()=>{loads.day++},
+  loadAgendaList:()=>{loads.list++}
+ };
+ const change=vm.runInNewContext(html.slice(start,end)+';setAgendaView;',context);
+ change('list');
+ assert.ok(elements.get('agendaDateToolbar').classList.contains('hidden'));
+ assert.ok(elements.get('agendaDayView').classList.contains('hidden'));
+ assert.ok(!elements.get('agendaListView').classList.contains('hidden'));
+ assert.equal(date.value,'2026-10-15');
+ assert.equal(loads.list,1);
+ change('month');
+ assert.ok(elements.get('agendaDateToolbar').classList.contains('hidden'));
+ assert.ok(!elements.get('monthcal').classList.contains('hidden'));
+ assert.equal(loads.month,1);
+ change('day');
+ assert.ok(!elements.get('agendaDateToolbar').classList.contains('hidden'));
+ assert.ok(!elements.get('agendaDayView').classList.contains('hidden'));
+ assert.ok(elements.get('agendaListView').classList.contains('hidden'));
+ assert.equal(date.value,'2026-10-15');
+ assert.equal(loads.day,2);
+});
+
+test('menu secundário ocupa largura reduzida, mantendo duas ações e área tocável',()=>{
+ assert.match(css,/#age \.agenda-more-panel\{[^}]*width:min\(218px,calc\(100vw - 28px\)\)/s);
+ assert.match(css,/#age \.agenda-more-panel button\{[^}]*min-height:44px/s);
+ assert.match(agenda,/Gerar link público/);
+ assert.match(agenda,/Registrar serviço realizado/);
+ assert.doesNotMatch(agenda,/Ações da agenda/);
+});
