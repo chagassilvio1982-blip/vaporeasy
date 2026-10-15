@@ -78,9 +78,10 @@ test('edição reinicia aba avançada sem apagar nome, preço ou observações',
  const b=html.indexOf('async function saveServiceSetting(e){',a);
  const source=html.slice(a,b);
  assert.match(source,/\$\("setserviceadvanced"\)\.open=false/);
- for(const field of ['name','category','price','price_pm','price_g','duration_minutes','booking_mode','first_slot_time','active','notes']){
+ for(const field of ['name','category','price','price_pm','price_g','duration_minutes','booking_mode','first_slot_time','notes']){
   assert.ok(source.includes('s?.'+field),field);
  }
+ assert.match(source,/\$\("setserviceactive"\)\.checked=s\?!!s\.active:true/);
  assert.match(source,/\$\("setserviced"\)\.showModal\(\)/);
  assert.doesNotMatch(source,/\.update\(|\.insert\(|\.delete\(/);
 });
