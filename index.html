@@ -1154,6 +1154,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/main-menu.css?v=20261015-4">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 <link rel="stylesheet" href="/agenda-quick.css?v=20261015-3">
+<link rel="stylesheet" href="/finance-clean.css?v=20261015-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
 <body>
@@ -1326,22 +1327,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
 </section>
 <section id="fin" class="hidden">
-<div class="section-head">
-  <div><div class="title">Financeiro</div><p class="sub">Visão mensal de caixa, recebimentos e pendências.</p></div>
-  <button id="fnewexp" type="button" class="primary section-primary">+ Despesa</button>
+<div class="section-head finance-head">
+  <div class="finance-head-copy"><div class="title">Financeiro</div></div>
+  <div class="finance-head-actions">
+    <button id="fnewexp" type="button" class="primary section-primary">+ Despesa</button>
+    <details id="finance-more-actions" class="finance-more-actions">
+      <summary aria-label="Mais opções do financeiro" title="Mais opções do financeiro">⋯</summary>
+      <div class="finance-more-panel" aria-label="Ações secundárias do financeiro">
+        <button id="frefresh" type="button" class="ghost">Atualizar</button>
+        <button id="fmonthreport" type="button" class="ghost">Relatório do mês</button>
+      </div>
+    </details>
+  </div>
 </div>
-<div class="finance-toolbar finance-toolbar-report"><label>Mês<input id="fmonth" type="month"></label><button id="frefresh" type="button" class="ghost">Atualizar</button><button id="fmonthreport" type="button" class="primary">Relatório do mês</button></div>
+<div class="finance-toolbar finance-toolbar-report"><label for="fmonth">Mês<input id="fmonth" type="month"></label></div>
 <div id="fsummary" class="kpi-grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0">
   <div class="item"><div class="meta">Faturado no mês</div><div id="ffaturado" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">Recebido no mês</div><div id="frecebido" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">A receber</div><div id="fareceber" class="time">R$ 0,00</div></div>
   <div class="item"><div class="meta">Despesas do mês</div><div id="fdespesas" class="time">R$ 0,00</div></div>
 </div>
-<div class="item" style="margin-bottom:12px"><div class="meta">Saldo de caixa do mês</div><div id="fsaldo" class="time">R$ 0,00</div><div class="meta" style="margin-top:5px">Recebimentos confirmados menos despesas registradas.</div></div>
-<details open><summary style="cursor:pointer;font-weight:900">Documentos mensais por cliente <span id="fmonthdoccount"></span></summary><div class="meta" style="margin:7px 0 9px">O documento usa somente os serviços concluídos no mês selecionado e agrupa a quantidade executada por veículo.</div><div id="fmonthdocs"><div class="empty">Carregando...</div></div></details>
-<details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">A receber no mês <span id="fpendingcount"></span></summary><div id="fpending" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
-<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Recebidos no mês <span id="fpaidcount"></span></summary><div id="fpaid" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
-<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:900">Despesas do mês <span id="fexpensecount"></span></summary><div id="fexpenses" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
+<div class="finance-cashline" aria-label="Saldo de caixa do mês"><div><strong>Saldo de caixa do mês</strong><small>Recebido − despesas registradas</small></div><div id="fsaldo" class="time">R$ 0,00</div></div>
+<details id="finance-pending" class="finance-section finance-section-primary" open><summary>A receber no mês <span id="fpendingcount"></span></summary><div id="fpending" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
+<details id="finance-month-docs" class="finance-section"><summary>Documentos mensais por cliente <span id="fmonthdoccount"></span></summary><div class="meta" style="margin:7px 0 9px">O documento usa somente os serviços concluídos no mês selecionado e agrupa a quantidade executada por veículo.</div><div id="fmonthdocs"><div class="empty">Carregando...</div></div></details>
+<details id="finance-paid" class="finance-section"><summary>Recebidos no mês <span id="fpaidcount"></span></summary><div id="fpaid" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
+<details id="finance-expenses" class="finance-section"><summary>Despesas do mês <span id="fexpensecount"></span></summary><div id="fexpenses" style="margin-top:9px"><div class="empty">Carregando...</div></div></details>
 </section>
 <section id="rep" class="hidden"><div class="title">Relatórios e gestão</div><p class="sub">Visão consolidada da operação no período selecionado.</p>
 <div class="row"><label>De<input id="rstart" type="date"></label><label>Até<input id="rend" type="date"></label></div>
