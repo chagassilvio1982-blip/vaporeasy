@@ -75,7 +75,8 @@
 
 /* Secondary information stays available but does not compete with main actions. */
 #watercard.water-compact{
-  margin:0 0 11px;
+  padding:0!important;
+  margin:0 0 11px!important;
   border:1px solid #1d3e50;
   border-radius:11px;
   background:#081f2a;
@@ -93,15 +94,23 @@
   font-weight:650!important;
   color:#aec5d1!important;
 }
-#watercard.water-compact>summary strong{
-  font-size:13px;
-  font-weight:780;
-  color:#c2deea;
-  text-align:right;
-  white-space:nowrap;
+#watercard.water-compact>summary .water-compact-arrow{
+  font-size:17px;
+  line-height:1;
+  color:#8fb0bf;
+  transition:transform .15s ease;
 }
+#watercard.water-compact[open]>summary .water-compact-arrow{transform:rotate(180deg)}
 #watercard.water-compact[open]>summary{border-bottom:1px solid #204657}
-#watercard.water-compact #waterdetail{padding:9px 11px;font-size:12px}
+#watercard.water-compact .water-compact-body{padding:9px 12px 11px}
+#watercard.water-compact #watertotal{
+  display:block;
+  font-size:19px!important;
+  font-weight:800;
+  margin:0!important;
+  color:#a7ddee;
+}
+#watercard.water-compact #waterdetail{padding:3px 0 0;margin:0!important;font-size:11px!important}
 #cad .cad-head{align-items:flex-start}
 #cad .cad-head>.cad-head-copy{min-width:0;flex:1}
 #cad .cad-head>.cad-head-actions{
