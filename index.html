@@ -1151,7 +1151,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 </style>
 <style id="vaporeasy-recurring-multi-20260929"></style>
-<link rel="stylesheet" href="/main-menu.css?v=20261015-2">\n<link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
+<link rel="stylesheet" href="/main-menu.css?v=20261015-3">
+<link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 <link rel="stylesheet" href="/agenda-quick.css?v=20261014-1">
 <link rel="stylesheet" href="/plan-care.css?v=20261014-1">
 </head>
@@ -1235,8 +1236,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 <div id="msg" class="notice hidden"></div>
 <details id="watercard" class="water-compact">
-  <summary><span>💧 Economia de água</span><strong id="watertotal" aria-live="polite">—</strong></summary>
-  <div id="waterdetail" class="meta">Atualizando contador...</div>
+  <summary><span>💧 Economia de água</span><span class="water-compact-arrow" aria-hidden="true">⌄</span></summary>
+  <div class="water-compact-body">
+    <strong id="watertotal" aria-live="polite">—</strong>
+    <div id="waterdetail" class="meta">Atualizando contador...</div>
+  </div>
 </details>
 <section id="ops" class="hidden">
   <div class="section-head operator-head">
