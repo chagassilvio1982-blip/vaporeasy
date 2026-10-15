@@ -213,3 +213,30 @@ test('vencido aparece só em fazer nesta estética, mas mantém referência à �
  assert.doesNotMatch(h,/JÁ REALIZADOS • EM DIA/);
  assert.equal((h.match(/<b>Hidro repelente<\/b>/g)||[]).length,1);
 });
+
+
+test('grade com quatro contadores é fechada antes das seções de cuidados no celular',()=>{
+ const markup=catalog.brief({
+  plan_name:'Plano Premium',visit_date:'2026-10-14',appointment_id:'appt-layout',
+  limit_visits:4,completed:0,scheduled:null,
+  benefits:[{label:'Enceramento',frequency:'per_visit'},
+   {label:'Hidro repelente',frequency:'interval_days',min_days:45,max_days:45}],
+  care_history:[{label:'Hidro repelente',date:'2026-10-14'}],
+  visit_history:[]
+ },false);
+ const gridStart=markup.indexOf('<div class="care-counts"');
+ const firstGroup=markup.indexOf('<section class="care-group');
+ assert.ok(gridStart>=0&&firstGroup>gridStart);
+ let depth=0,gridEnd=-1;
+ for(const match of markup.slice(gridStart,firstGroup).matchAll(/<\/?div\b[^>]*>/g)){
+  depth+=match[0].startsWith('</')?-1:1;
+  assert.ok(depth>=0,'etiqueta div não pode fechar além do nível atual');
+  if(depth===0&&gridEnd===-1)gridEnd=gridStart+match.index+match[0].length;
+ }
+ assert.ok(gridEnd>gridStart&&gridEnd<firstGroup,'grade dos contadores deve terminar antes dos cuidados');
+ const grid=markup.slice(gridStart,gridEnd);
+ assert.equal((grid.match(/<span>/g)||[]).length,4);
+ assert.doesNotMatch(grid,/care-meta|care-group|FAZER NESTA/);
+ assert.match(markup.slice(gridEnd,firstGroup),/Agendadas só são descontadas/);
+ assert.match(markup.slice(firstGroup),/FAZER NESTA ESTÉTICA/);
+});
