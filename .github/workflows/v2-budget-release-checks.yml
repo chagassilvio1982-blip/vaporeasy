@@ -1,0 +1,24 @@
+name: V2 budget release checks
+on:
+  push:
+    branches:
+      - release/v2-orcamento-servico-20261015
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check quote feature
+        run: |
+          node --test tests/orcamento/quote.test.cjs
+          node --check main-menu.js
+      - name: Assert production endpoint is preserved
+        run: |
+          node -e "const s=require('fs').readFileSync('index.html','utf8');if(!s.includes('https://asuppjeomaymzromgcrp.supabase.co')||s.includes('https://wwivmyhlwqyzmaexkmnk.supabase.co'))process.exit(1)"
