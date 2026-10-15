@@ -12,6 +12,7 @@ on:
       - ux/config-servico-editor-clean-20261015
       - ux/config-extras-clean-20261015
       - ux/config-extra-editor-clean-20261015
+      - ux/config-horarios-clean-20261015
   workflow_dispatch:
 permissions:
   contents: read
@@ -35,6 +36,7 @@ jobs:
           node --test tests/settings-service-editor/settings-service-editor.test.cjs
           node --test tests/settings-addons-clean/settings-addons-clean.test.cjs
           node --test tests/settings-addon-editor/settings-addon-editor.test.cjs
+          node --test tests/settings-schedule-clean/settings-schedule-clean.test.cjs
       - name: Validate static JS syntax
         run: |
           node --check plan-care-rhythm.js
