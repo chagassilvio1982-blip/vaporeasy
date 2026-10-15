@@ -89,6 +89,9 @@ test('indicador de água fica recolhido e conserva os IDs originais de leitura',
  assert.match(water,/<details id="watercard" class="water-compact">/);
  assert.doesNotMatch(water,/<details[^>]*\sopen(?:\s|>|=)/);
  assert.match(water,/<summary>/);
+ const summary=water.slice(water.indexOf('<summary>'),water.indexOf('</summary>'));
+ assert.doesNotMatch(summary,/watertotal|litros/);
+ assert.ok(water.indexOf('id="watertotal"')>water.indexOf('</summary>'));
  assert.match(water,/id="watertotal"/);
  assert.match(water,/id="waterdetail"/);
  assert.equal((html.match(/id="watertotal"/g)||[]).length,1);
@@ -126,4 +129,12 @@ test('não alteramos conteúdo de cobrança/recibo ou formulário da agenda',()=
  assert.match(html,/<button id="rprint"/);
  assert.match(html,/<button id="na" class="primary section-primary">\+ Agendamento<\/button>/);
  assert.match(html,/id="rcharge"/);
+});
+
+
+test('HTML não deve imprimir sequência literal de barra invertida n no cabeçalho',()=>{
+ const head=html.slice(0,html.indexOf('</head>'));
+ assert.doesNotMatch(head,/<link[^>]+>\\n<link/);
+ assert.match(head,/<link rel="stylesheet" href="\/main-menu\.css\?v=20261015-3">\n<link/);
+ assert.match(css,/#watercard\.water-compact\{\s*padding:0!important/);
 });
