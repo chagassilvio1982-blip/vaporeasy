@@ -2490,7 +2490,7 @@ async function loadOperationalSettings(){
   }catch(e){show("msg",fail(e),"error")}
 }
 function settingsServiceDisplayName(name){
-  return String(name||"").replace(/^Pacote(?=\\s|$)/i,"Plano");
+  return String(name||"").replace(/^Pacote(?=\s|$)/i,"Plano");
 }
 function settingsServiceCard(s){
   const price=s.size_pricing_enabled
