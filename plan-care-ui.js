@@ -198,11 +198,14 @@ function summary(d){
  const overbooked=known&&scheduled!==null&&scheduled!==undefined&&Number(scheduled)>remaining;
  const note=overbooked?'Atenção: há mais agendamentos que estéticas disponíveis no plano.':
   'Agendadas só são descontadas quando o atendimento é concluído.';
- return '<div class="care-counts" aria-label="Estéticas do mês">'+[
-  ['Contratadas',known?limit:'—'],['Concluídas',done],['Agendadas',scheduled??'—'],
-  ['A realizar',known?remaining:'—']
- ].map(([label,value])=>'<div><b>'+html(value)+'</b><span>'+label+'</span></div>').join('')+
- '</div><div class="care-meta">'+html(note)+(scheduled===undefined||scheduled===null?' Consulte os agendamentos na agenda.':'')+'</div>';
+ const compact=!!d.completion_mode||!!d.hide_scheduled;
+ const cells=compact?[
+  ['Contratadas',known?limit:'—'],['Concluídas',done],['A realizar',known?remaining:'—']
+ ]:[['Contratadas',known?limit:'—'],['Concluídas',done],['Agendadas',scheduled??'—'],['A realizar',known?remaining:'—']];
+ return '<div class="care-counts'+(compact?' care-counts-compact':'')+'" aria-label="Estéticas do mês">'+
+ cells.map(([label,value])=>'<div><b>'+html(value)+'</b><span>'+label+'</span></div>').join('')+
+ '</div>'+(compact?(overbooked?'<div class="care-meta">'+html(note)+'</div>':''):
+ '<div class="care-meta">'+html(note)+(scheduled===undefined||scheduled===null?' Consulte os agendamentos na agenda.':'')+'</div>');
 }
 function careDate(s){return String(s||'').slice(0,10).split('-').reverse().join('/');}
 function careInfo(x,mode){
@@ -249,16 +252,26 @@ function brief(d,hideAppointmentNotes){
  (d.vehicle_notes?'<div class="care-group"><b>Observações do veículo</b><div class="care-meta">'+html(d.vehicle_notes)+'</div></div>':'');
  return '<div class="care-brief" role="region" aria-label="Cuidados do veículo"><h4>'+
  html(String(d.plan_name||'Plano Vaporeasy').replace(/^Pacote\s+/i,'Plano '))+
- ' • '+(isAppointment?'O que fazer nesta estética':'Situação dos cuidados')+'</h4>'+
+ ' • '+(d.completion_mode?'Conferência final':isAppointment?'O que fazer nesta estética':'Situação dos cuidados')+'</h4>'+
  '<div class="care-meta">'+html(String(d.month||when).slice(0,7).split('-').reverse().join('/'))+'</div>'+
  (d.hide_summary?'':summary(d))+
  notes+
- task(isAppointment?'FAZER NESTA ESTÉTICA':'PROGRAMAR NA PRÓXIMA ESTÉTICA',due,'care-group-priority','due')+
- (!due.length&&isAppointment?'<div class="care-group care-group-priority"><div class="care-meta">Nenhum cuidado pendente para esta estética.</div></div>':'')+
+ (d.completion_mode?'':task(isAppointment?'FAZER NESTA ESTÉTICA':'PROGRAMAR NA PRÓXIMA ESTÉTICA',due,'care-group-priority','due'))+
+ (!d.completion_mode&&!due.length&&isAppointment?'<div class="care-group care-group-priority"><div class="care-meta">Nenhum cuidado pendente para esta estética.</div></div>':'')+
  task('JÁ REALIZADOS • EM DIA',recorded,'care-group-muted','recorded')+
  task('CONFERIR REGISTROS',check,'care-group-muted','check')+
  (!evaluated.length?'<div class="care-group care-group-muted"><div class="care-meta">Nenhum cuidado adicional foi confirmado neste contrato. Confirme com o administrador antes de executar benefícios extras.</div></div>':'')+
  '<details class="care-group care-group-previous"><summary>ESTÉTICA ANTERIOR</summary>'+lastText+'</details></div>';
 }
-window.VaporeasyCareUI={init,refresh,brief,describe,summary};
+function completionTasks(d){
+ if(!d?.is_plan||!d.appointment_id||!window.VaporeasyCareRhythm)return [];
+ const rules=d.benefits||[];
+ const evaluated=window.VaporeasyCareRhythm.evaluate(
+  rules.map(x=>({...x,appointment_id:d.appointment_id})),
+  d.care_history||d.performed||[],d.visit_history||[],d.visit_date||today());
+ return evaluated.flatMap((state,i)=>state.status==='due'&&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(rules[i]?.id||''))?
+  [{id:rules[i].id,label:state.label}]:[]);
+}
+window.VaporeasyCareUI={init,refresh,brief,describe,summary,completionTasks};
 })();
