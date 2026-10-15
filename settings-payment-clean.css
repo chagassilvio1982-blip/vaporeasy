@@ -64,6 +64,10 @@
   min-height:44px;
   width:100%;
 }
+#set #setpayf .settings-payment-save:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
 @media(max-width:360px){
   #set #setpayf .settings-payment-bank-row,
   #set #setpayf .settings-payment-account-row{gap:6px}
