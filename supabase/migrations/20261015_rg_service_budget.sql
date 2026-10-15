@@ -1,4 +1,4 @@
--- Vaporeasy V2: orçamento por necessidade do RG (somente homologação).
+-- Vaporeasy V2: orçamento por necessidade do RG (revisada em homologação e produção).
 -- Valores ficam fora do JSON de diagnósticos porque operadores podem ler esse JSON.
 -- Sem trigger financeiro: criar/editar orçamento NÃO gera atendimento, cobrança ou recebível.
 create table if not exists public.vehicle_service_quotes (
