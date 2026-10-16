@@ -31,7 +31,7 @@ jobs:
           for(const id of ['rgquote','main-primary-nav','setpayf','setpix','setserviceadvanced','setaddonadvanced','agendaDateToolbar']){
             if(h.split('id="'+id+'"').length!==2)throw Error('Required ID missing or duplicated: '+id);
           }
-          for(const feature of ['adminScheduleOverrideAllowed','saveCompletionPhoto','generateVehicleRGReportPdf','business_payment_settings']){
+          for(const feature of ['adminScheduleOverrideAllowed','saveCompletionPhoto','generateVehicleNeedsReport','business_payment_settings']){
             if(!h.includes(feature))throw Error('Production feature missing: '+feature);
           }
           NODE
