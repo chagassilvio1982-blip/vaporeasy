@@ -1,0 +1,224 @@
+/* Vaporeasy — UX financeiro em homologação. Só apresentação.
+   Preserva IDs, cálculos, consultas, eventos de pagamento e documentos. */
+#fin .finance-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:9px;
+  margin-bottom:9px;
+}
+#fin .finance-head-copy{min-width:0;flex:1}
+#fin .finance-head-copy .title{margin:0;font-size:25px}
+#fin .finance-head-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+#fin .finance-head-actions #fnewexp{
+  min-height:44px;
+  min-width:0;
+  padding:9px 12px;
+  font-size:14px;
+  white-space:nowrap;
+}
+#fin .finance-more-actions{position:relative;flex:0 0 auto}
+#fin .finance-more-actions>summary{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:44px;
+  width:44px;
+  min-height:44px!important;
+  padding:0!important;
+  border:1px solid #285063;
+  border-radius:10px;
+  list-style:none;
+  background:#0c2836;
+  color:#d8e9ef!important;
+  font-size:26px!important;
+  line-height:1!important;
+  font-weight:800!important;
+}
+#fin .finance-more-actions>summary::-webkit-details-marker{display:none}
+#fin .finance-more-actions[open]>summary{
+  background:#164056;
+  border-color:#62b9da;
+}
+#fin .finance-more-panel{
+  position:absolute;
+  z-index:15;
+  top:calc(100% + 5px);
+  right:0;
+  width:min(218px,calc(100vw - 28px));
+  padding:4px;
+  background:#0b2532;
+  border:1px solid #37687d;
+  border-radius:11px;
+  box-shadow:0 10px 24px #0007;
+}
+#fin .finance-more-panel button{
+  display:block;
+  width:100%;
+  min-height:44px;
+  padding:9px 10px;
+  text-align:left;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#e7f1f5;
+  font-size:13px;
+  font-weight:650;
+  white-space:normal;
+}
+#fin .finance-more-panel button:hover,
+#fin .finance-more-panel button:focus-visible{
+  background:#154055;
+  outline:2px solid #4eaed1;
+  outline-offset:-2px;
+}
+#fin .finance-toolbar.finance-toolbar-report{
+  display:block;
+  margin:0 0 8px;
+}
+#fin .finance-toolbar.finance-toolbar-report>label{
+  width:100%;
+  font-size:12px;
+  gap:5px;
+}
+#fin .finance-toolbar.finance-toolbar-report #fmonth{
+  min-height:44px;
+  padding:7px 11px;
+  font-size:15px;
+}
+#fin #fsummary{
+  margin:9px 0 10px!important;
+  gap:7px!important;
+}
+#fin #fsummary .item{
+  min-height:78px;
+  padding:10px 11px;
+  margin-bottom:0;
+}
+#fin #fsummary .meta{
+  font-size:12px;
+  line-height:1.35;
+}
+#fin #fsummary .time{
+  margin-top:4px;
+  font-size:18px;
+  line-height:1.2;
+  overflow-wrap:anywhere;
+}
+#fin .finance-cashline{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:7px 12px;
+  margin:0 0 10px;
+  padding:10px 12px;
+  border:1px solid #214659;
+  border-radius:12px;
+  background:#0b2531;
+}
+#fin .finance-cashline strong{
+  display:block;
+  color:#ecf6fa;
+  font-size:13px;
+}
+#fin .finance-cashline small{
+  display:block;
+  margin-top:3px;
+  color:#a6bfcb;
+  font-size:11px;
+}
+#fin .finance-cashline .time{
+  margin:0;
+  font-size:18px;
+  line-height:1.2;
+  font-weight:850;
+}
+#fin .finance-section{
+  margin:8px 0 0!important;
+}
+#fin .finance-section>summary{
+  min-height:48px;
+  padding:10px 12px!important;
+  font-size:14px!important;
+  line-height:1.3;
+  font-weight:850!important;
+}
+#fin .finance-section-primary>summary{
+  background:#11394b;
+  border-left:3px solid #45c5e9;
+}
+#fin .finance-section>summary span{
+  margin-left:auto;
+  white-space:nowrap;
+}
+#fin .finance-section>div{
+  padding:8px 10px 10px;
+}
+@media(max-width:360px){
+  #fin .finance-head-copy .title{font-size:23px}
+  #fin .finance-head-actions #fnewexp{
+    padding:8px;
+    font-size:12px;
+  }
+}
+
+/* Cards em aberto: mesmo conteúdo e ações, com menos altura no celular. */
+#fin #fpending .finance-pending-card{
+  padding:11px 12px!important;
+  margin-top:7px!important;
+  border-radius:12px!important;
+}
+#fin #fpending .finance-pending-card>.actions:first-child{
+  display:flex;
+  align-items:flex-start!important;
+  justify-content:space-between;
+  gap:9px;
+  flex-wrap:nowrap;
+}
+#fin #fpending .finance-pending-card>.actions:first-child>div:first-child{
+  min-width:0;
+  flex:1 1 auto!important;
+  overflow-wrap:anywhere;
+  font-size:14px;
+  line-height:1.35;
+}
+#fin #fpending .finance-pending-card>.actions:first-child>div:last-child{
+  flex:0 0 auto;
+  max-width:46%;
+  text-align:right;
+  font-size:16px!important;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+#fin #fpending .finance-pending-card .meta{
+  margin-top:3px;
+  color:#abc0cb;
+  font-size:12px;
+  line-height:1.38;
+  overflow-wrap:anywhere;
+}
+#fin #fpending .finance-pending-card>.actions:last-child{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  margin-top:9px!important;
+}
+#fin #fpending .finance-pending-card>.actions:last-child button{
+  min-width:0;
+  min-height:44px;
+  padding:8px 7px;
+  font-size:12px;
+  line-height:1.25;
+  white-space:normal;
+  overflow-wrap:normal;
+}
+@media(max-width:360px){
+  #fin #fpending .finance-pending-card>.actions:first-child>div:last-child{
+    font-size:14px!important;
+    max-width:45%;
+  }
+  #fin #fpending .finance-pending-card>.actions:last-child button{
+    font-size:11px;
+  }
+}
