@@ -2464,9 +2464,20 @@ async function generateVehicleNeedsReport(kind="report"){
     const {jsPDF}=window.jspdf||{};if(!jsPDF)throw Error("Gerador de PDF indisponível.");
     const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"}),margin=18,maxW=174;let y=18;
     const addPageIf=(need)=>{if(y+need>280){doc.addPage();y=18}};
-    doc.setFont("helvetica","bold");doc.setFontSize(20);doc.setTextColor(23,49,64);doc.text("VAPOREASY",margin,y);y+=8;
-    // CNPJ da empresa confirmado nas configurações comerciais; informação fiscal do emitente.
-    if(isQuote){doc.setFont("helvetica","normal");doc.setFontSize(10);doc.text("CNPJ: 31.120.467/0001-07",margin,y);y+=7;}
+    // O mesmo logotipo oficial exibido no app, sem substituição por texto.
+    try{await brandLogoImg.decode()}catch{throw Error("O logotipo da Vaporeasy não carregou. Reabra o orçamento e tente novamente.")}
+    if(!brandLogoImg.naturalWidth||!brandLogoImg.naturalHeight)throw Error("Logotipo da Vaporeasy indisponível para o orçamento.");
+    const logoWidth=56,logoHeight=logoWidth*brandLogoImg.naturalHeight/brandLogoImg.naturalWidth;
+    const logoCanvas=document.createElement("canvas");
+    logoCanvas.width=1028;logoCanvas.height=Math.round(logoCanvas.width*brandLogoImg.naturalHeight/brandLogoImg.naturalWidth);
+    const logoCtx=logoCanvas.getContext("2d");
+    if(!logoCtx)throw Error("Não foi possível preparar o logotipo da Vaporeasy.");
+    logoCtx.fillStyle="#ffffff";logoCtx.fillRect(0,0,logoCanvas.width,logoCanvas.height);
+    logoCtx.drawImage(brandLogoImg,0,0,logoCanvas.width,logoCanvas.height);
+    doc.addImage(logoCanvas.toDataURL("image/png"),"PNG",margin,y,logoWidth,logoHeight);
+    y+=logoHeight+5;
+    // Identificação do emitente aparece apenas no orçamento.
+    if(isQuote){doc.setFont("helvetica","normal");doc.setTextColor(50,70,82);doc.setFontSize(10);doc.text("CNPJ: 31.120.467/0001-07",margin,y);y+=7;}
     doc.setFontSize(13);doc.text(isQuote?"Orçamento de serviços":"Relatório de necessidades do veículo",margin,y);y+=9;doc.setDrawColor(180);doc.line(margin,y,192,y);y+=9;
     doc.setFontSize(10);doc.setTextColor(40);doc.setFont("helvetica","normal");
     const header=[["Cliente",client?.name||"Cliente"],["Veículo",vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"")],[(isQuote?"Data do orçamento":"Data da avaliação"),new Intl.DateTimeFormat("pt-BR",{dateStyle:"short"}).format(new Date())]];
