@@ -1,0 +1,79 @@
+/* Pagamento e Pix: layout apenas, mantendo IDs, validação e persistência. */
+#set #setpayf.settings-payment-form{
+  gap:10px;
+}
+#set #setpayf .settings-payment-bank-row,
+#set #setpayf .settings-payment-account-row{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+#set #setpayf .settings-payment-bank-row>label,
+#set #setpayf .settings-payment-account-row>label{
+  display:block;
+  min-width:0;
+}
+#set #setpayf input{
+  min-width:0;
+  width:100%;
+  min-height:44px;
+  padding:9px 10px;
+  font-size:14px;
+}
+#set #setpayf #setpix{
+  overflow-wrap:anywhere;
+}
+#set #setpayf .settings-payment-advanced{
+  border:1px solid #21485b;
+  border-radius:11px;
+  background:#0a2532;
+  overflow:hidden;
+}
+#set #setpayf .settings-payment-advanced>summary{
+  display:block;
+  min-height:44px;
+  padding:12px 13px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:780;
+  line-height:1.4;
+  list-style:none;
+}
+#set #setpayf .settings-payment-advanced>summary::-webkit-details-marker{
+  display:none;
+}
+#set #setpayf .settings-payment-advanced>summary::after{
+  content:"⌄";
+  float:right;
+  color:#9bb7c5;
+}
+#set #setpayf .settings-payment-advanced[open]>summary::after{
+  content:"⌃";
+}
+#set #setpayf .settings-payment-advanced>.stack{
+  padding:11px;
+  border-top:1px solid #21485b;
+  gap:10px;
+}
+#set #setpayf .settings-payment-advanced textarea{
+  width:100%;
+  min-height:84px;
+  box-sizing:border-box;
+}
+#set #setpayf .settings-payment-save{
+  min-height:44px;
+  width:100%;
+}
+#set #setpayf .settings-payment-save:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
+@media(max-width:360px){
+  #set #setpayf .settings-payment-bank-row,
+  #set #setpayf .settings-payment-account-row{gap:6px}
+  #set #setpayf .settings-payment-bank-row input,
+  #set #setpayf .settings-payment-account-row input{
+    padding:8px 6px;
+    font-size:13px;
+  }
+}

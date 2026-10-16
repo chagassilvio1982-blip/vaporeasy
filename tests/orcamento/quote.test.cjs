@@ -47,10 +47,41 @@ test('Orçamento contém valores e total mesmo sem seleção do relatório técn
   const pdf=main.slice(main.indexOf('async function generateVehicleNeedsReport('),main.indexOf('function recurrenceLabel(',main.indexOf('async function generateVehicleNeedsReport(')));
   assert.match(pdf,/totalCents=isQuote\?selected\.reduce/);
   assert.match(pdf,/Orçamento de serviços/);
+  assert.match(pdf,/doc\.text\("CNPJ: 31\.120\.467\/0001-07",headerRight,headerY\+13,\{align:"right"\}\)/);
+  assert.equal(pdf.match(/CNPJ: 31\.120\.467\/0001-07/g)?.length,1);
   assert.match(pdf,/VALOR TOTAL ORÇADO/);
-  assert.match(pdf,/Valor orçado: /);
+  assert.equal(pdf.match(/VALOR TOTAL ORÇADO/g)?.length,1);
+  assert.ok(pdf.indexOf("VALOR TOTAL ORÇADO")>pdf.indexOf("for(let n=0;n<selected.length;n++)"));
+  assert.ok(pdf.indexOf("VALOR TOTAL ORÇADO")<pdf.indexOf("const foot="));
+  assert.doesNotMatch(pdf,/doc\.text\("Valor orçado: "\+money\(/);
   assert.match(pdf,/if\(!isQuote&&issue\.show_value/);
   assert.match(pdf,/orcamento-vaporeasy-/);
   assert.match(pdf,/Este documento não constitui cobrança nem comprovante de pagamento/);
   assert.doesNotMatch(pdf,/\.from\(["'](?:appointment_payments|package_charges)["']\)/);
+});
+
+test('O orçamento utiliza o logotipo original do aplicativo, não um título textual',()=>{
+  const pdf=main.slice(main.indexOf('async function generateVehicleNeedsReport('),main.indexOf('function recurrenceLabel(',main.indexOf('async function generateVehicleNeedsReport(')));
+  assert.match(main,/const BRAND_LOGO="\/vaporeasy-logo-original\.svg\?v=20261006-01",brandLogoImg=new Image\(\);brandLogoImg\.src=BRAND_LOGO/);
+  assert.ok(fs.existsSync(path.join(root,'vaporeasy-logo-original.svg')));
+  const logo=fs.readFileSync(path.join(root,'vaporeasy-logo-original.svg'),'utf8');
+  assert.match(logo,/<svg[^>]*viewBox="0 0 514 156"/);
+  assert.match(pdf,/await brandLogoImg\.decode\(\)/);
+  assert.match(pdf,/brandLogoImg\.naturalWidth\/brandLogoImg\.naturalWidth|brandLogoImg\.naturalHeight\/brandLogoImg\.naturalWidth/);
+  assert.match(pdf,/logoCtx\.drawImage\(brandLogoImg,0,0,logoCanvas\.width,logoCanvas\.height\)/);
+  assert.match(pdf,/doc\.addImage\(logoCanvas\.toDataURL\("image\/png"\),"PNG",margin,headerY,logoWidth,logoHeight\)/);
+  assert.doesNotMatch(pdf,/doc\.text\("VAPOREASY",margin,y\)/);
+  assert.ok(pdf.indexOf('doc.addImage(logoCanvas')<pdf.indexOf('CNPJ: 31.120.467/0001-07'));
+  assert.match(pdf,/logotipo da Vaporeasy não carregou/i);
+});
+
+test('O cabeçalho é compacto, em duas colunas, sem sobrepor os dados do cliente',()=>{
+ const pdf=main.slice(main.indexOf('async function generateVehicleNeedsReport('),main.indexOf('function recurrenceLabel(',main.indexOf('async function generateVehicleNeedsReport(')));
+ assert.match(pdf,/const logoWidth=46,logoHeight=logoWidth\*brandLogoImg\.naturalHeight\/brandLogoImg\.naturalWidth/);
+ assert.match(pdf,/const headerY=y,headerRight=192/);
+ assert.match(pdf,/doc\.text\(isQuote\?"Orçamento de serviços":"Relatório de necessidades do veículo",headerRight,headerY\+6,\{align:"right"\}\)/);
+ assert.match(pdf,/y=headerY\+Math\.max\(logoHeight,18\)\+5/);
+ assert.match(pdf,/doc\.line\(margin,y,headerRight,y\);y\+=10/);
+ assert.equal(pdf.match(/CNPJ: 31\.120\.467\/0001-07/g)?.length,1);
+ assert.doesNotMatch(pdf,/doc\.text\("VAPOREASY",margin,y\)/);
 });

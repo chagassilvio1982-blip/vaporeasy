@@ -1,0 +1,43 @@
+name: Vaporeasy V2 UX integration safety checks
+on:
+  push:
+    branches:
+      - integration/v2-ux-20261015
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JS syntax and linked UI assets
+        run: |
+          node --check main-menu.js
+          node --check agenda-quick-search.js
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const h=fs.readFileSync('index.html','utf8');
+          for(const [i,s] of [...h.matchAll(/<script>([\s\S]*?)<\/script>/g)].entries()) new vm.Script(s[1],{filename:'inline-'+i+'.js'});
+          for(const rel of [...h.matchAll(/<link rel="stylesheet" href="\/([^"?]+)[^"]*"/g)].map(x=>x[1])){
+            if(!fs.existsSync(rel))throw Error('Missing CSS: '+rel);
+          }
+          if(!h.includes('https://asuppjeomaymzromgcrp.supabase.co'))throw Error('Production Supabase endpoint changed');
+          if(h.includes('https://wwivmyhlwqyzmaexkmnk.supabase.co')||h.includes('HOMOLOGAÇÃO · DADOS DE TESTE'))throw Error('Staging configuration leaked');
+          for(const id of ['rgquote','main-primary-nav','setpayf','setpix','setserviceadvanced','setaddonadvanced','agendaDateToolbar']){
+            if(h.split('id="'+id+'"').length!==2)throw Error('Required ID missing or duplicated: '+id);
+          }
+          for(const feature of ['adminScheduleOverrideAllowed','saveCompletionPhoto','generateVehicleNeedsReport','business_payment_settings']){
+            if(!h.includes(feature))throw Error('Production feature missing: '+feature);
+          }
+          NODE
+      - name: Test current production budget
+        run: node --test tests/orcamento/quote.test.cjs
+      - name: Test homologated interface
+        run: |
+          node --test tests/navigation/direct-home-nav.test.cjs tests/agenda-clean/agenda-clean.test.cjs tests/finance-clean/finance-clean.test.cjs tests/reports-clean/reports-clean.test.cjs
+          node --test tests/settings-service-clean/settings-service-clean.test.cjs tests/settings-service-editor/settings-service-editor.test.cjs tests/settings-addons-clean/settings-addons-clean.test.cjs tests/settings-addon-editor/settings-addon-editor.test.cjs tests/settings-schedule-clean/settings-schedule-clean.test.cjs tests/settings-payment-clean/settings-payment-clean.test.cjs
