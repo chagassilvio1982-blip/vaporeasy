@@ -47,7 +47,7 @@ test('Orçamento contém valores e total mesmo sem seleção do relatório técn
   const pdf=main.slice(main.indexOf('async function generateVehicleNeedsReport('),main.indexOf('function recurrenceLabel(',main.indexOf('async function generateVehicleNeedsReport(')));
   assert.match(pdf,/totalCents=isQuote\?selected\.reduce/);
   assert.match(pdf,/Orçamento de serviços/);
-  assert.match(pdf,/if\(isQuote\)\{doc\.setFont\("helvetica","normal"\);doc\.setFontSize\(10\);doc\.text\("CNPJ: 31\.120\.467\/0001-07",margin,y\);y\+=7;\}/);
+  assert.match(pdf,/if\(isQuote\)\{doc\.setFont\("helvetica","normal"\);doc\.setTextColor\(50,70,82\);doc\.setFontSize\(10\);doc\.text\("CNPJ: 31\.120\.467\/0001-07",margin,y\);y\+=7;\}/);
   assert.equal(pdf.match(/CNPJ: 31\.120\.467\/0001-07/g)?.length,1);
   assert.match(pdf,/VALOR TOTAL ORÇADO/);
   assert.equal(pdf.match(/VALOR TOTAL ORÇADO/g)?.length,1);
@@ -58,4 +58,19 @@ test('Orçamento contém valores e total mesmo sem seleção do relatório técn
   assert.match(pdf,/orcamento-vaporeasy-/);
   assert.match(pdf,/Este documento não constitui cobrança nem comprovante de pagamento/);
   assert.doesNotMatch(pdf,/\.from\(["'](?:appointment_payments|package_charges)["']\)/);
+});
+
+test('O orçamento utiliza o logotipo original do aplicativo, não um título textual',()=>{
+  const pdf=main.slice(main.indexOf('async function generateVehicleNeedsReport('),main.indexOf('function recurrenceLabel(',main.indexOf('async function generateVehicleNeedsReport(')));
+  assert.match(main,/const BRAND_LOGO="\/vaporeasy-logo-original\.svg\?v=20261006-01",brandLogoImg=new Image\(\);brandLogoImg\.src=BRAND_LOGO/);
+  assert.ok(fs.existsSync(path.join(root,'vaporeasy-logo-original.svg')));
+  const logo=fs.readFileSync(path.join(root,'vaporeasy-logo-original.svg'),'utf8');
+  assert.match(logo,/<svg[^>]*viewBox="0 0 514 156"/);
+  assert.match(pdf,/await brandLogoImg\.decode\(\)/);
+  assert.match(pdf,/brandLogoImg\.naturalWidth\/brandLogoImg\.naturalWidth|brandLogoImg\.naturalHeight\/brandLogoImg\.naturalWidth/);
+  assert.match(pdf,/logoCtx\.drawImage\(brandLogoImg,0,0,logoCanvas\.width,logoCanvas\.height\)/);
+  assert.match(pdf,/doc\.addImage\(logoCanvas\.toDataURL\("image\/png"\),"PNG",margin,y,logoWidth,logoHeight\)/);
+  assert.doesNotMatch(pdf,/doc\.text\("VAPOREASY",margin,y\)/);
+  assert.ok(pdf.indexOf('doc.addImage(logoCanvas')<pdf.indexOf('CNPJ: 31.120.467/0001-07'));
+  assert.match(pdf,/logotipo da Vaporeasy não carregou/i);
 });
