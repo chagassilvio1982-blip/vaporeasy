@@ -1160,8 +1160,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/settings-schedule-clean.css?v=20261015-1">
 <link rel="stylesheet" href="/settings-payment-clean.css?v=20261015-2">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
+<link rel="stylesheet" href="/plan-care.css?v=20261016-1">
 </head>
-<body><div class="app">
+<body><div id="vaporeasy-hml-badge" role="note" style="position:fixed;top:6px;right:6px;z-index:2147483647;background:#8c2424;color:#fff;padding:6px 9px;border-radius:7px;font:700 12px system-ui;pointer-events:none">HOMOLOGAÇÃO · DADOS DE TESTE</div><div class="app">
 <header id="hdr" class="hidden"><div><img data-brand-logo class="brand-logo brand-logo-header" src="/vaporeasy-logo-original.svg?v=20260928-05" loading="eager" decoding="sync" alt="Vaporeasy"></div><div class="headright"><button id="bell" class="bell" type="button" aria-label="Notificações">🔔<span id="nbadge" class="badge hidden">0</span></button><div class="profile"><b id="pname">—</b><div id="prole">—</div></div></div></header>
 <main>
 <section id="public" class="hidden">
@@ -1429,7 +1430,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </main>
 <dialog id="ld"><div class="stack"><h3 style="margin:4px 0">Gerar link de agendamento</h3><div class="notice">O cliente nunca verá nem escolherá colaborador.</div><label>Cliente destinatário<div class="appt-client-picker"><input id="lclientsearch" type="text" placeholder="Digite o nome do cliente" autocomplete="off" autocapitalize="words" spellcheck="false"><select id="lclient" class="hidden" aria-hidden="true" tabindex="-1"><option value="">Novo cliente</option></select><div id="lclientsuggestions" class="appt-client-suggestions hidden"></div><div id="lclientselected" class="appt-client-selected hidden"></div></div></label><button id="lnewclient" class="ghost" type="button">+ Link para novo cliente</button><div id="lpreview" class="meta">Link para um novo cliente preencher o próprio cadastro.</div><label style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:9px"><input id="lat" type="checkbox" checked style="width:22px;min-height:22px">Permitir que o cliente agende para hoje</label><button id="mklink" class="primary" type="button">Gerar link</button><label>Link<input id="linkout" readonly placeholder="O link aparecerá aqui"></label><label id="sharemsgwrap" class="hidden">Mensagem para o cliente<textarea id="sharemsg" readonly></textarea></label><div class="actions"><button id="copylink" class="ghost" type="button" disabled>Copiar mensagem</button><button id="sharelink" class="ghost" type="button" disabled>Compartilhar</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
 <dialog id="rd"><div class="stack"><div id="rcontent"></div><div id="rgroupmsg" class="notice hidden"></div><div class="actions"><button id="rshare" class="primary" type="button">Compartilhar comprovante</button><button id="rgroup" class="ghost hidden" type="button">Agrupar deste cliente</button><button id="rdiscount" class="ghost hidden" type="button">Aplicar desconto</button><button id="rcharge" class="ghost" type="button">Cobrança / Pix</button><button id="rprint" class="ghost" type="button">Compartilhar PDF</button></div><button type="button" class="ghost" data-close>Fechar</button></div></dialog>
-<dialog id="fd"><form id="finishf" class="stack"><input id="finishid" type="hidden"><h3 id="finishtitle">Finalizar atendimento</h3><div class="notice">A foto final é o registro padrão da conclusão e é usada somente para controle interno da Vaporeasy. Se realmente não for possível fotografar, use a exceção com justificativa obrigatória.</div><div id="finishsummary" class="meta"></div><div id="finishphotowrap">
+<dialog id="fd"><form id="finishf" class="stack"><input id="finishid" type="hidden"><h3 id="finishtitle">Finalizar atendimento</h3><div class="notice">A foto final é o registro padrão da conclusão e é usada somente para controle interno da Vaporeasy. Se realmente não for possível fotografar, use a exceção com justificativa obrigatória.</div><div id="finishsummary" class="meta"></div><div id="finish-care-readonly" aria-live="polite"></div><div id="finishphotowrap">
   <div style="font-weight:800;margin-bottom:8px">Foto final do veículo</div>
   <input id="finishphoto" type="file" accept="image/*" capture="environment" class="hidden">
   <button id="takefinishphoto" type="button" class="primary" style="width:100%">📷 Tirar foto do veículo</button>
@@ -1665,7 +1666,7 @@ if(!window.supabase){
   throw new Error("Supabase JS não carregou");
 }
 const {createClient}=window.supabase;
-const SUPABASE_URL="https://asuppjeomaymzromgcrp.supabase.co", KEY="sb_publishable_LfmsuPyDMKnyKHGh0x7Akw_yJfQ15bI", FN=SUPABASE_URL+"/functions/v1/vaporeasy-v2-staging", PUBLIC_FN=SUPABASE_URL+"/functions/v1/vaporeasy-public-booking";
+const SUPABASE_URL="https://wwivmyhlwqyzmaexkmnk.supabase.co", KEY="sb_publishable_kqR9AKXbxqRPbFFzkcXQ7w_pOzTAP1M", FN=SUPABASE_URL+"/functions/v1/vaporeasy-v2-staging", PUBLIC_FN=SUPABASE_URL+"/functions/v1/vaporeasy-public-booking";
 const sb=createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 const BRAND_LOGO="/vaporeasy-logo-original.svg?v=20261006-01",brandLogoImg=new Image();brandLogoImg.src=BRAND_LOGO;
 const $=id=>document.getElementById(id); let mode="login", clients=[], services=[], collabs=[], vehicleBrands=[], vehicleModels=[], currentApps=[], vehicles=new Map(), teams=[], teamMembers=[], allCollabs=[], currentUserId=null, currentRole="", currentReceipt=null, currentReceiptGroup=null, currentMonthlyReceipt=null, currentFinishExistingPhoto=null, notifTimer=null, notifChannel=null, knownUnread=new Set(), soundCtx=null, publicCfg=null, publicToken=new URLSearchParams(location.search).get("share")||"", publicRequestId=crypto.randomUUID(), generatedLinkClientName="", generatedLinkClientId="", slotRequestSeq=0, publicDates=[], publicDateLimit=6, publicAddonIds=[], androidImportContacts=[], collabAccess=new Map(), currentPaymentQuote=null, currentPaymentMode="receive", currentPaymentGroupIds=[], refsLoadedAt=0, vehicleCatalogLoadedAt=0, waterCounterLoadedAt=0, agendaLoadSeq=0, agendaMonthCache=new Map(), apptRecurringByVehicle=new Map(), recurrenceSyncAt=0;
@@ -2317,7 +2318,7 @@ async function archiveVehicle(cid,id){
 }
 function openClient(c){$("cf").reset();$("cid").value=c?.id||"";$("cn").value=c?.name||"";$("cp").value=c?.phone||"";$("cw").value=c?.whatsapp||"";$("ca").value=c?.address||"";$("co").value=c?.notes||"";$("cc").value="";$("cd").showModal()}
 async function saveClient(e){e.preventDefault();try{let condo=null, name=$("cc").value.trim();if(name){let f=await sb.from("condominiums").select("id").ilike("name",name).limit(1).maybeSingle();if(f.error)throw f.error;if(f.data)condo=f.data.id;else{let n=await sb.from("condominiums").insert({name}).select("id").single();if(n.error)throw n.error;condo=n.data.id}}const p={name:$("cn").value.trim(),phone:$("cp").value.trim(),whatsapp:$("cw").value.trim(),address:$("ca").value.trim(),notes:$("co").value.trim(),condominium_id:condo};let r=$("cid").value?await sb.from("clients").update(p).eq("id",$("cid").value):await sb.from("clients").insert(p);if(r.error)throw r.error;$("cd").close();show("msg","Cliente salvo.","ok");await loadClients()}catch(e){show("msg",fail(e),"error")}}
-async function showVehicles(cid){const box=$("v-"+cid),canDelete=["owner","admin"].includes(currentRole);box.classList.toggle("hidden");if(box.classList.contains("hidden"))return;let r=await sb.from("vehicles").select("*").eq("client_id",cid).is("archived_at",null).order("brand");if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}vehicles.set(cid,r.data||[]);box.innerHTML=(r.data||[]).length?(r.data||[]).map(v=>'<details class="vehicle-card"><summary><span><b>'+esc(v.brand+" "+v.model)+'</b><small>'+esc(v.plate||"Sem placa")+'</small></span><span class="vehicle-open-label">Opções</span></summary><div class="vehicle-card-actions"><button class="primary" data-rg="'+v.id+'" data-c="'+cid+'">RG / Histórico</button><button class="ghost" data-ve="'+v.id+'" data-c="'+cid+'">Editar</button>'+(canDelete?'<button class="danger subtle-danger" data-vx="'+v.id+'" data-c="'+cid+'">Excluir veículo</button>':"")+'</div></details>').join(""):'<div class="empty">Nenhum veículo.</div>';box.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>openVehicleRG(cid,(r.data||[]).find(x=>x.id===b.dataset.rg)));box.querySelectorAll("[data-ve]").forEach(b=>b.onclick=()=>openVehicle(cid,(r.data||[]).find(x=>x.id===b.dataset.ve)));box.querySelectorAll("[data-vx]").forEach(b=>b.onclick=()=>archiveVehicle(cid,b.dataset.vx))}
+async function showVehicles(cid){const box=$("v-"+cid),canDelete=["owner","admin"].includes(currentRole);box.classList.toggle("hidden");if(box.classList.contains("hidden"))return;let r=await sb.from("vehicles").select("*").eq("client_id",cid).is("archived_at",null).order("brand");if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}vehicles.set(cid,r.data||[]);box.innerHTML=(r.data||[]).length?(r.data||[]).map(v=>'<details class="vehicle-card"><summary><span><b>'+esc(v.brand+" "+v.model)+'</b><small>'+esc(v.plate||"Sem placa")+'</small></span><span class="vehicle-open-label">Opções</span></summary><div class="vehicle-card-actions"><button class="primary" data-rg="'+v.id+'" data-c="'+cid+'">RG / Histórico</button>'+(canDelete?'<button class="ghost" data-plan-vehicle="'+v.id+'" data-c="'+cid+'">Cuidados do plano</button>':'')+'<button class="ghost" data-ve="'+v.id+'" data-c="'+cid+'">Editar</button>'+(canDelete?'<button class="danger subtle-danger" data-vx="'+v.id+'" data-c="'+cid+'">Excluir veículo</button>':"")+'</div></details><div data-care-vehicle="'+v.id+'"></div>').join(""):'<div class="empty">Nenhum veículo.</div>';box.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>openVehicleRG(cid,(r.data||[]).find(x=>x.id===b.dataset.rg)));box.querySelectorAll("[data-plan-vehicle]").forEach(b=>b.onclick=()=>window.openPlanControl(cid,b.dataset.planVehicle));box.querySelectorAll("[data-ve]").forEach(b=>b.onclick=()=>openVehicle(cid,(r.data||[]).find(x=>x.id===b.dataset.ve)));box.querySelectorAll("[data-vx]").forEach(b=>b.onclick=()=>archiveVehicle(cid,b.dataset.vx));if(window.renderClientVehicleCare)void window.renderClientVehicleCare(cid)}
 let currentRGPhotos=[],currentRGIssues=[],currentRGPhotoIssueId="",currentRGQuotes=new Map();
 function priorityLabel(v){return v==="immediate"?"Atenção imediata":v==="preventive"?"Preventivo":"Recomendado"}
 function priorityPill(v){return '<span class="pill">'+esc(priorityLabel(v))+'</span>'}
@@ -4157,11 +4158,12 @@ async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
       :"";
     const rg=isToday?'<button class="ghost operator-rg-action" type="button" data-op-rg="'+x.id+'">📷 RG do veículo</button>':"";
     const info=!isToday?'<div class="operator-future-note">As ações Iniciar, Concluir e RG do veículo ficam disponíveis no dia do atendimento.</div>':"";
-    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
+    return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+(isToday&&x.status!=="completed"?'<div data-care-job="'+x.id+'" id="care-job-'+x.id+'"></div>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
   };
   let out=active.length?active.map(card).join(""):(done.length?'<div class="empty">Nenhum atendimento pendente nesta data.</div>':'<div class="empty">Nenhum atendimento atribuído a você nesta data.</div>');
   if(done.length)out+='<details class="operator-completed"><summary>Concluídos ('+done.length+')</summary><div>'+done.map(card).join("")+'</div></details>';
   box.innerHTML=out;
+  box.querySelectorAll("[data-care-job]").forEach(node=>{if(window.renderQuickPlanCare)void window.renderQuickPlanCare(node.dataset.careJob,node.id)});
   box.querySelectorAll("[data-op-start]").forEach(b=>b.onclick=()=>operatorStartJob(b.dataset.opStart));
   box.querySelectorAll("[data-op-finish]").forEach(b=>b.onclick=()=>openCompletion(b.dataset.opFinish));
   box.querySelectorAll("[data-op-rg]").forEach(b=>b.onclick=()=>openOperatorVehicleRG(currentApps.find(x=>x.id===b.dataset.opRg)))
@@ -4814,7 +4816,18 @@ async function openAppointmentDetail(id){
         (packageVisit&&packageCharge&&["pending","paid"].includes(packageCharge.status)&&financeAllowed()?'<button class="primary" type="button" data-detail-package-charge="'+esc(packageCharge.id)+'">'+(packageCharge.status==="paid"?"Recibo de pagamento":"Mensalidade / Pix")+'</button>':'')+
         (a.status!=="completed"&&a.status!=="cancelled"?'<button class="ghost" type="button" data-detail-edit="'+esc(a.id)+'">Editar agendamento</button>':'')+
       '</div>';
+    if(a.recurring_plan_id&&["owner","admin"].includes(currentRole)){
+      const panel=document.createElement("section");panel.id="dd-plan-benefits";panel.dataset.appointment=a.id;
+      $("ddcontent").appendChild(panel);
+    }
     $("dd").showModal();
+    if(a.recurring_plan_id&&["owner","admin"].includes(currentRole)&&window.renderPlanBenefitsForAppointment){
+      const ctx={appointmentId:a.id,clientId:a.client_id,vehicleId:a.vehicle_id,recurringPlanId:a.recurring_plan_id,month:scheduled.date.slice(0,7),containerId:"dd-plan-benefits"};
+      void window.renderPlanBenefitsForAppointment(ctx).catch(err=>{
+        const node=$("dd-plan-benefits");
+        if(node?.dataset.appointment===a.id)node.innerHTML='<div class="notice error">Não foi possível consultar os cuidados: '+esc(fail(err))+'</div>';
+      });
+    }
     const eb=$("dd").querySelector("[data-detail-edit]"),cb=$("dd").querySelector("[data-detail-package-charge]");
     if(eb)eb.onclick=()=>{$("dd").close();openEditAppt(id)};
     if(cb)cb.onclick=()=>sharePackageCharge(cb.dataset.detailPackageCharge)
@@ -5130,7 +5143,9 @@ async function openCompletion(id){
       $("finishexisting").classList.remove("hidden")
     }
   }
-  $("fd").showModal()
+  $("fd").showModal();
+  const brief=$("finish-care-readonly");if(brief)brief.innerHTML="";
+  if(!legacyCompleted&&window.renderQuickPlanCare)void window.renderQuickPlanCare(id,"finish-care-readonly");
 }
 function toggleFinishException(){
   const on=$("finishexception").checked;
@@ -6206,6 +6221,9 @@ async function loadApps(){
 
 boot();
 </script>
+<script src="/plan-care-rhythm.js?v=20261016-1"></script>
+<script src="/plan-care-ui.js?v=20261016-1"></script>
+<script src="/plan-control.js?v=20261016-1"></script>
 <script src="/main-menu.js?v=20261015-report1"></script>
 <script src="/agenda-quick-search.js?v=20261014-1"></script>
 </body></html>
