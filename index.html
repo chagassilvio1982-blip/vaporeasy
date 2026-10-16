@@ -2465,27 +2465,17 @@ async function generateVehicleNeedsReport(kind="report"){
     const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"}),margin=18,maxW=174;let y=18;
     const addPageIf=(need)=>{if(y+need>280){doc.addPage();y=18}};
     doc.setFont("helvetica","bold");doc.setFontSize(20);doc.setTextColor(23,49,64);doc.text("VAPOREASY",margin,y);y+=8;
+    // CNPJ da empresa confirmado nas configurações comerciais; informação fiscal do emitente.
+    if(isQuote){doc.setFont("helvetica","normal");doc.setFontSize(10);doc.text("CNPJ: 31.120.467/0001-07",margin,y);y+=7;}
     doc.setFontSize(13);doc.text(isQuote?"Orçamento de serviços":"Relatório de necessidades do veículo",margin,y);y+=9;doc.setDrawColor(180);doc.line(margin,y,192,y);y+=9;
     doc.setFontSize(10);doc.setTextColor(40);doc.setFont("helvetica","normal");
     const header=[["Cliente",client?.name||"Cliente"],["Veículo",vehicle.brand+" "+vehicle.model+(vehicle.plate?" • "+vehicle.plate:"")],[(isQuote?"Data do orçamento":"Data da avaliação"),new Intl.DateTimeFormat("pt-BR",{dateStyle:"short"}).format(new Date())]];
     for(const [k,v] of header){doc.setFont("helvetica","bold");doc.text(k+":",margin,y);doc.setFont("helvetica","normal");doc.text(String(v),55,y);y+=7}
     y+=5;
-    if(isQuote){
-      doc.setFillColor(233,246,251);doc.roundedRect(margin,y,maxW,22,2.5,2.5,"F");
-      doc.setFont("helvetica","bold");doc.setTextColor(20,55,72);doc.setFontSize(10);doc.text("VALOR TOTAL ORÇADO",margin+5,y+7);
-      doc.setFontSize(17);doc.text(money(totalCents/100),margin+5,y+17);
-      y+=31;
-    }
     for(let n=0;n<selected.length;n++){
       const issue=selected[n],service=services.find(s=>s.id===issue.service_id),photos=currentRGPhotos.filter(p=>p.issue_id===issue.id&&p.include_in_report!==false);
       addPageIf(55);doc.setFillColor(244,248,250);doc.roundedRect(margin,y,maxW,12,2,2,"F");doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(20,55,72);doc.text((n+1)+". "+issue.category+" — "+issue.area,margin+4,y+7.5);y+=17;
       doc.setFontSize(9.5);doc.setTextColor(35);doc.setFont("helvetica","bold");doc.text("Prioridade:",margin,y);doc.setFont("helvetica","normal");doc.text(priorityLabel(issue.priority),40,y);y+=7;
-      if(isQuote){
-        addPageIf(12);
-        doc.setFont("helvetica","bold");doc.setTextColor(15,101,135);doc.setFontSize(12);
-        doc.text("Valor orçado: "+money(Number(currentRGQuotes.get(String(issue.id)))),margin,y);
-        y+=10;doc.setTextColor(35);doc.setFontSize(9.5);
-      }
       const writeField=(label,value)=>{if(!value)return;doc.setFont("helvetica","bold");doc.text(label,margin,y);doc.setFont("helvetica","normal");const lines=doc.splitTextToSize(value,150);doc.text(lines,52,y);y+=Math.max(7,lines.length*5+2)};
       writeField("Identificado:",issue.description);
       writeField("Recomendação:",issue.recommendation||"Avaliação e acompanhamento conforme necessidade.");
@@ -2502,6 +2492,13 @@ async function generateVehicleNeedsReport(kind="report"){
         if(photos.length%2===1)y+=58
       }
       y+=6;doc.setDrawColor(220);doc.line(margin,y,192,y);y+=8
+    }
+    if(isQuote){
+      addPageIf(37);y+=4;
+      doc.setFillColor(233,246,251);doc.roundedRect(margin,y,maxW,22,2.5,2.5,"F");
+      doc.setFont("helvetica","bold");doc.setTextColor(20,55,72);doc.setFontSize(10);doc.text("VALOR TOTAL ORÇADO",margin+5,y+7);
+      doc.setFontSize(17);doc.text(money(totalCents/100),margin+5,y+17);
+      y+=31;
     }
     addPageIf(28);doc.setFontSize(9);doc.setTextColor(90);doc.setFont("helvetica","normal");const foot=doc.splitTextToSize(isQuote?"Orçamento de serviços propostos. A execução e eventuais alterações de escopo ou preço dependem de confirmação prévia. Este documento não constitui cobrança nem comprovante de pagamento.":"Este relatório registra necessidades observadas visualmente no veículo e tem caráter orientativo. Serviços e valores podem depender de avaliação técnica complementar.",maxW);doc.text(foot,margin,y);y+=foot.length*5+4;doc.text("Vaporeasy · estética automotiva em domicílio",margin,y);
     const file=(isQuote?"orcamento-vaporeasy-":"relatorio-vaporeasy-")+cleanFileName(client?.name||"cliente")+"-"+cleanFileName(vehicle.brand+"-"+vehicle.model)+".pdf",blob=doc.output("blob"),pdfFile=new File([blob],file,{type:"application/pdf"});
