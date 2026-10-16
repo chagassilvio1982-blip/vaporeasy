@@ -48,7 +48,10 @@ test('Orçamento contém valores e total mesmo sem seleção do relatório técn
   assert.match(pdf,/totalCents=isQuote\?selected\.reduce/);
   assert.match(pdf,/Orçamento de serviços/);
   assert.match(pdf,/VALOR TOTAL ORÇADO/);
-  assert.match(pdf,/Valor orçado: /);
+  assert.equal(pdf.match(/VALOR TOTAL ORÇADO/g)?.length,1);
+  assert.ok(pdf.indexOf("VALOR TOTAL ORÇADO")>pdf.indexOf("for(let n=0;n<selected.length;n++)"));
+  assert.ok(pdf.indexOf("VALOR TOTAL ORÇADO")<pdf.indexOf("const foot="));
+  assert.doesNotMatch(pdf,/doc\.text\("Valor orçado: "\+money\(/);
   assert.match(pdf,/if\(!isQuote&&issue\.show_value/);
   assert.match(pdf,/orcamento-vaporeasy-/);
   assert.match(pdf,/Este documento não constitui cobrança nem comprovante de pagamento/);
