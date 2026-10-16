@@ -1844,7 +1844,7 @@ async function enter(session){
   try{
     const sessionUser=session?.user;
     if(!session?.access_token||!sessionUser?.id)throw Error("Sessão inválida. Entre novamente.");
-    const br=await fetch("https://asuppjeomaymzromgcrp.supabase.co/functions/v1/vaporeasy-v2-staging?action=bootstrap",{method:"POST",headers:{authorization:"Bearer "+session.access_token}});
+    const br=await fetch(FN+"?action=bootstrap",{method:"POST",headers:{authorization:"Bearer "+session.access_token}});
     const bj=await br.json();if(!br.ok&&br.status!==403)throw Error(bj.error||"Falha no acesso");
     const u=await sb.auth.getUser(session.access_token);if(u.error)throw u.error;
     if(!u.data.user||u.data.user.id!==sessionUser.id)throw Error("Sessão inconsistente. Saia e entre novamente.");
