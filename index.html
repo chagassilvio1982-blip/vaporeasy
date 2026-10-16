@@ -1161,7 +1161,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/settings-payment-clean.css?v=20261015-2">
 <link rel="stylesheet" href="/ux-readable.css?v=20261001-1">
 </head>
-<body><div class="app">
+<body>
+<div id="vaporeasy-staging-banner" aria-label="Ambiente de homologação" style="position:fixed;top:8px;right:8px;z-index:2147483647;background:#7a1f1f;color:#fff;padding:6px 10px;border-radius:8px;font:700 12px/1.2 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none">HOMOLOGAÇÃO · DADOS DE TESTE</div>
+<div class="app">
 <header id="hdr" class="hidden"><div><img data-brand-logo class="brand-logo brand-logo-header" src="/vaporeasy-logo-original.svg?v=20260928-05" loading="eager" decoding="sync" alt="Vaporeasy"></div><div class="headright"><button id="bell" class="bell" type="button" aria-label="Notificações">🔔<span id="nbadge" class="badge hidden">0</span></button><div class="profile"><b id="pname">—</b><div id="prole">—</div></div></div></header>
 <main>
 <section id="public" class="hidden">
@@ -1665,7 +1667,7 @@ if(!window.supabase){
   throw new Error("Supabase JS não carregou");
 }
 const {createClient}=window.supabase;
-const SUPABASE_URL="https://asuppjeomaymzromgcrp.supabase.co", KEY="sb_publishable_LfmsuPyDMKnyKHGh0x7Akw_yJfQ15bI", FN=SUPABASE_URL+"/functions/v1/vaporeasy-v2-staging", PUBLIC_FN=SUPABASE_URL+"/functions/v1/vaporeasy-public-booking";
+const SUPABASE_URL="https://wwivmyhlwqyzmaexkmnk.supabase.co", KEY="sb_publishable_kqR9AKXbxqRPbFFzkcXQ7w_pOzTAP1M", FN=SUPABASE_URL+"/functions/v1/vaporeasy-v2-staging", PUBLIC_FN=SUPABASE_URL+"/functions/v1/vaporeasy-public-booking";
 const sb=createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 const BRAND_LOGO="/vaporeasy-logo-original.svg?v=20261006-01",brandLogoImg=new Image();brandLogoImg.src=BRAND_LOGO;
 const $=id=>document.getElementById(id); let mode="login", clients=[], services=[], collabs=[], vehicleBrands=[], vehicleModels=[], currentApps=[], vehicles=new Map(), teams=[], teamMembers=[], allCollabs=[], currentUserId=null, currentRole="", currentReceipt=null, currentReceiptGroup=null, currentMonthlyReceipt=null, currentFinishExistingPhoto=null, notifTimer=null, notifChannel=null, knownUnread=new Set(), soundCtx=null, publicCfg=null, publicToken=new URLSearchParams(location.search).get("share")||"", publicRequestId=crypto.randomUUID(), generatedLinkClientName="", generatedLinkClientId="", slotRequestSeq=0, publicDates=[], publicDateLimit=6, publicAddonIds=[], androidImportContacts=[], collabAccess=new Map(), currentPaymentQuote=null, currentPaymentMode="receive", currentPaymentGroupIds=[], refsLoadedAt=0, vehicleCatalogLoadedAt=0, waterCounterLoadedAt=0, agendaLoadSeq=0, agendaMonthCache=new Map(), apptRecurringByVehicle=new Map(), recurrenceSyncAt=0;
@@ -1843,7 +1845,7 @@ async function enter(session){
   try{
     const sessionUser=session?.user;
     if(!session?.access_token||!sessionUser?.id)throw Error("Sessão inválida. Entre novamente.");
-    const br=await fetch("https://asuppjeomaymzromgcrp.supabase.co/functions/v1/vaporeasy-v2-staging?action=bootstrap",{method:"POST",headers:{authorization:"Bearer "+session.access_token}});
+    const br=await fetch("https://wwivmyhlwqyzmaexkmnk.supabase.co/functions/v1/vaporeasy-v2-staging?action=bootstrap",{method:"POST",headers:{authorization:"Bearer "+session.access_token}});
     const bj=await br.json();if(!br.ok&&br.status!==403)throw Error(bj.error||"Falha no acesso");
     const u=await sb.auth.getUser(session.access_token);if(u.error)throw u.error;
     if(!u.data.user||u.data.user.id!==sessionUser.id)throw Error("Sessão inconsistente. Saia e entre novamente.");
