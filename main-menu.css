@@ -1,14 +1,195 @@
-/* Navigation only: keep existing role visibility and service actions. */
-.main-menu-bar{display:flex;align-items:center;gap:16px;margin:0 0 16px}
-#main-menu-toggle{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:12px 16px;font-size:1rem;color:#f3f8fb;background:#103447;border:1px solid #34728e}
-#main-menu-toggle span{font-size:1.25rem}
-#main-menu-current{font-size:1rem;font-weight:700;color:#f3f8fb;overflow-wrap:anywhere}
-#main-menu-dialog{position:fixed;inset:12px auto auto max(12px,calc((100vw - 680px)/2 + 12px));margin:0;width:min(340px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:18px;background:#0b1d29;border:1px solid #34728e;box-shadow:0 12px 48px #0008}
-.main-menu-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-#main-menu-title{margin:0;font-size:1.25rem}
-#main-menu-close{min-height:48px;font-size:1rem}
-#main-menu-dialog .tabs{display:flex;flex-direction:column;gap:8px;overflow:visible;padding:0;margin:0;border:0;background:none}
-#main-menu-dialog .tabs button{flex:none;width:100%;min-height:52px;padding:14px 16px;text-align:left;font-size:1.0625rem;line-height:1.4;white-space:normal;color:#f3f8fb;background:#102a39;border:1px solid #2b566d}
-#main-menu-dialog .tabs button.active{background:#103f55;border-color:#56c6ee;box-shadow:inset 4px 0 #56c6ee}
-#main-menu-dialog #out{margin-top:8px}
-#main-menu-toggle:focus-visible,#main-menu-dialog button:focus-visible{outline:3px solid #73d6fb;outline-offset:3px}
+/* Vaporeasy page 1 — visibly accessible sections, no nested menu.
+   Reuse the existing button IDs and permissions; no backend or appointment changes. */
+.main-nav-shell{
+  margin:0 0 14px;
+  padding:9px;
+  border:1px solid #23485b;
+  background:#071923;
+  border-radius:14px;
+}
+#main-primary-nav.tabs{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin:0;
+  padding:0;
+  overflow:visible;
+  border:0;
+  border-radius:0;
+  background:none;
+}
+#main-primary-nav.tabs button{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-width:0;
+  min-height:50px;
+  padding:9px 7px;
+  border:1px solid #2c566a;
+  border-radius:10px;
+  background:#0d2b3b;
+  color:#e8f5fb;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.3;
+  white-space:normal;
+  text-align:center;
+}
+#main-primary-nav.tabs button.active{
+  background:#10445c;
+  color:#fff;
+  border-color:#5abfe4;
+  box-shadow:inset 0 0 0 1px #337d9e;
+}
+.main-nav-utility{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:6px;
+  margin-top:5px;
+}
+.main-nav-utility button{
+  min-height:44px;
+  padding:7px 12px;
+  border:1px solid transparent;
+  background:transparent;
+  color:#c1d1da;
+  font-size:12px;
+  font-weight:650;
+}
+.main-nav-utility button.active{color:#fff;background:#103b4f;border-color:#427f9d}
+#main-primary-nav button:focus-visible,.main-nav-utility button:focus-visible{
+  outline:2px solid #73d6fb;
+  outline-offset:2px;
+}
+#main-primary-nav[data-role="operator"]{
+  grid-template-columns:1fr;
+}
+@media(min-width:520px){
+  #main-primary-nav.tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:350px){
+  #main-primary-nav.tabs button{font-size:12px}
+}
+
+
+/* Secondary information stays available but does not compete with main actions. */
+#watercard.water-compact{
+  padding:0!important;
+  margin:0 0 11px!important;
+  border:1px solid #1d3e50;
+  border-radius:11px;
+  background:#081f2a;
+  overflow:hidden;
+}
+#watercard.water-compact>summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 11px!important;
+  min-height:39px!important;
+  background:transparent;
+  font-size:12px!important;
+  font-weight:650!important;
+  color:#aec5d1!important;
+}
+#watercard.water-compact>summary .water-compact-arrow{
+  font-size:17px;
+  line-height:1;
+  color:#8fb0bf;
+  transition:transform .15s ease;
+}
+#watercard.water-compact[open]>summary .water-compact-arrow{transform:rotate(180deg)}
+#watercard.water-compact[open]>summary{border-bottom:1px solid #204657}
+#watercard.water-compact .water-compact-body{padding:9px 12px 11px}
+#watercard.water-compact #watertotal{
+  display:block;
+  font-size:19px!important;
+  font-weight:800;
+  margin:0!important;
+  color:#a7ddee;
+}
+#watercard.water-compact #waterdetail{padding:3px 0 0;margin:0!important;font-size:11px!important}
+#cad .cad-head{align-items:flex-start}
+#cad .cad-head>.cad-head-copy{min-width:0;flex:1}
+#cad .cad-head>.cad-head-actions{
+  min-width:0;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+#cad .cad-head-actions #nc{
+  min-width:104px;
+  padding:9px 11px;
+}
+#cad .cad-more-actions{position:relative;flex:0 0 auto}
+#cad .cad-more-actions>summary{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  min-width:44px;
+  min-height:48px!important;
+  padding:0!important;
+  border-radius:10px;
+  border:1px solid #285063;
+  background:#0c2836;
+  color:#d8e9ef!important;
+  font-size:26px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  list-style:none;
+}
+#cad .cad-more-actions>summary::-webkit-details-marker{display:none}
+#cad .cad-more-actions[open]>summary{
+  background:#164056;
+  border-color:#62b9da;
+}
+#cad .cad-more-panel{
+  position:absolute;
+  right:0;
+  top:calc(100% + 5px);
+  z-index:12;
+  width:min(238px,calc(100vw - 28px));
+  padding:6px;
+  border:1px solid #37687d;
+  border-radius:11px;
+  background:#0b2532;
+  box-shadow:0 10px 24px #0007;
+}
+#cad .cad-more-panel .tool-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:2px;
+}
+#cad .cad-more-panel .tool-grid button{
+  width:100%;
+  min-height:44px;
+  padding:9px 11px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#e7f1f5;
+  font-size:13px;
+  font-weight:650;
+  line-height:1.3;
+  text-align:left;
+  box-shadow:none;
+}
+#cad .cad-more-panel .tool-grid button:hover,
+#cad .cad-more-panel .tool-grid button:focus-visible{
+  background:#154055;
+  outline:2px solid #4eaed1;
+  outline-offset:-2px;
+}
+#cad .cad-more-actions>summary:focus-visible{
+  outline:2px solid #73d6fb;
+  outline-offset:2px;
+}
+@media(max-width:370px){
+  #cad .cad-head{gap:8px}
+  #cad .cad-head-actions #nc{min-width:98px;padding-inline:8px;font-size:13px}
+  #cad .cad-more-actions>summary{width:42px;min-width:42px}
+}
