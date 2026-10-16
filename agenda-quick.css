@@ -1,0 +1,140 @@
+/* Controles rápidos da agenda: dimensões adequadas ao uso móvel. */
+.agenda-date-picker{display:flex;align-items:end;gap:8px;min-width:0}
+.agenda-date-picker label{flex:1;min-width:0}
+.agenda-date-picker input{margin-bottom:0}
+#agendaToday{min-width:72px;min-height:50px;flex-shrink:0}
+.agenda-search-label{display:block;margin:14px 0 5px;font-size:13px}
+#agendaQuickSearch{min-height:50px;margin:0 0 4px}
+#agendaQuickSearchStatus{min-height:20px;color:#b3c8d3;font-size:12px;margin:0 0 8px}
+#agendaQuickSearchStatus:empty{display:none}
+@media(max-width:470px){
+  .agenda-date-picker{width:100%}
+  #agendaToday{min-height:50px}
+}
+
+/* Ação principal e observações visíveis antes de abrir detalhes. */
+.agenda-visible-notes,.operator-notes-open{
+ margin-top:10px;padding:11px 12px;border-radius:11px;border:1px solid #355366;
+ background:#102b3a;color:#ecf5fa;font-size:13px;line-height:1.5;
+ white-space:pre-wrap;overflow-wrap:anywhere;
+}
+.agenda-visible-notes b,.operator-notes-open b{font-size:13px;color:#f6fafc}
+.operator-notes-open>div{padding-top:4px}
+.agenda-quick-actions{margin-top:10px}
+.agenda-quick-actions button{min-height:50px;width:100%;font-size:15px}
+
+
+/* Homologação: agenda clean — apenas apresentação, sem alterar eventos ou horários. */
+#age .section-head.agenda-head{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:9px;
+ margin-bottom:10px;
+}
+#age .agenda-head-copy{min-width:0;flex:1}
+#age .agenda-head-copy .title{margin:0;font-size:25px}
+#age .agenda-head-actions{display:flex;gap:6px;align-items:center;flex:none}
+#age .agenda-head-actions #na{
+ min-height:44px;
+ min-width:0;
+ padding:9px 12px;
+ font-size:14px;
+ white-space:nowrap;
+}
+#age .agenda-more-actions{position:relative;flex:none}
+#age .agenda-more-actions>summary{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ width:44px;
+ min-width:44px;
+ min-height:44px!important;
+ padding:0!important;
+ border-radius:10px;
+ border:1px solid #285063;
+ background:#0c2836;
+ color:#d8e9ef!important;
+ font-size:26px!important;
+ font-weight:800!important;
+ line-height:1!important;
+ list-style:none;
+ cursor:pointer;
+}
+#age .agenda-more-actions>summary::-webkit-details-marker{display:none}
+#age .agenda-more-actions[open]>summary{background:#164056;border-color:#62b9da}
+#age .agenda-more-panel{
+ position:absolute;
+ top:calc(100% + 5px);
+ right:0;
+ z-index:15;
+ width:min(218px,calc(100vw - 28px));
+ padding:4px;
+ border:1px solid #37687d;
+ border-radius:11px;
+ background:#0b2532;
+ box-shadow:0 10px 24px #0007;
+}
+#age .agenda-more-panel button{
+ display:block;
+ width:100%;
+ min-height:44px;
+ padding:8px 9px;
+ border:0;
+ border-radius:8px;
+ background:transparent;
+ color:#e7f1f5;
+ font-size:12px;
+ font-weight:650;
+ line-height:1.3;
+ text-align:left;
+ white-space:normal;
+}
+#age .agenda-more-panel button:hover,#age .agenda-more-panel button:focus-visible{
+ background:#154055;
+ outline:2px solid #4eaed1;
+ outline-offset:-2px;
+}
+#age .agenda-view-switch{
+ display:grid;
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:6px;
+ margin:0 0 8px;
+}
+#age .agenda-view-switch button{
+ width:100%;
+ min-height:44px;
+ padding:8px 9px;
+ border-radius:10px;
+ font-size:14px;
+}
+#age .agenda-toolbar{
+ display:block;
+ margin:0 0 10px;
+}
+/* A classe JS e o atributo nativo precisam vencer o layout geral da toolbar. */
+#age #agendaDateToolbar[hidden],
+#age #agendaDateToolbar.hidden{display:none!important}
+#age .agenda-date-picker{display:flex;align-items:end;gap:7px;width:100%}
+#age .agenda-date-picker label{flex:1;min-width:0;font-size:12px;gap:4px}
+#age .agenda-date-picker input{
+ width:100%;
+ min-height:44px;
+ padding:7px 10px;
+ font-size:16px;
+}
+#age #agendaToday{
+ min-width:68px;
+ min-height:44px;
+ padding:8px 11px;
+ font-size:14px;
+}
+@media(max-width:350px){
+ #age .agenda-head-copy .title{font-size:23px}
+ #age .agenda-head-actions #na{font-size:12px;padding:8px}
+ #age .agenda-head-actions{gap:5px}
+}
+
+/* Safeguard: daily picker must never occupy layout in Mês/Lista. */
+#age #agendaDateToolbar[hidden],
+#age #agendaDateToolbar.hidden{display:none!important}
