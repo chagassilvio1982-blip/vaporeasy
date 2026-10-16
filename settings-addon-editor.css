@@ -1,0 +1,108 @@
+/* Configurações > Extras: editor compacto. Persistência e regras não alteradas. */
+#setaddond{
+  padding:0;
+  max-height:90dvh;
+  overflow:auto;
+}
+#setaddond #setaddonf.settings-addon-editor{
+  padding:13px;
+  gap:10px;
+}
+#setaddond #setaddontitle{
+  margin:1px 0 3px;
+  font-size:20px;
+}
+#setaddond .settings-addon-pricing{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+#setaddond .settings-addon-pricing>label{
+  min-width:0;
+  display:block;
+}
+#setaddond .settings-addon-pricing input{
+  display:block;
+  width:100%;
+  min-width:0;
+  padding-inline:9px;
+  font-size:15px;
+}
+#setaddond .settings-addon-check{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-size:13px;
+  font-weight:650;
+  color:#dfedf3;
+  line-height:1.4;
+}
+#setaddond .settings-addon-check input{
+  width:22px;
+  min-width:22px;
+  min-height:22px;
+  margin:0;
+}
+#setaddond .settings-addon-advanced{
+  border:1px solid #21485b;
+  border-radius:11px;
+  background:#0a2532;
+  overflow:hidden;
+}
+#setaddond .settings-addon-advanced>summary{
+  padding:12px 13px;
+  min-height:44px;
+  cursor:pointer;
+  font-weight:780;
+  font-size:13px;
+  list-style:none;
+}
+#setaddond .settings-addon-advanced>summary::-webkit-details-marker{display:none}
+#setaddond .settings-addon-advanced>summary::after{
+  content:"⌄";
+  float:right;
+  color:#9bb7c5;
+}
+#setaddond .settings-addon-advanced[open]>summary::after{content:"⌃"}
+#setaddond .settings-addon-advanced>.stack{
+  padding:11px;
+  border-top:1px solid #21485b;
+  gap:10px;
+}
+#setaddond .settings-addon-scope-heading{
+  font-weight:800;
+  font-size:13px;
+  margin-bottom:8px;
+}
+#setaddond #setaddonservices{
+  gap:7px;
+}
+#setaddond .settings-addon-footer{
+  position:sticky;
+  bottom:-13px;
+  z-index:2;
+  margin:1px -13px -13px;
+  padding:9px 13px 12px;
+  background:#081a24;
+  border-top:1px solid #254454;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+#setaddond .settings-addon-footer button{
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  padding:9px 12px;
+  font-size:14px;
+}
+@media(max-width:370px){
+  #setaddond #setaddonf.settings-addon-editor{padding:10px}
+  #setaddond .settings-addon-pricing{gap:6px}
+  #setaddond .settings-addon-pricing input{font-size:14px;padding-inline:6px}
+  #setaddond .settings-addon-footer{
+    bottom:-10px;
+    margin:0 -10px -10px;
+    padding:8px 10px 11px;
+  }
+}
