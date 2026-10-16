@@ -47,6 +47,8 @@ test('Orçamento contém valores e total mesmo sem seleção do relatório técn
   const pdf=main.slice(main.indexOf('async function generateVehicleNeedsReport('),main.indexOf('function recurrenceLabel(',main.indexOf('async function generateVehicleNeedsReport(')));
   assert.match(pdf,/totalCents=isQuote\?selected\.reduce/);
   assert.match(pdf,/Orçamento de serviços/);
+  assert.match(pdf,/if\(isQuote\)\{doc\.setFont\("helvetica","normal"\);doc\.setFontSize\(10\);doc\.text\("CNPJ: 31\.120\.467\/0001-07",margin,y\);y\+=7;\}/);
+  assert.equal(pdf.match(/CNPJ: 31\.120\.467\/0001-07/g)?.length,1);
   assert.match(pdf,/VALOR TOTAL ORÇADO/);
   assert.equal(pdf.match(/VALOR TOTAL ORÇADO/g)?.length,1);
   assert.ok(pdf.indexOf("VALOR TOTAL ORÇADO")>pdf.indexOf("for(let n=0;n<selected.length;n++)"));
