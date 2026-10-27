@@ -1,0 +1,111 @@
+
+/* Vaporeasy V3 — premium skin. Variáveis são o ponto único para futura marca branca. */
+:root{
+  --v3-brand:#22b8d4;
+  --v3-brand-hover:#18a6c4;
+  --v3-ink:#07151f;
+  --v3-surface:#0d2431;
+  --v3-surface-raised:#133142;
+  --v3-border:#315467;
+  --v3-text:#f5f9fc;
+  --v3-muted:#bdd0db;
+  --v3-radius:18px;
+  --v3-shadow:0 12px 32px rgba(0,0,0,.22);
+  color-scheme:dark;
+}
+body[data-vaporeasy-version="v3"]{
+  background:radial-gradient(ellipse at 50% -10%,#173e53 0%,#06131c 56%,#040d14 100%);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+body[data-vaporeasy-version="v3"] .app{
+  background:linear-gradient(180deg,rgba(13,37,50,.98),rgba(5,18,27,.99));
+  box-shadow:0 12px 70px #0005;
+  max-width:760px;
+}
+body[data-vaporeasy-version="v3"] header{
+  border-radius:0 0 18px 18px;
+  background:#f7fbfd;
+  box-shadow:0 8px 28px rgba(0,0,0,.18);
+}
+body[data-vaporeasy-version="v3"] .card,
+body[data-vaporeasy-version="v3"] .item{
+  border-radius:var(--v3-radius);
+  border:1px solid var(--v3-border);
+  background:linear-gradient(155deg,#153648,#0b202d 85%);
+  box-shadow:var(--v3-shadow);
+}
+body[data-vaporeasy-version="v3"] .title{
+  font-size:clamp(23px,5vw,30px);
+  letter-spacing:-.035em;
+  line-height:1.15;
+}
+body[data-vaporeasy-version="v3"] .sub,
+body[data-vaporeasy-version="v3"] .meta{
+  color:var(--v3-muted);
+}
+body[data-vaporeasy-version="v3"] button{
+  border-radius:12px;
+  transition:background-color .16s ease,border-color .16s ease,transform .14s ease;
+}
+body[data-vaporeasy-version="v3"] button:active{transform:scale(.985)}
+body[data-vaporeasy-version="v3"] .primary{
+  background:var(--v3-brand);
+  color:#07202b;
+  font-weight:850;
+}
+body[data-vaporeasy-version="v3"] .primary:hover{background:var(--v3-brand-hover)}
+body[data-vaporeasy-version="v3"] .ghost{
+  background:#122d3c;
+  color:#f3fbff;
+  border:1px solid var(--v3-border);
+}
+body[data-vaporeasy-version="v3"] .success{background:#168b60;color:white}
+body[data-vaporeasy-version="v3"] input,
+body[data-vaporeasy-version="v3"] select,
+body[data-vaporeasy-version="v3"] textarea{
+  border-radius:12px;
+  border:1px solid #477188;
+  background:#081e2b;
+  color:#f7fcff;
+}
+body[data-vaporeasy-version="v3"] input:focus-visible,
+body[data-vaporeasy-version="v3"] select:focus-visible,
+body[data-vaporeasy-version="v3"] textarea:focus-visible,
+body[data-vaporeasy-version="v3"] button:focus-visible{
+  outline:2px solid #77e0f0;
+  outline-offset:3px;
+}
+body[data-vaporeasy-version="v3"] #main-nav-shell{
+  border:1px solid #42657a;
+  border-radius:18px;
+  padding:10px;
+  background:rgba(6,23,33,.95);
+  box-shadow:var(--v3-shadow);
+}
+body[data-vaporeasy-version="v3"] #main-primary-nav.tabs button{
+  border-radius:12px;
+  background:#122f40;
+  border:1px solid #37637a;
+  color:#eaf8ff;
+  font-weight:750;
+}
+body[data-vaporeasy-version="v3"] #main-primary-nav.tabs button.active{
+  background:linear-gradient(145deg,#167997,#125672);
+  border:1px solid #64d0ec;
+  color:white;
+  box-shadow:inset 0 1px 0 #ffffff26,0 2px 12px #001c2b66;
+}
+body[data-vaporeasy-version="v3"] dialog{
+  border-radius:20px;
+  border-color:#467087;
+  background:linear-gradient(160deg,#123143,#071b29);
+  box-shadow:0 18px 55px #0009;
+}
+body[data-vaporeasy-version="v3"] #auth>.card{max-width:520px;margin:auto;padding:clamp(18px,5vw,30px)}
+body[data-vaporeasy-version="v3"] #main-primary-nav button:focus-visible{
+  outline:2px solid #90e7f2;outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-vaporeasy-version="v3"] button{transition:none}
+}
