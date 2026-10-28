@@ -12,7 +12,16 @@ const styles=["v3/styles/foundation.css","v3/styles/operations.css","v3/styles/c
 test('os módulos mantêm exatamente o script V2, sem alterar regras de negócio',()=>{
  const originals=[...original.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
  assert.equal(originals.length,6);
- assert.equal(modules.map(read).join(''),originals[3][1]);
+ const combined=modules.map(read).join('');
+ const renderStart=combined.indexOf('function renderAgendaListHtml(');
+ const renderEnd=combined.indexOf('\nasync function loadAgendaList()',renderStart);
+ assert.ok(renderStart>=0&&renderEnd>renderStart,'Função mensal extraída deve existir');
+ const extracted=combined.slice(renderStart,renderEnd);
+ const body=extracted.slice(extracted.indexOf('{')+1,extracted.lastIndexOf('  return html;')).replace(/^\n/,'');
+ const normalized=combined.slice(0,renderStart)+combined.slice(renderEnd+1);
+ const call='  const html=renderAgendaListHtml(rows,cm,vm,sm,tm,com);\n';
+ assert.ok(normalized.includes(call),'Chamada da renderização isolada deve existir');
+ assert.equal(normalized.replace(call,body),originals[3][1]);
  for(const mod of modules)assert.ok(v3.includes('src="/'+mod+'?v=20261027-1"'));
  assert.equal(v3.includes('const SUPABASE_URL='),false);
 });
