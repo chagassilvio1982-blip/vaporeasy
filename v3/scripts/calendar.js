@@ -232,7 +232,7 @@ async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
         ?'<button class="success operator-main-action" type="button" data-op-finish="'+x.id+'">Concluir serviço</button>'
         :'<button class="primary operator-main-action" type="button" data-op-start="'+x.id+'">Iniciar serviço</button>')
       :"";
-    const rg=isToday?'<button class="ghost operator-rg-action" type="button" data-op-rg="'+x.id+'">📷 RG do veículo</button>':"";
+    const rg=isToday&&x.status!=="cancelled"?'<button class="ghost operator-rg-action" type="button" data-op-rg="'+x.id+'">📷 RG do veículo</button>':"";
     const info=!isToday?'<div class="operator-future-note">As ações Iniciar, Concluir e RG do veículo ficam disponíveis no dia do atendimento.</div>':"";
     return '<div class="item operator-job"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3>'+esc(x.client_name)+'</h3><div class="operator-job-core"><b>'+esc(x.vehicle_label||"Veículo")+'</b><span>'+esc(x.service_name)+'</span></div>'+(x.notes?'<details class="operator-notes"><summary>Observações do atendimento</summary><div>'+esc(x.notes)+'</div></details>':'')+info+((rg||action)?'<div class="operator-job-actions">'+rg+action+'</div>':'')+'</div>'
   };
