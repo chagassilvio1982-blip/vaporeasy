@@ -21,7 +21,8 @@ test('os módulos mantêm exatamente o script V2, sem alterar regras de negócio
  const normalized=combined.slice(0,renderStart)+combined.slice(renderEnd+1);
  const call='  const html=renderAgendaListHtml(rows,cm,vm,sm,tm,com);\n';
  assert.ok(normalized.includes(call),'Chamada da renderização isolada deve existir');
- assert.equal(normalized.replace(call,body),originals[3][1]);
+ const reconstructed=normalized.replace(call,body).replace('const action=isToday&&x.status!=="completed"&&x.status!=="cancelled"','const action=isToday');
+ assert.equal(reconstructed,originals[3][1]);
  for(const mod of modules)assert.ok(v3.includes('src="/'+mod+'?v=20261027-1"'));
  assert.equal(v3.includes('const SUPABASE_URL='),false);
 });
@@ -51,4 +52,9 @@ test('não aponta diretamente para produção por descuido',()=>{
  const bootstrap=read('v3/scripts/bootstrap.js');
  assert.match(bootstrap,/https:\/\/asuppjeomaymzromgcrp\.supabase\.co/);
  assert.doesNotMatch(bootstrap,/jiimrpulcfoccxizqbac|wwivmyhlwqyzmaexkmnk/);
+});
+
+test('colaborador não recebe ação de iniciar para serviço encerrado',()=>{
+ const calendar=read('v3/scripts/calendar.js');
+ assert.match(calendar,/const action=isToday&&x\.status!=="completed"&&x\.status!=="cancelled"/);
 });
