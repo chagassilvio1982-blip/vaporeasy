@@ -227,7 +227,7 @@ async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
   const isToday=operatorSelectedDate===today();
   const active=currentApps.filter(x=>x.status!=="completed"),done=currentApps.filter(x=>x.status==="completed");
   const card=x=>{
-    const action=isToday
+    const action=isToday&&x.status!=="completed"&&x.status!=="cancelled"
       ?(x.status==="in_progress"
         ?'<button class="success operator-main-action" type="button" data-op-finish="'+x.id+'">Concluir serviço</button>'
         :'<button class="primary operator-main-action" type="button" data-op-start="'+x.id+'">Iniciar serviço</button>')
