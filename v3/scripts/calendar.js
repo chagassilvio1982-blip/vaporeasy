@@ -37,6 +37,20 @@ function agendaLocalDateKey(iso){
   const get=t=>parts.find(p=>p.type===t)?.value||"";
   return get("year")+"-"+get("month")+"-"+get("day")
 }
+function renderAgendaListHtml(rows,cm,vm,sm,tm,com){
+  const groups=new Map();
+  rows.forEach(x=>{const key=agendaLocalDateKey(x.starts_at);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
+  let html="";
+  for(const [key,list] of groups){
+    const [yy,mm,dd]=key.split("-").map(Number),label=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"long"}).format(new Date(yy,mm-1,dd));
+    html+='<div class="list-caption" style="margin-top:14px;text-transform:capitalize">'+esc(label)+'</div>';
+    html+=list.map(x=>{
+      const cl=cm.get(x.client_id),v=vm.get(x.vehicle_id),s=sm.get(x.service_id),resp=tm.get(x.team_id)?.name||com.get(x.collaborator_id)?.name||"Responsável a definir";
+      return '<button type="button" class="item" data-agenda-list-day="'+key+'" data-agenda-list-id="'+esc(x.id)+'" style="display:block;width:100%;text-align:left;margin-top:7px;color:inherit"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3 style="margin:0 0 5px">'+esc(cl?.name||"Cliente")+'</h3><div class="appt-core"><b>'+esc(v?[v.brand,v.model].filter(Boolean).join(" "):"Veículo")+(v?.plate?' • '+esc(v.plate):'')+'</b><span>'+esc(s?.name||"Serviço")+' • '+esc(resp)+'</span></div></button>'
+    }).join("")
+  }
+  return html;
+}
 async function loadAgendaList(){
   const req=++agendaListLoadSeq,box=$("agendaListItems");
   if(!box)return;
@@ -60,17 +74,7 @@ async function loadAgendaList(){
   ]);
   if(req!==agendaListLoadSeq)return;
   const cm=new Map((cr.data||[]).map(x=>[x.id,x])),vm=new Map((vr.data||[]).map(x=>[x.id,x])),sm=new Map((sr.data||[]).map(x=>[x.id,x])),tm=new Map((tr.data||[]).map(x=>[x.id,x])),com=new Map((cor.data||[]).map(x=>[x.id,x]));
-  const groups=new Map();
-  rows.forEach(x=>{const key=agendaLocalDateKey(x.starts_at);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
-  let html="";
-  for(const [key,list] of groups){
-    const [yy,mm,dd]=key.split("-").map(Number),label=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"long"}).format(new Date(yy,mm-1,dd));
-    html+='<div class="list-caption" style="margin-top:14px;text-transform:capitalize">'+esc(label)+'</div>';
-    html+=list.map(x=>{
-      const cl=cm.get(x.client_id),v=vm.get(x.vehicle_id),s=sm.get(x.service_id),resp=tm.get(x.team_id)?.name||com.get(x.collaborator_id)?.name||"Responsável a definir";
-      return '<button type="button" class="item" data-agenda-list-day="'+key+'" data-agenda-list-id="'+esc(x.id)+'" style="display:block;width:100%;text-align:left;margin-top:7px;color:inherit"><div class="appt-card-top"><div class="time">'+esc(apRange(x))+'</div><span class="pill status-pill">'+esc(statusLabel(x.status))+'</span></div><h3 style="margin:0 0 5px">'+esc(cl?.name||"Cliente")+'</h3><div class="appt-core"><b>'+esc(v?[v.brand,v.model].filter(Boolean).join(" "):"Veículo")+(v?.plate?' • '+esc(v.plate):'')+'</b><span>'+esc(s?.name||"Serviço")+' • '+esc(resp)+'</span></div></button>'
-    }).join("")
-  }
+  const html=renderAgendaListHtml(rows,cm,vm,sm,tm,com);
   box.innerHTML=html;
   box.querySelectorAll("[data-agenda-list-day]").forEach(b=>b.onclick=()=>{agendaFocusAppointmentId=b.dataset.agendaListId||"";$("date").value=b.dataset.agendaListDay;agendaCalendarMonth=calendarMonthFromDate(b.dataset.agendaListDay);setAgendaView("day")})
 }
