@@ -21,7 +21,7 @@ test('os módulos mantêm exatamente o script V2, sem alterar regras de negócio
  const normalized=combined.slice(0,renderStart)+combined.slice(renderEnd+1);
  const call='  const html=renderAgendaListHtml(rows,cm,vm,sm,tm,com);\n';
  assert.ok(normalized.includes(call),'Chamada da renderização isolada deve existir');
- const reconstructed=normalized.replace(call,body).replace('const action=isToday&&x.status!=="completed"&&x.status!=="cancelled"','const action=isToday');
+ const reconstructed=normalized.replace(call,body).replace('const action=isToday&&x.status!=="completed"&&x.status!=="cancelled"','const action=isToday').replace('const rg=isToday&&x.status!=="cancelled"?','const rg=isToday?');
  assert.equal(reconstructed,originals[3][1]);
  for(const mod of modules)assert.ok(v3.includes('src="/'+mod+'?v=20261027-1"'));
  assert.equal(v3.includes('const SUPABASE_URL='),false);
@@ -57,4 +57,9 @@ test('não aponta diretamente para produção por descuido',()=>{
 test('colaborador não recebe ação de iniciar para serviço encerrado',()=>{
  const calendar=read('v3/scripts/calendar.js');
  assert.match(calendar,/const action=isToday&&x\.status!=="completed"&&x\.status!=="cancelled"/);
+});
+
+test('RG do colaborador não aparece para atendimento cancelado',()=>{
+ const calendar=read('v3/scripts/calendar.js');
+ assert.match(calendar,/const rg=isToday&&x\.status!=="cancelled"\?/);
 });
