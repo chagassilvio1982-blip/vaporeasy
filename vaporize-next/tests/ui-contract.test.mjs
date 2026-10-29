@@ -34,3 +34,9 @@ test('workspace is hidden when tenant authorization is revoked', () => {
   assert.match(main, /!internalAccess && !\$\('workspace'\)\.hidden/);
   assert.match(main, /Acesso empresarial revogado/);
 });
+
+test('denied tenant authorization signs out locally before reporting blocked access', () => {
+  const main = read('../src/ui/main.js');
+  assert.match(main, /if \(!await controller\.requireInternalAccess\(\)\) \{/);
+  assert.match(main, /controller\.clearAccess\(\);\s*await supabase\.auth\.signOut\(\{ scope: 'local' \}\);/);
+});
