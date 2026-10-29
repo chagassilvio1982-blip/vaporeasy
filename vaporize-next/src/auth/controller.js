@@ -7,9 +7,10 @@ export function createAuthController(supabase) {
   if (!supabase?.auth) throw new TypeError('Supabase auth client required');
   let recoverySession = null;
   let recoveryMode = false;
+  let authorizedOrganizations = [];
   const listeners = new Set();
   const publish = (state) => { for (const fn of listeners) fn(state); };
-  const state = () => ({ recovering: recoveryMode, internalAccess: false });
+  const state = () => ({ recovering: recoveryMode, internalAccess: !recoveryMode && authorizedOrganizations.length > 0, organizations: authorizedOrganizations.map((o) => ({ ...o })) });
   const subscribe = (fn) => {
     listeners.add(fn);
     fn(state());
@@ -18,6 +19,7 @@ export function createAuthController(supabase) {
   const clearRecovery = () => {
     recoverySession = null;
     recoveryMode = false;
+    authorizedOrganizations = [];
     publish(state());
   };
 
@@ -39,6 +41,7 @@ export function createAuthController(supabase) {
     if (!isRecoveryLink && !tokenHash && !hasCode && !hasTokens) return false;
     recoveryMode = true;
     recoverySession = null;
+    authorizedOrganizations = [];
     publish(state());
     try {
       let result;
@@ -93,13 +96,19 @@ export function createAuthController(supabase) {
   }
 
   async function requireInternalAccess() {
+    authorizedOrganizations = [];
     if (recoveryMode) return false;
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data?.user) return false;
-    // Authentication alone never authorizes access to tenant data.
-    // Until membership and organization status are validated server-side,
-    // fail closed. Do not enable internal modules from a client-only check.
-    return false;
+    if (error || !data?.user || typeof supabase.rpc !== 'function') return false;
+    try {
+      const result = await supabase.rpc('vaporize_next_my_organizations');
+      if (result.error || !Array.isArray(result.data)) return false;
+      authorizedOrganizations = result.data.filter((o) => o && typeof o.organization_id === 'string' && typeof o.organization_name === 'string');
+      publish(state());
+      return authorizedOrganizations.length > 0;
+    } catch {
+      return false;
+    }
   }
 
   return { beginRecovery, changePassword, requireInternalAccess, subscribe, state };
