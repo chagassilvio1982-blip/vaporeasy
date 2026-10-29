@@ -77,3 +77,12 @@ test('late authorization response cannot restore access after logout', async () 
   assert.equal(await pending, false);
   assert.equal(controller.state().internalAccess, false);
 });
+
+test('identity network exception denies access without throwing', async () => {
+  const controller = createAuthController({
+    auth: { getUser: async () => { throw new Error('network unavailable'); } },
+    rpc: async () => { throw new Error('RPC must not run'); }
+  });
+  assert.equal(await controller.requireInternalAccess(), false);
+  assert.equal(controller.state().internalAccess, false);
+});
