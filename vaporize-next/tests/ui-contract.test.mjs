@@ -42,3 +42,13 @@ test('denied tenant authorization signs out locally before reporting blocked acc
   assert.match(main, /if \(!await controller\.requireInternalAccess\(\)\) \{/);
   assert.match(main, /controller\.clearAccess\(\);\s*try \{ await supabase\.auth\.signOut\(\{ scope: 'local' \}\); \}/);
 });
+
+
+test('logout revokes workspace access before awaiting network signout', () => {
+  const main = read('../src/ui/main.js');
+  const logout = main.slice(main.indexOf("$('logout').addEventListener"));
+  const clear = logout.indexOf('controller.clearAccess();');
+  const hide = logout.indexOf("show('login-form');");
+  const signOut = logout.indexOf("await supabase.auth.signOut({ scope: 'local' })");
+  assert.ok(clear >= 0 && hide > clear && signOut > hide);
+});
