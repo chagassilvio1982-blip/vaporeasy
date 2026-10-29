@@ -101,6 +101,22 @@ export function createAuthController(supabase) {
     return true;
   }
 
+  async function createFirstOrganization(name, slug) {
+    if (recoveryMode) throw new Error('Recovery mode cannot create organizations');
+    const identity = await supabase.auth.getUser();
+    if (identity.error || !identity.data?.user) throw new Error('Authenticated identity required');
+    const epoch = ++accessEpoch;
+    authorizedOrganizations = [];
+    publish(state());
+    if (typeof supabase.rpc !== 'function') throw new Error('Organization service unavailable');
+    const result = await supabase.rpc('vaporize_next_create_organization', {
+      p_name: name, p_slug: slug
+    });
+    if (result.error) throw result.error;
+    if (epoch !== accessEpoch || recoveryMode) throw new Error('Organization request superseded');
+    return requireInternalAccess();
+  }
+
   function clearAccess() {
     accessEpoch += 1;
     authorizedOrganizations = [];
@@ -128,5 +144,5 @@ export function createAuthController(supabase) {
     }
   }
 
-  return { beginRecovery, changePassword, requireInternalAccess, clearAccess, subscribe, state };
+  return { beginRecovery, changePassword, requireInternalAccess, createFirstOrganization, clearAccess, subscribe, state };
 }
