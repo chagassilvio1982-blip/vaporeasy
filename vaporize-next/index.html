@@ -36,7 +36,11 @@
       <button type="button" id="onboarding-logout" class="secondary">Sair</button>
     </form>
     <section id="workspace" hidden aria-label="Área interna">
-      <p>Sessão autenticada. Os módulos operacionais ainda não estão disponíveis.</p>
+      <h2>Clientes</h2>
+      <p>Consulta somente leitura da empresa autenticada.</p>
+      <button id="load-clients" type="button">Consultar clientes</button>
+      <p id="clients-status" role="status" aria-live="polite"></p>
+      <ul id="clients-list" aria-label="Clientes da empresa"></ul>
       <button id="logout" type="button">Sair</button>
     </section>
   </section>
