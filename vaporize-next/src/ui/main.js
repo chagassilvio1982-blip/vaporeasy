@@ -14,8 +14,24 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
 } else {
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    // Keep only the PKCE verifier across the email redirect, never the login session.
+    const volatileAuth = new Map();
+    const authStorage = {
+      getItem(key) {
+        if (key.endsWith('-code-verifier')) return sessionStorage.getItem(key);
+        return volatileAuth.get(key) ?? null;
+      },
+      setItem(key, value) {
+        if (key.endsWith('-code-verifier')) sessionStorage.setItem(key, value);
+        else volatileAuth.set(key, value);
+      },
+      removeItem(key) {
+        if (key.endsWith('-code-verifier')) sessionStorage.removeItem(key);
+        else volatileAuth.delete(key);
+      }
+    };
     const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
-      auth: { detectSessionInUrl: false, persistSession: false, autoRefreshToken: true }
+      auth: { flowType: 'pkce', storage: authStorage, detectSessionInUrl: false, persistSession: true, autoRefreshToken: false }
     });
     const controller = createAuthController(supabase);
     controller.subscribe(({ recovering, internalAccess }) => {
