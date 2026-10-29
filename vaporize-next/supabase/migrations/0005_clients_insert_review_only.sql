@@ -1,5 +1,5 @@
 -- Vaporize Next migration 0005: controlled client INSERT
--- REVIEW ONLY: do not apply until isolated Supabase A/B tests are approved.
+-- APPLIED TO DEDICATED HOMOLOGATION ONLY on 2026-10-29 via Supabase migration\n-- vaporize_next_0005_clients_insert_owner_manager. A/B JWT tests remain pending.\n-- Do not replay this file manually: CREATE POLICY is not idempotent.
 -- Scope: vaporize_next schema in dedicated homologation project only.
 -- Requires migration 0001 and public.vaporize_next_my_organizations RPC (0002).
 --
