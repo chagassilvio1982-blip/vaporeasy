@@ -88,6 +88,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
       try {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
+        controller.clearAccess();
         show('login-form'); status('Sessão encerrada.');
       } catch { status('Falha ao encerrar a sessão.'); }
       finally { busy(false); }
