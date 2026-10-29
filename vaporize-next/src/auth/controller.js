@@ -101,6 +101,16 @@ export function createAuthController(supabase) {
     return true;
   }
 
+  async function canOnboard() {
+    if (recoveryMode || authorizedOrganizations.length) return false;
+    try {
+      const identity = await supabase.auth.getUser();
+      if (identity.error || !identity.data?.user || typeof supabase.rpc !== 'function') return false;
+      const result = await supabase.rpc('vaporize_next_my_organizations');
+      return !result.error && Array.isArray(result.data) && result.data.length === 0;
+    } catch { return false; }
+  }
+
   async function createFirstOrganization(name, slug) {
     if (recoveryMode) throw new Error('Recovery mode cannot create organizations');
     const identity = await supabase.auth.getUser();
@@ -144,5 +154,5 @@ export function createAuthController(supabase) {
     }
   }
 
-  return { beginRecovery, changePassword, requireInternalAccess, createFirstOrganization, clearAccess, subscribe, state };
+  return { beginRecovery, changePassword, requireInternalAccess, canOnboard, createFirstOrganization, clearAccess, subscribe, state };
 }
