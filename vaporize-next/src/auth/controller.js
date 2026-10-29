@@ -42,7 +42,7 @@ export function createAuthController(supabase) {
     // Never treat an ordinary authenticated session as a recovery session.
     if (!isRecoveryLink && !tokenHash && !hasCode && !hasTokens) return false;
     recoveryMode = true;
-    accessEpoch += 1;
+    const recoveryEpoch = ++accessEpoch;
     recoverySession = null;
     authorizedOrganizations = [];
     publish(state());
@@ -65,6 +65,7 @@ export function createAuthController(supabase) {
       if (error || !data?.user || data.user.id !== result.data.session.user.id) {
         throw error || new Error('Recovery identity mismatch');
       }
+      if (recoveryEpoch !== accessEpoch || !recoveryMode) throw new Error('Recovery attempt superseded');
       recoverySession = result.data.session;
       // Remove sensitive callback parameters from address bar; app owns history.
       url.searchParams.delete('token_hash');
