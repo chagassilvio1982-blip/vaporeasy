@@ -102,6 +102,7 @@ export function createAuthController(supabase) {
 
   async function requireInternalAccess() {
     authorizedOrganizations = [];
+    publish(state());
     if (recoveryMode) return false;
     const { data, error } = await supabase.auth.getUser();
     if (error || !data?.user || typeof supabase.rpc !== 'function') return false;
