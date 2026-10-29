@@ -18,8 +18,12 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
       auth: { detectSessionInUrl: false, persistSession: false, autoRefreshToken: true }
     });
     const controller = createAuthController(supabase);
-    controller.subscribe(({ recovering }) => {
+    controller.subscribe(({ recovering, internalAccess }) => {
       if (recovering) show('recovery-form');
+      else if (!internalAccess && !$('workspace').hidden) {
+        show('login-form');
+        status('Acesso empresarial revogado. Entre novamente após a regularização.');
+      }
     });
     const url = new URL(location.href);
     const hasRecoveryCallback = url.searchParams.has('token_hash') ||
