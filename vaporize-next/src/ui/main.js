@@ -1,5 +1,6 @@
 import { createAuthController } from '../auth/controller.js';
 import { attachClientsPanel } from './clients-panel.js';
+import { attachVehiclesPanel } from './vehicles-panel.js';
 import { createEphemeralPkceStorage } from '../auth/storage.js';
 const $ = (id) => document.getElementById(id);
 const status = (message) => { $('status').textContent = message; };
@@ -22,6 +23,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
     });
     const controller = createAuthController(supabase);
     attachClientsPanel(supabase, controller, document);
+    attachVehiclesPanel(supabase, controller, document);
     controller.subscribe(({ recovering, internalAccess }) => {
       if (recovering) show('recovery-form');
       else if (!internalAccess && !$('workspace').hidden) {
