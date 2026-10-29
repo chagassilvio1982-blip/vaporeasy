@@ -15,7 +15,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
-      auth: { detectSessionInUrl: false, persistSession: true, autoRefreshToken: true }
+      auth: { detectSessionInUrl: false, persistSession: false, autoRefreshToken: true }
     });
     const controller = createAuthController(supabase);
     controller.subscribe(({ recovering }) => {
@@ -64,7 +64,9 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
       if (!$('email').reportValidity()) return;
       busy(true);
       try {
-        const redirectTo = new URL(location.pathname, location.origin).toString();
+        const redirect = new URL(location.pathname, location.origin);
+        redirect.searchParams.set('flow', 'recovery');
+        const redirectTo = redirect.toString();
         const { error } = await supabase.auth.resetPasswordForEmail($('email').value.trim(), { redirectTo });
         if (error) throw error;
         status('Se o e-mail estiver cadastrado, enviaremos instruções de recuperação.');
