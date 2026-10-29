@@ -59,7 +59,8 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         if (error) throw error;
         if (!await controller.requireInternalAccess()) {
           controller.clearAccess();
-          await supabase.auth.signOut({ scope: 'local' });
+          try { await supabase.auth.signOut({ scope: 'local' }); }
+          catch { /* acesso permanece bloqueado mesmo se o logout falhar */ }
           throw new Error('Vínculo com empresa ainda não validado');
         }
         $('password').value = '';
