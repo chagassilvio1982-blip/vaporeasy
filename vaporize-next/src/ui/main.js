@@ -3,7 +3,7 @@ import { createEphemeralPkceStorage } from '../auth/storage.js';
 const $ = (id) => document.getElementById(id);
 const status = (message) => { $('status').textContent = message; };
 const show = (id) => {
-  for (const name of ['login-form','recovery-form','workspace']) $(name).hidden = name !== id;
+  for (const name of ['login-form','recovery-form','onboarding-form','workspace']) $(name).hidden = name !== id;
 };
 const busy = (value) => {
   for (const button of document.querySelectorAll('button')) button.disabled = value;
@@ -48,6 +48,9 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
     } else if (await controller.requireInternalAccess()) {
       show('workspace');
       status('Sessão autenticada.');
+    } else if (await controller.canOnboard()) {
+      show('onboarding-form');
+      status('Identidade confirmada. Cadastre sua primeira empresa.');
     } else {
       show('login-form');
       status('Entre com seu e-mail e senha.');
@@ -60,6 +63,12 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         });
         if (error) throw error;
         if (!await controller.requireInternalAccess()) {
+          if (await controller.canOnboard()) {
+            $('password').value = '';
+            show('onboarding-form');
+            status('Identidade confirmada. Cadastre sua primeira empresa.');
+            return;
+          }
           controller.clearAccess();
           try { await supabase.auth.signOut({ scope: 'local' }); }
           catch { /* acesso permanece bloqueado mesmo se o logout falhar */ }
@@ -70,6 +79,27 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         status('Sessão autenticada.');
       } catch (error) { status(error?.message === 'Vínculo com empresa ainda não validado' ? 'Identidade confirmada, mas acesso aos módulos bloqueado até a validação da empresa.' : 'Não foi possível entrar. Verifique suas credenciais.'); }
       finally { busy(false); }
+    });
+    $('onboarding-form').addEventListener('submit', async (event) => {
+      event.preventDefault(); busy(true);
+      try {
+        const authorized = await controller.createFirstOrganization(
+          $('organization-name').value.trim(), $('organization-slug').value.trim()
+        );
+        if (!authorized) throw new Error('Organization membership not verified');
+        show('workspace');
+        status('Empresa vinculada. Os módulos operacionais ainda não estão disponíveis.');
+      } catch {
+        status('Não foi possível criar ou validar a empresa. Verifique os dados e tente novamente.');
+      } finally { busy(false); }
+    });
+    $('onboarding-logout').addEventListener('click', async () => {
+      controller.clearAccess();
+      show('login-form');
+      busy(true);
+      try { await supabase.auth.signOut({ scope: 'local' }); }
+      catch { /* interface remains blocked */ }
+      finally { busy(false); status('Acesso bloqueado.'); }
     });
     $('forgot').addEventListener('click', async () => {
       if (!$('email').reportValidity()) return;
