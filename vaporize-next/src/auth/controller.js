@@ -30,12 +30,12 @@ export function createAuthController(supabase) {
     const accessToken = hash.get('access_token');
     const refreshToken = hash.get('refresh_token');
     const type = query.get('type') || hash.get('type');
-    const isRecoveryLink = type === 'recovery' || Boolean(tokenHash);
+    const isRecoveryLink = type === 'recovery';
     const hasCode = Boolean(code);
     const hasTokens = Boolean(accessToken && refreshToken);
 
     // Never treat an ordinary authenticated session as a recovery session.
-    if (!isRecoveryLink && !hasCode && !hasTokens) return false;
+    if (!isRecoveryLink && !tokenHash && !hasCode && !hasTokens) return false;
     recoveryMode = true;
     recoverySession = null;
     publish(state());
@@ -45,6 +45,7 @@ export function createAuthController(supabase) {
         if (type !== 'recovery') throw new Error('Invalid recovery link type');
         result = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
       } else if (code) {
+        if (type !== 'recovery') throw new Error('Recovery intent required for PKCE');
         result = await supabase.auth.exchangeCodeForSession(code);
       } else if (hasTokens) {
         if (type !== 'recovery') throw new Error('Invalid recovery token type');
@@ -80,12 +81,9 @@ export function createAuthController(supabase) {
     }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
-    try {
-      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
-      if (signOutError) throw signOutError;
-    } finally {
-      clearRecovery();
-    }
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+    clearRecovery();
+    if (signOutError) throw signOutError;
     return true;
   }
 
