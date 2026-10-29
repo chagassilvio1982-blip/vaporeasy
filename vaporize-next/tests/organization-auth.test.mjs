@@ -36,3 +36,13 @@ test('denies on RPC failure and clears previous authorization', async () => {
   assert.equal(await controller.requireInternalAccess(), false);
   assert.equal(controller.state().internalAccess, false);
 });
+
+test('logout cleanup removes authorized organizations', async () => {
+  const controller = createAuthController(makeClient([
+    { organization_id: 'org-a', organization_name: 'Empresa A', membership_role: 'owner' }
+  ]));
+  assert.equal(await controller.requireInternalAccess(), true);
+  controller.clearAccess();
+  assert.equal(controller.state().internalAccess, false);
+  assert.deepEqual(controller.state().organizations, []);
+});
