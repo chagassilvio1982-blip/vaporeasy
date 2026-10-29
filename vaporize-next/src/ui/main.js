@@ -57,7 +57,11 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
           email: $('email').value.trim(), password: $('password').value
         });
         if (error) throw error;
-        if (!await controller.requireInternalAccess()) throw new Error('Vínculo com empresa ainda não validado');
+        if (!await controller.requireInternalAccess()) {
+          controller.clearAccess();
+          await supabase.auth.signOut({ scope: 'local' });
+          throw new Error('Vínculo com empresa ainda não validado');
+        }
         $('password').value = '';
         show('workspace');
         status('Sessão autenticada.');
