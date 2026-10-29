@@ -7,6 +7,12 @@ const $ = (id) => document.getElementById(id);
 const status = (message) => { $('status').textContent = message; };
 const show = (id) => {
   for (const name of ['login-form','recovery-form','onboarding-form','workspace']) $(name).hidden = name !== id;
+  if (id !== 'workspace') {
+    for (const module of ['clients','vehicles','appointments']) {
+      $(module + '-list').replaceChildren();
+      $(module + '-status').textContent = '';
+    }
+  }
 };
 const busy = (value) => {
   for (const button of document.querySelectorAll('button')) button.disabled = value;
@@ -94,7 +100,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         );
         if (!authorized) throw new Error('Organization membership not verified');
         show('workspace');
-        status('Empresa vinculada. Os módulos operacionais ainda não estão disponíveis.');
+        status('Empresa vinculada. Consultas de clientes, veículos e agendamentos disponíveis.');
       } catch {
         status('Não foi possível criar ou validar a empresa. Verifique os dados e tente novamente.');
       } finally { busy(false); }
