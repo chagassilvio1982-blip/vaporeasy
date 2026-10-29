@@ -111,7 +111,14 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         const { error } = await supabase.auth.resetPasswordForEmail($('email').value.trim(), { redirectTo });
         if (error) throw error;
         status('Se o e-mail estiver cadastrado, enviaremos instruções de recuperação.');
-      } catch { status('Não foi possível solicitar a recuperação agora.'); }
+      } catch (error) {
+        // Supabase Auth rate limits email delivery; avoid encouraging repeated requests.
+        if (error?.status === 429 || error?.code === 'over_email_send_rate_limit') {
+          status('Limite temporário de e-mails atingido. Não solicite novamente agora; aguarde a liberação do Supabase.');
+        } else {
+          status('Não foi possível solicitar a recuperação agora. Verifique a conexão e tente mais tarde.');
+        }
+      }
       finally { busy(false); }
     });
     $('recovery-form').addEventListener('submit', async (event) => {
