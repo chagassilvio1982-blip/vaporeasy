@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient } from '../src/data/clients.js';
 
-const membership = { organization_id: 'org-a', organization_name: 'Empresa A' };
+const membership = { organization_id: 'org-a', organization_name: 'Empresa A', membership_role: 'owner' };
 function fixture({ allow = true, error = null, onInsert = () => {} } = {}) {
   const state = { recovering: false, internalAccess: allow, organizations: allow ? [membership] : [] };
   const calls = [];
@@ -66,4 +66,25 @@ test('rejects changed authorization after request', async () => {
 test('surfaces database policy errors without claiming success', async () => {
   const x = fixture({ error: new Error('RLS denied') });
   await assert.rejects(createClient(x.supabase, x.controller, { name: 'Cliente A' }), /RLS denied/);
+});
+
+test('collaborator cannot create clients', async () => {
+  const x = fixture();
+  x.state.organizations = [{ ...membership, membership_role: 'collaborator' }];
+  await assert.rejects(createClient(x.supabase, x.controller, { name: 'Cliente A' }), /owner or manager/);
+  assert.equal(x.calls.length, 0);
+});
+
+test('manager can create clients', async () => {
+  const x = fixture();
+  x.state.organizations = [{ ...membership, membership_role: 'manager' }];
+  await createClient(x.supabase, x.controller, { name: 'Cliente A' });
+  assert.equal(x.calls.length, 1);
+});
+
+test('role revocation during insert discards returned client', async () => {
+  const x = fixture({ onInsert: state => {
+    state.organizations = [{ ...membership, membership_role: 'collaborator' }];
+  } });
+  await assert.rejects(createClient(x.supabase, x.controller, { name: 'Cliente A' }), /Access changed/);
 });
