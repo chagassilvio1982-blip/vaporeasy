@@ -8,6 +8,7 @@ export function createAuthController(supabase) {
   let recoverySession = null;
   let recoveryMode = false;
   let authorizedOrganizations = [];
+  let accessEpoch = 0;
   const listeners = new Set();
   const publish = (state) => { for (const fn of listeners) fn(state); };
   const state = () => ({ recovering: recoveryMode, internalAccess: !recoveryMode && authorizedOrganizations.length > 0, organizations: authorizedOrganizations.map((o) => ({ ...o })) });
@@ -20,6 +21,7 @@ export function createAuthController(supabase) {
     recoverySession = null;
     recoveryMode = false;
     authorizedOrganizations = [];
+    accessEpoch += 1;
     publish(state());
   };
 
@@ -40,6 +42,7 @@ export function createAuthController(supabase) {
     // Never treat an ordinary authenticated session as a recovery session.
     if (!isRecoveryLink && !tokenHash && !hasCode && !hasTokens) return false;
     recoveryMode = true;
+    accessEpoch += 1;
     recoverySession = null;
     authorizedOrganizations = [];
     publish(state());
@@ -96,19 +99,21 @@ export function createAuthController(supabase) {
   }
 
   function clearAccess() {
+    accessEpoch += 1;
     authorizedOrganizations = [];
     publish(state());
   }
 
   async function requireInternalAccess() {
+    const epoch = ++accessEpoch;
     authorizedOrganizations = [];
     publish(state());
     if (recoveryMode) return false;
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data?.user || typeof supabase.rpc !== 'function') return false;
+    if (epoch !== accessEpoch || error || !data?.user || typeof supabase.rpc !== 'function') return false;
     try {
       const result = await supabase.rpc('vaporize_next_my_organizations');
-      if (result.error || !Array.isArray(result.data)) return false;
+      if (epoch !== accessEpoch || recoveryMode || result.error || !Array.isArray(result.data)) return false;
       authorizedOrganizations = result.data.filter((o) => o && typeof o.organization_id === 'string' && typeof o.organization_name === 'string');
       publish(state());
       return authorizedOrganizations.length > 0;
