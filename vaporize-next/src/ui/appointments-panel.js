@@ -5,14 +5,23 @@ export function attachAppointmentsPanel(supabase, controller, document) {
   const list = document.getElementById('appointments-list');
   const status = document.getElementById('appointments-status');
   const workspace = document.getElementById('workspace');
+  let generation = 0;
+  controller.subscribe(({ recovering, internalAccess }) => {
+    if (recovering || !internalAccess) {
+      generation++;
+      list.replaceChildren();
+      status.textContent = '';
+    }
+  });
   button.addEventListener('click', async () => {
+    const requestGeneration = ++generation;
     if (workspace.hidden || !controller.state().internalAccess) return;
     button.disabled = true;
     list.replaceChildren();
     status.textContent = 'Consultando agendamentos...';
     try {
       const appointments = await listAppointments(supabase, controller);
-      if (workspace.hidden || !controller.state().internalAccess) return;
+      if (requestGeneration !== generation || workspace.hidden || !controller.state().internalAccess) return;
       const items = appointments.map(appointment => {
         const item = document.createElement('li');
         const start = new Date(appointment.starts_at);
@@ -26,6 +35,7 @@ export function attachAppointmentsPanel(supabase, controller, document) {
       list.replaceChildren(...items);
       status.textContent = appointments.length ? `${appointments.length} agendamento(s) encontrado(s).` : 'Nenhum agendamento cadastrado nesta empresa.';
     } catch {
+      if (requestGeneration !== generation || workspace.hidden || !controller.state().internalAccess) return;
       list.replaceChildren();
       status.textContent = 'Consulta indisponível. Verifique o acesso e a conexão.';
     } finally { button.disabled = false; }
