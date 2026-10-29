@@ -25,6 +25,16 @@
       <input id="new-password" type="password" autocomplete="new-password" minlength="12" required>
       <button type="submit">Alterar senha e sair</button>
     </form>
+    <form id="onboarding-form" hidden>
+      <h2>Cadastrar empresa</h2>
+      <p>Identidade autenticada. Cadastre sua primeira empresa para solicitar acesso aos módulos.</p>
+      <label for="organization-name">Nome da empresa</label>
+      <input id="organization-name" type="text" minlength="2" maxlength="160" required>
+      <label for="organization-slug">Identificador da empresa</label>
+      <input id="organization-slug" type="text" minlength="3" maxlength="60" pattern="[a-z0-9]+(-[a-z0-9]+)*" required>
+      <button type="submit">Criar empresa</button>
+      <button type="button" id="onboarding-logout" class="secondary">Sair</button>
+    </form>
     <section id="workspace" hidden aria-label="Área interna">
       <p>Sessão autenticada. Os módulos operacionais ainda não estão disponíveis.</p>
       <button id="logout" type="button">Sair</button>
