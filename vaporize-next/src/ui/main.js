@@ -96,12 +96,13 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
     });
     $('logout').addEventListener('click', async () => {
       busy(true);
+      controller.clearAccess();
+      show('login-form');
       try {
-        const { error } = await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut({ scope: 'local' });
         if (error) throw error;
-        controller.clearAccess();
-        show('login-form'); status('Sessão encerrada.');
-      } catch { status('Falha ao encerrar a sessão.'); }
+        status('Sessão encerrada.');
+      } catch { status('Acesso bloqueado. Não foi possível confirmar o encerramento local.'); }
       finally { busy(false); }
     });
   } catch {
