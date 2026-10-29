@@ -103,11 +103,16 @@ export function createAuthController(supabase) {
 
   async function canOnboard() {
     if (recoveryMode || authorizedOrganizations.length) return false;
+    // An asynchronous membership check must not resurrect onboarding after logout
+    // or after a newer authorization/recovery transition.
+    const epoch = accessEpoch;
     try {
       const identity = await supabase.auth.getUser();
-      if (identity.error || !identity.data?.user || typeof supabase.rpc !== 'function') return false;
+      if (epoch !== accessEpoch || recoveryMode || authorizedOrganizations.length ||
+          identity.error || !identity.data?.user || typeof supabase.rpc !== 'function') return false;
       const result = await supabase.rpc('vaporize_next_my_organizations');
-      return !result.error && Array.isArray(result.data) && result.data.length === 0;
+      return epoch === accessEpoch && !recoveryMode && !authorizedOrganizations.length &&
+        !result.error && Array.isArray(result.data) && result.data.length === 0;
     } catch { return false; }
   }
 
