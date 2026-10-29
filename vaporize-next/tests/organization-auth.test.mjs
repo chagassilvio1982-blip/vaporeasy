@@ -86,3 +86,23 @@ test('identity network exception denies access without throwing', async () => {
   assert.equal(await controller.requireInternalAccess(), false);
   assert.equal(controller.state().internalAccess, false);
 });
+
+test('older organization response cannot overwrite a newer authorization', async () => {
+  const pending = [];
+  const controller = createAuthController({
+    auth: { getUser: async () => ({ data: { user: { id: 'test-user' } }, error: null }) },
+    rpc: () => new Promise((resolve) => pending.push(resolve))
+  });
+  const older = controller.requireInternalAccess();
+  await Promise.resolve();
+  await Promise.resolve();
+  const newer = controller.requireInternalAccess();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(pending.length, 2);
+  pending[1]({ data: [{ organization_id: 'org-new', organization_name: 'Nova' }], error: null });
+  assert.equal(await newer, true);
+  pending[0]({ data: [{ organization_id: 'org-old', organization_name: 'Antiga' }], error: null });
+  assert.equal(await older, false);
+  assert.equal(controller.state().organizations[0].organization_id, 'org-new');
+});
