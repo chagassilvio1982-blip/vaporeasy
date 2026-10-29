@@ -83,9 +83,12 @@ export function createAuthController(supabase) {
     }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
-    const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
-    clearRecovery();
-    if (signOutError) throw signOutError;
+    try {
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+      if (signOutError) throw signOutError;
+    } finally {
+      clearRecovery();
+    }
     return true;
   }
 
