@@ -5,46 +5,55 @@ import { spawnSync } from 'node:child_process';
 const script = new URL('../scripts/check-rest-schema.mjs', import.meta.url).pathname;
 const project = 'https://cfpvexgkjsqpwhebsoos.supabase.co/';
 const key = 'sb_publishable_FAKE_TEST_ONLY';
-const preload = (status, code = null) => {
+const jwt = 'FAKE_SYNTHETIC_JWT';
+const preload = (authStatus, restStatus, restCode = null) => {
   const source = `globalThis.fetch = async (url, options) => {
-    if (new URL(url).hostname !== 'cfpvexgkjsqpwhebsoos.supabase.co') throw Error('Wrong host');
-    if (options.method !== 'GET') throw Error('Not read-only');
-    if (options.headers['Accept-Profile'] !== 'vaporize_next') throw Error('Wrong schema');
-    return {status:${status}, text: async () => JSON.stringify({code:${JSON.stringify(code)}})};
+    const u = new URL(url);
+    if (u.hostname !== 'cfpvexgkjsqpwhebsoos.supabase.co') throw Error('wrong host');
+    if (options.method !== 'GET' || options.headers.Authorization !== 'Bearer FAKE_SYNTHETIC_JWT') throw Error('unsafe request');
+    if (u.pathname === '/auth/v1/user') return {
+      status: ${authStatus}, json: async () => ${authStatus} === 200 ? ({id:'synthetic-user'}) : ({})
+    };
+    if (u.pathname !== '/rest/v1/clients' || options.headers['Accept-Profile'] !== 'vaporize_next') throw Error('wrong REST path/schema');
+    return {status:${restStatus}, json: async () => ({code:${JSON.stringify(restCode)}})};
   };`;
   return 'data:text/javascript,' + encodeURIComponent(source);
 };
-function run(env, status = 200, code = null) {
-  return spawnSync(process.execPath, ['--import', preload(status, code), script], {
+function run(env = {}, authStatus = 200, restStatus = 200, restCode = null) {
+  return spawnSync(process.execPath, ['--import', preload(authStatus, restStatus, restCode), script], {
     encoding: 'utf8',
-    env: {PATH: process.env.PATH, SUPABASE_URL: project, SUPABASE_PUBLISHABLE_KEY: key, ...env}
+    env: {PATH: process.env.PATH, SUPABASE_URL: project,
+      SUPABASE_PUBLISHABLE_KEY: key, SUPABASE_TEST_JWT: jwt, ...env}
   });
 }
-test('publishable-only GET does not claim JWT validation', () => {
-  const result = run();
-  assert.equal(result.status, 0, result.stderr);
-  const output = JSON.parse(result.stdout);
-  assert.equal(output.requestSucceeded, true);
-  assert.equal(output.jwtValidated, false);
-  assert.equal(output.mode, 'publishable_key_only');
+test('validated Auth JWT followed by REST read succeeds', () => {
+  const r = run();
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout), {
+    authStatus: 200, jwtVerified: true, restStatus: 200,
+    restErrorCode: null, schemaAccessible: true
+  });
+  assert.doesNotMatch(r.stdout + r.stderr, /FAKE_SYNTHETIC_JWT/);
 });
-test('synthetic JWT mode distinguishes authenticated GET', () => {
-  const result = run({SUPABASE_TEST_JWT: 'FAKE_JWT_FOR_MOCK_TEST'});
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(JSON.parse(result.stdout).jwtValidated, true);
-  assert.doesNotMatch(result.stdout + result.stderr, /FAKE_JWT_FOR_MOCK_TEST/);
+test('invalid JWT never reports success', () => {
+  const r = run({}, 401);
+  assert.equal(r.status, 1);
+  assert.deepEqual(JSON.parse(r.stdout), {authStatus: 401, jwtVerified: false, restChecked: false});
 });
-test('REST schema rejection is not reported as success', () => {
-  const result = run({}, 406, 'PGRST106');
-  assert.equal(result.status, 1);
-  assert.equal(JSON.parse(result.stdout).errorCode, 'PGRST106');
+test('schema rejection remains a failure after valid Auth', () => {
+  const r = run({}, 200, 406, 'PGRST106');
+  assert.equal(r.status, 1);
+  assert.equal(JSON.parse(r.stdout).restErrorCode, 'PGRST106');
 });
-test('other project hostname is rejected without network call', () => {
-  const result = run({SUPABASE_URL: 'https://another-project.supabase.co/'});
-  assert.equal(result.status, 1);
-  assert.doesNotMatch(result.stdout + result.stderr, /sb_publishable_FAKE_TEST_ONLY/);
+test('other project hostname is rejected', () => {
+  const r = run({SUPABASE_URL: 'https://another-project.supabase.co/'});
+  assert.equal(r.status, 1);
 });
 test('service role key is refused', () => {
-  const result = run({SUPABASE_PUBLISHABLE_KEY: 'service_role_fake'});
-  assert.equal(result.status, 1);
+  const r = run({SUPABASE_PUBLISHABLE_KEY: 'service_role_fake'});
+  assert.equal(r.status, 1);
+});
+test('missing JWT is refused', () => {
+  const r = run({SUPABASE_TEST_JWT: ''});
+  assert.equal(r.status, 2);
 });
