@@ -40,7 +40,7 @@ test('token_hash recovery validates identity and signs out after password change
 test('PKCE recovery code exchanges for a session', async () => {
  const auth = fakeAuth();
  const ctrl = createAuthController({ auth });
- await ctrl.beginRecovery('https://example.test/next/?code=abc&type=recovery');
+ await ctrl.beginRecovery('https://example.test/next/?code=abc&flow=recovery');
  assert.equal(ctrl.state().internalAccess, false);
  assert.equal(auth.calls[0][0], 'exchange');
 });
