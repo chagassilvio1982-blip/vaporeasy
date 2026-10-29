@@ -1,4 +1,5 @@
 import { createAuthController } from '../auth/controller.js';
+import { createEphemeralPkceStorage } from '../auth/storage.js';
 const $ = (id) => document.getElementById(id);
 const status = (message) => { $('status').textContent = message; };
 const show = (id) => {
@@ -14,22 +15,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
 } else {
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-    // Keep only the PKCE verifier across the email redirect, never the login session.
-    const volatileAuth = new Map();
-    const authStorage = {
-      getItem(key) {
-        if (key.endsWith('-code-verifier')) return sessionStorage.getItem(key);
-        return volatileAuth.get(key) ?? null;
-      },
-      setItem(key, value) {
-        if (key.endsWith('-code-verifier')) sessionStorage.setItem(key, value);
-        else volatileAuth.set(key, value);
-      },
-      removeItem(key) {
-        if (key.endsWith('-code-verifier')) sessionStorage.removeItem(key);
-        else volatileAuth.delete(key);
-      }
-    };
+    const authStorage = createEphemeralPkceStorage(sessionStorage);
     const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
       auth: { flowType: 'pkce', storage: authStorage, detectSessionInUrl: false, persistSession: true, autoRefreshToken: false }
     });
