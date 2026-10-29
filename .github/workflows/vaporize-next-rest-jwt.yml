@@ -1,0 +1,35 @@
+name: Vaporize Next REST/JWT verification (isolated)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rest-jwt:
+    runs-on: ubuntu-latest
+    environment: vaporize-next-homologation
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: vaporize-next/isolado-20261029
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require isolated test credentials
+        shell: bash
+        env:
+          PUBLISHABLE_KEY: ${{ secrets.VAPORIZE_NEXT_PUBLISHABLE_KEY }}
+          TEST_JWT: ${{ secrets.VAPORIZE_NEXT_SYNTHETIC_TEST_JWT }}
+        run: |
+          if [[ -z "$PUBLISHABLE_KEY" || -z "$TEST_JWT" ]]; then
+            echo "::error::Isolated homologation publishable key and synthetic test JWT must be configured as environment secrets."
+            exit 1
+          fi
+      - name: Verify REST with synthetic JWT (read-only)
+        working-directory: vaporize-next
+        env:
+          SUPABASE_URL: https://cfpvexgkjsqpwhebsoos.supabase.co/
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VAPORIZE_NEXT_PUBLISHABLE_KEY }}
+          SUPABASE_TEST_JWT: ${{ secrets.VAPORIZE_NEXT_SYNTHETIC_TEST_JWT }}
+        run: node scripts/check-rest-schema.mjs
