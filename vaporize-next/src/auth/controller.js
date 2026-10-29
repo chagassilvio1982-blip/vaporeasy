@@ -109,7 +109,10 @@ export function createAuthController(supabase) {
     authorizedOrganizations = [];
     publish(state());
     if (recoveryMode) return false;
-    const { data, error } = await supabase.auth.getUser();
+    let identity;
+    try { identity = await supabase.auth.getUser(); }
+    catch { return false; }
+    const { data, error } = identity || {};
     if (epoch !== accessEpoch || error || !data?.user || typeof supabase.rpc !== 'function') return false;
     try {
       const result = await supabase.rpc('vaporize_next_my_organizations');
