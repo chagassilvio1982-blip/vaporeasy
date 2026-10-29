@@ -30,7 +30,8 @@ export function createAuthController(supabase) {
     const accessToken = hash.get('access_token');
     const refreshToken = hash.get('refresh_token');
     const type = query.get('type') || hash.get('type');
-    const isRecoveryLink = type === 'recovery';
+    const recoveryIntent = type === 'recovery' || query.get('flow') === 'recovery';
+    const isRecoveryLink = recoveryIntent;
     const hasCode = Boolean(code);
     const hasTokens = Boolean(accessToken && refreshToken);
 
@@ -45,7 +46,7 @@ export function createAuthController(supabase) {
         if (type !== 'recovery') throw new Error('Invalid recovery link type');
         result = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
       } else if (code) {
-        if (type !== 'recovery') throw new Error('Recovery intent required for PKCE');
+        if (!recoveryIntent) throw new Error('Recovery intent required for PKCE');
         result = await supabase.auth.exchangeCodeForSession(code);
       } else if (hasTokens) {
         if (type !== 'recovery') throw new Error('Invalid recovery token type');
@@ -63,6 +64,7 @@ export function createAuthController(supabase) {
       url.searchParams.delete('token_hash');
       url.searchParams.delete('code');
       url.searchParams.delete('type');
+      url.searchParams.delete('flow');
       url.hash = '';
       return { sanitizedUrl: url.toString(), userId: data.user.id };
     } catch (error) {
