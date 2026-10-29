@@ -1,18 +1,26 @@
 name: Vaporize Next REST/JWT verification (isolated)
 on:
   workflow_dispatch:
+  push:
+    branches: ['vaporize-next/isolado-20261029']
+    paths:
+      - '.github/workflows/vaporize-next-rest-jwt.yml'
+      - 'vaporize-next/scripts/check-rest-schema.mjs'
 
 permissions:
   contents: read
 
 jobs:
   rest-jwt:
+    if: github.ref == 'refs/heads/vaporize-next/isolado-20261029'
+    timeout-minutes: 3
     runs-on: ubuntu-latest
     environment: vaporize-next-homologation
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: vaporize-next/isolado-20261029
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
