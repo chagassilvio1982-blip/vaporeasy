@@ -1,0 +1,31 @@
+name: Vaporeasy V3 — verificações por lote
+on:
+  push:
+    branches:
+      - v3/**
+  pull_request:
+    paths:
+      - 'v3/**'
+      - 'tests/v3/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke-and-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Node runtime
+        run: node --version
+      - name: Verify modular JavaScript syntax
+        run: |
+          for file in v3/scripts/*.js; do node --check "$file"; done
+          node --check main-menu.js
+          node --check agenda-quick-search.js
+      - name: Check V3 module integrity and no-photo completion
+        run: node --test tests/v3/*.test.cjs tests/completion-no-photo/completion.test.cjs
+      - name: Check retained V2 operational behavior
+        run: |
+          node --test tests/agenda-clean/agenda-clean.test.cjs tests/navigation/direct-home-nav.test.cjs tests/finance-clean/finance-clean.test.cjs tests/reports-clean/reports-clean.test.cjs tests/orcamento/quote.test.cjs
+          node --test tests/settings-service-clean/settings-service-clean.test.cjs tests/settings-service-editor/settings-service-editor.test.cjs tests/settings-addons-clean/settings-addons-clean.test.cjs tests/settings-addon-editor/settings-addon-editor.test.cjs tests/settings-schedule-clean/settings-schedule-clean.test.cjs tests/settings-payment-clean/settings-payment-clean.test.cjs
