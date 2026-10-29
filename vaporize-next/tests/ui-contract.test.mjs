@@ -25,9 +25,7 @@ test('UI starts in fail-closed mode and does not import V2', () => {
   assert.match(main, /if \(!config\?\.supabaseUrl \|\| !config\?\.supabaseAnonKey\)/);
   assert.match(main, /persistSession: true/);
   assert.match(main, /flowType: 'pkce'/);
-  assert.match(main, /key\.endsWith\('-code-verifier'\)/);
-  assert.match(main, /sessionStorage\.setItem\(key, value\)/);
-  assert.match(main, /volatileAuth\.set\(key, value\)/);
+  assert.match(main, /createEphemeralPkceStorage\(sessionStorage\)/);
   assert.match(main, /detectSessionInUrl: false/);
   assert.doesNotMatch(main, /\/v2\/|asuppjeomaymzromgcrp/);
 });
