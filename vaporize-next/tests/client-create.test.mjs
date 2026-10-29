@@ -88,3 +88,32 @@ test('role revocation during insert discards returned client', async () => {
   } });
   await assert.rejects(createClient(x.supabase, x.controller, { name: 'Cliente A' }), /Access changed/);
 });
+
+test('ignores organization_id supplied by form and writes only verified tenant', async () => {
+  const x = fixture();
+  await createClient(x.supabase, x.controller, {
+    name: 'Cliente A', organization_id: 'org-b', role: 'owner'
+  });
+  assert.equal(x.calls.length, 1);
+  assert.equal(x.calls[0].organization_id, 'org-a');
+  assert.equal(Object.hasOwn(x.calls[0], 'role'), false);
+});
+
+test('multiple active organizations cannot be silently selected for writes', async () => {
+  const x = fixture();
+  x.state.organizations = [membership, { ...membership, organization_id: 'org-b' }];
+  await assert.rejects(createClient(x.supabase, x.controller, { name: 'Cliente A' }), /single active organization/);
+  assert.equal(x.calls.length, 0);
+});
+
+test('revoked organization before insert cannot write', async () => {
+  const x = fixture();
+  let checks = 0;
+  x.controller.state = () => {
+    checks++;
+    if (checks === 2) x.state.organizations = [{ ...membership, organization_id: 'org-b' }];
+    return x.state;
+  };
+  await assert.rejects(createClient(x.supabase, x.controller, { name: 'Cliente A' }), /Access changed before write/);
+  assert.equal(x.calls.length, 0);
+});
