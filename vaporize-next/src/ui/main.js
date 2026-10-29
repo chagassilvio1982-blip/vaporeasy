@@ -57,7 +57,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         $('password').value = '';
         show('workspace');
         status('Sessão autenticada.');
-      } catch { status('Não foi possível entrar. Verifique suas credenciais.'); }
+      } catch (error) { status(error?.message === 'Vínculo com empresa ainda não validado' ? 'Identidade confirmada, mas acesso aos módulos bloqueado até a validação da empresa.' : 'Não foi possível entrar. Verifique suas credenciais.'); }
       finally { busy(false); }
     });
     $('forgot').addEventListener('click', async () => {
