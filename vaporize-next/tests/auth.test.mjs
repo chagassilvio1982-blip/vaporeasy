@@ -76,3 +76,24 @@ test('rejects password update when identity changes', async () => {
  await assert.rejects(ctrl.changePassword('secure-password-123'), /expired/);
  assert.equal(auth.calls.some(([action]) => action === 'update'), false);
 });
+
+test('superseded recovery callback cannot replace the newer recovery session', async () => {
+ const auth = fakeAuth();
+ let resolveFirst;
+ let count = 0;
+ auth.verifyOtp = async () => {
+  count += 1;
+  if (count === 1) return new Promise(resolve => { resolveFirst = resolve; });
+  return { data: { session: { user: { id: 'user-b' } } }, error: null };
+ };
+ auth.getUser = async () => ({ data: { user: { id: 'user-b' } }, error: null });
+ const ctrl = createAuthController({ auth });
+ const oldAttempt = ctrl.beginRecovery('https://example.test/next/?token_hash=old&type=recovery');
+ await Promise.resolve();
+ const current = await ctrl.beginRecovery('https://example.test/next/?token_hash=new&type=recovery');
+ assert.equal(current.userId, 'user-b');
+ resolveFirst({ data: { session: { user: { id: 'user-a' } } }, error: null });
+ await assert.rejects(oldAttempt, /Recovery identity mismatch|Recovery attempt superseded/);
+ assert.equal(ctrl.state().recovering, true);
+ assert.equal(auth.calls.some(([action]) => action === 'signOut'), false);
+});
