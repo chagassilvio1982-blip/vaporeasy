@@ -44,17 +44,22 @@ export async function createClient(supabase, controller, input) {
     throw new Error('A single active organization is required');
   }
   const organizationId = before.organizations[0].organization_id;
+  if (!['owner', 'manager'].includes(before.organizations[0].membership_role)) {
+    throw new Error('Client creation requires owner or manager role');
+  }
   // Recheck immediately before writing; membership can be revoked asynchronously.
   const current = controller.state();
   if (current.recovering || !current.internalAccess || current.organizations.length !== 1 ||
-      current.organizations[0].organization_id !== organizationId) throw new Error('Access changed before write');
+      current.organizations[0].organization_id !== organizationId ||
+      !['owner', 'manager'].includes(current.organizations[0].membership_role)) throw new Error('Access changed before write');
   const { data, error } = await supabase.schema('vaporize_next').from('clients')
     .insert({ organization_id: organizationId, name, phone })
     .select('id,name,phone,created_at').single();
   if (error) throw error;
   const after = controller.state();
   if (after.recovering || !after.internalAccess || after.organizations.length !== 1 ||
-      after.organizations[0].organization_id !== organizationId) throw new Error('Access changed during request');
+      after.organizations[0].organization_id !== organizationId ||
+      !['owner', 'manager'].includes(after.organizations[0].membership_role)) throw new Error('Access changed during request');
   if (!data || typeof data.id !== 'string' || typeof data.name !== 'string') {
     throw new Error('Unexpected client creation response');
   }
