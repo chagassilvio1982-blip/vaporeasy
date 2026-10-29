@@ -75,8 +75,10 @@ export function createAuthController(supabase) {
       url.hash = '';
       return { sanitizedUrl: url.toString(), userId: data.user.id };
     } catch (error) {
-      try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* best effort */ }
-      clearRecovery();
+      if (recoveryEpoch === accessEpoch) {
+        try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* best effort */ }
+        clearRecovery();
+      }
       throw error;
     }
   }
