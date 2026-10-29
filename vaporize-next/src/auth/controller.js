@@ -95,6 +95,11 @@ export function createAuthController(supabase) {
     return true;
   }
 
+  function clearAccess() {
+    authorizedOrganizations = [];
+    publish(state());
+  }
+
   async function requireInternalAccess() {
     authorizedOrganizations = [];
     if (recoveryMode) return false;
@@ -111,5 +116,5 @@ export function createAuthController(supabase) {
     }
   }
 
-  return { beginRecovery, changePassword, requireInternalAccess, subscribe, state };
+  return { beginRecovery, changePassword, requireInternalAccess, clearAccess, subscribe, state };
 }
