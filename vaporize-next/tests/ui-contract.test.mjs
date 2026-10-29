@@ -27,3 +27,10 @@ test('UI starts in fail-closed mode and does not import V2', () => {
   assert.match(main, /detectSessionInUrl: false/);
   assert.doesNotMatch(main, /\/v2\/|asuppjeomaymzromgcrp/);
 });
+
+test('workspace is hidden when tenant authorization is revoked', () => {
+  const main = read('../src/ui/main.js');
+  assert.match(main, /controller\.subscribe\(\(\{ recovering, internalAccess \}\)/);
+  assert.match(main, /!internalAccess && !\$\('workspace'\)\.hidden/);
+  assert.match(main, /Acesso empresarial revogado/);
+});
