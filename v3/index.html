@@ -130,7 +130,7 @@
 <section id="recovery" class="login hidden"><div class="card"><h3>Definir nova senha</h3><p>Use o link de recuperação recebido por e-mail.</p><form id="recovery-form" class="stack"><label>Nova senha<input id="recovery-password" type="password" minlength="12" autocomplete="new-password" required></label><label>Confirmar senha<input id="recovery-confirm" type="password" minlength="12" autocomplete="new-password" required></label><button class="primary" type="submit">Salvar nova senha</button></form><div id="recovery-msg" role="status"></div><button id="recovery-cancel" class="ghost" type="button">Voltar ao login</button></div></section><section id="auth" class="login">
 <div class="card"><img data-brand-logo class="brand-logo brand-logo-login" src="/vaporeasy-logo-original.svg?v=20260928-05" loading="eager" decoding="sync" alt="Vaporeasy"><div id="amsg" class="notice hidden"></div>
 <h3 style="margin:2px 0 4px">Acesso Vaporeasy</h3>
-<form id="af" class="stack" autocomplete="on" novalidate><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<div class="password-wrap"><input id="pass" name="password" type="password" autocomplete="current-password" required><button id="passtoggle" class="password-toggle" type="button" aria-label="Mostrar senha">Mostrar</button></div></label><button id="ab" class="primary" type="submit">Entrar no Vaporeasy</button></form><div id="loginready" class="login-ready">Carregando sistema...</div><div class="meta" style="text-align:center;margin-top:6px">Vaporeasy V3 · homologação</div>
+<form id="af" class="stack" autocomplete="on" novalidate><label>E-mail<input id="email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label><label>Senha<div class="password-wrap"><input id="pass" name="password" type="password" autocomplete="current-password" required><button id="passtoggle" class="password-toggle" type="button" aria-label="Mostrar senha">Mostrar</button></div></label><button id="ab" class="primary" type="submit">Entrar no Vaporeasy</button></form><button id="forgot-password" class="ghost" type="button" style="display:block;margin:10px auto 0">Esqueci minha senha</button><div id="loginready" class="login-ready">Carregando sistema...</div><div class="meta" style="text-align:center;margin-top:6px">Vaporeasy V3 · homologação</div>
 </div></section>
 <section id="main" class="hidden">
 <div id="main-nav-shell" class="main-nav-shell">
@@ -554,7 +554,7 @@
 </script>
 <script src="/api/vendor?lib=jspdf&v=20260928-10"></script>
 <script src="/api/vendor?lib=supabase&v=20260928-10"></script>
-<script src="/v3/scripts/bootstrap.js?v=20261029-recovery-1"></script>
+<script src="/v3/scripts/bootstrap.js?v=20261029-recovery-2"></script>
 <script src="/v3/scripts/team.js?v=20261027-1"></script>
 <script src="/v3/scripts/clients-vehicles.js?v=20261027-1"></script>
 <script src="/v3/scripts/settings.js?v=20261027-1"></script>
