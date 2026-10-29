@@ -61,3 +61,19 @@ test('authorization subscribers receive immediate revocation on failed revalidat
   assert.equal(await controller.requireInternalAccess(), false);
   assert.equal(seen.at(-1), false);
 });
+
+test('late authorization response cannot restore access after logout', async () => {
+  let resolveRpc;
+  const rpc = () => new Promise((resolve) => { resolveRpc = resolve; });
+  const controller = createAuthController({
+    auth: { getUser: async () => ({ data: { user: { id: 'test-user' } }, error: null }) },
+    rpc
+  });
+  const pending = controller.requireInternalAccess();
+  await Promise.resolve();
+  await Promise.resolve();
+  controller.clearAccess();
+  resolveRpc({ data: [{ organization_id: 'org-a', organization_name: 'Empresa A' }], error: null });
+  assert.equal(await pending, false);
+  assert.equal(controller.state().internalAccess, false);
+});
