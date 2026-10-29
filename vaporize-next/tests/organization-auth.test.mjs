@@ -46,3 +46,18 @@ test('logout cleanup removes authorized organizations', async () => {
   assert.equal(controller.state().internalAccess, false);
   assert.deepEqual(controller.state().organizations, []);
 });
+
+test('authorization subscribers receive immediate revocation on failed revalidation', async () => {
+  let fail = false;
+  const client = makeClient([]);
+  client.rpc = async () => fail
+    ? { data: null, error: new Error('connection lost') }
+    : { data: [{ organization_id: 'org-a', organization_name: 'Empresa A' }], error: null };
+  const controller = createAuthController(client);
+  const seen = [];
+  controller.subscribe((s) => seen.push(s.internalAccess));
+  assert.equal(await controller.requireInternalAccess(), true);
+  fail = true;
+  assert.equal(await controller.requireInternalAccess(), false);
+  assert.equal(seen.at(-1), false);
+});
