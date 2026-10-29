@@ -40,7 +40,7 @@ test('token_hash recovery validates identity and signs out after password change
 test('PKCE recovery code exchanges for a session', async () => {
  const auth = fakeAuth();
  const ctrl = createAuthController({ auth });
- await ctrl.beginRecovery('https://example.test/next/?code=abc');
+ await ctrl.beginRecovery('https://example.test/next/?code=abc&type=recovery');
  assert.equal(ctrl.state().internalAccess, false);
  assert.equal(auth.calls[0][0], 'exchange');
 });
@@ -58,5 +58,21 @@ test('rejects weak password without calling updateUser', async () => {
  const ctrl = createAuthController({ auth });
  await ctrl.beginRecovery('https://example.test/next/?token_hash=abc&type=recovery');
  await assert.rejects(ctrl.changePassword('short'), /at least 12/);
+ assert.equal(auth.calls.some(([action]) => action === 'update'), false);
+});
+
+test('rejects PKCE without explicit recovery intent', async () => {
+ const auth = fakeAuth();
+ const ctrl = createAuthController({ auth });
+ await assert.rejects(ctrl.beginRecovery('https://example.test/next/?code=abc'), /Recovery intent required/);
+ assert.equal(auth.calls.some(([action]) => action === 'exchange'), false);
+});
+
+test('rejects password update when identity changes', async () => {
+ const auth = fakeAuth();
+ const ctrl = createAuthController({ auth });
+ await ctrl.beginRecovery('https://example.test/next/?token_hash=abc&type=recovery');
+ auth.getUser = async () => ({ data: { user: { id: 'user-b' } }, error: null });
+ await assert.rejects(ctrl.changePassword('secure-password-123'), /expired/);
  assert.equal(auth.calls.some(([action]) => action === 'update'), false);
 });
