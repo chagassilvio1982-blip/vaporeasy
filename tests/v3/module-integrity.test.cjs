@@ -9,7 +9,7 @@ const original=read('index.html');
 const v3=read('v3/index.html');
 const modules=["v3/scripts/bootstrap.js","v3/scripts/team.js","v3/scripts/clients-vehicles.js","v3/scripts/settings.js","v3/scripts/reports.js","v3/scripts/finance.js","v3/scripts/calendar.js","v3/scripts/appointments.js","v3/scripts/completion-receipts.js","v3/scripts/agenda-render.js"];
 const styles=["v3/styles/foundation.css","v3/styles/operations.css","v3/styles/commerce.css"];
-test('os módulos mantêm exatamente o script V2, sem alterar regras de negócio',()=>{
+test('módulos operacionais preservam V2; bootstrap de autenticação tem testes próprios',()=>{
  const originals=[...original.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
  assert.equal(originals.length,6);
  const combined=modules.map(read).join('');
@@ -22,8 +22,11 @@ test('os módulos mantêm exatamente o script V2, sem alterar regras de negócio
  const call='  const html=renderAgendaListHtml(rows,cm,vm,sm,tm,com);\n';
  assert.ok(normalized.includes(call),'Chamada da renderização isolada deve existir');
  const reconstructed=normalized.replace(call,body).replace('const action=isToday&&x.status!=="completed"&&x.status!=="cancelled"','const action=isToday').replace('const rg=isToday&&x.status!=="cancelled"?','const rg=isToday?');
- assert.equal(reconstructed,originals[3][1]);
- for(const mod of modules)assert.ok(v3.includes('src="/'+mod+'?v=20261027-1"'));
+ const boundary=read(modules[1]).trimStart().slice(0,100);
+ const currentStart=reconstructed.indexOf(boundary),originalStart=originals[3][1].indexOf(boundary);
+ assert.ok(currentStart>0&&originalStart>0);
+ assert.equal(reconstructed.slice(currentStart),originals[3][1].slice(originalStart));
+ for(const mod of modules)assert.ok(v3.includes('src="/'+mod+'?v='));
  assert.equal(v3.includes('const SUPABASE_URL='),false);
 });
 test('CSS de base conserva a cascata da V2',()=>{
@@ -50,8 +53,8 @@ test('scripts V3 estão na mesma ordem de execução',()=>{
 });
 test('não aponta diretamente para produção por descuido',()=>{
  const bootstrap=read('v3/scripts/bootstrap.js');
- assert.match(bootstrap,/https:\/\/asuppjeomaymzromgcrp\.supabase\.co/);
- assert.doesNotMatch(bootstrap,/jiimrpulcfoccxizqbac|wwivmyhlwqyzmaexkmnk/);
+ assert.match(bootstrap,/https:\/\/cfpvexgkjsqpwhebsoos\.supabase\.co/);
+ assert.doesNotMatch(bootstrap,/asuppjeomaymzromgcrp|jiimrpulcfoccxizqbac|wwivmyhlwqyzmaexkmnk/);
 });
 
 test('colaborador não recebe ação de iniciar para serviço encerrado',()=>{

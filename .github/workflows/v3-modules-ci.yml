@@ -24,7 +24,7 @@ jobs:
           node --check main-menu.js
           node --check agenda-quick-search.js
       - name: Check V3 module integrity and no-photo completion
-        run: node --test tests/v3/module-integrity.test.cjs tests/v3/calendar-render.test.cjs tests/completion-no-photo/completion.test.cjs
+        run: node --test tests/v3/*.test.cjs tests/completion-no-photo/completion.test.cjs
       - name: Check retained V2 operational behavior
         run: |
           node --test tests/agenda-clean/agenda-clean.test.cjs tests/navigation/direct-home-nav.test.cjs tests/finance-clean/finance-clean.test.cjs tests/reports-clean/reports-clean.test.cjs tests/orcamento/quote.test.cjs

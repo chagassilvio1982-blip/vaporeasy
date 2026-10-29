@@ -6,7 +6,7 @@ if(!window.supabase){
 }
 const {createClient}=window.supabase;
 const SUPABASE_URL="https://cfpvexgkjsqpwhebsoos.supabase.co", KEY="sb_publishable_6nwmh1z_tkjIOj3yyXE4JA_ycJcrRIL", FN=SUPABASE_URL+"/functions/v1/vaporeasy-v2-staging", PUBLIC_FN=SUPABASE_URL+"/functions/v1/vaporeasy-public-booking";
-const sb=createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const sb=createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 const BRAND_LOGO="/vaporeasy-logo-original.svg?v=20261006-01",brandLogoImg=new Image();brandLogoImg.src=BRAND_LOGO;
 const $=id=>document.getElementById(id); let mode="login", clients=[], services=[], collabs=[], vehicleBrands=[], vehicleModels=[], currentApps=[], vehicles=new Map(), teams=[], teamMembers=[], allCollabs=[], currentUserId=null, currentRole="", currentReceipt=null, currentReceiptGroup=null, currentMonthlyReceipt=null, currentFinishExistingPhoto=null, notifTimer=null, notifChannel=null, knownUnread=new Set(), soundCtx=null, publicCfg=null, publicToken=new URLSearchParams(location.search).get("share")||"", publicRequestId=crypto.randomUUID(), generatedLinkClientName="", generatedLinkClientId="", slotRequestSeq=0, publicDates=[], publicDateLimit=6, publicAddonIds=[], androidImportContacts=[], collabAccess=new Map(), currentPaymentQuote=null, currentPaymentMode="receive", currentPaymentGroupIds=[], refsLoadedAt=0, vehicleCatalogLoadedAt=0, waterCounterLoadedAt=0, agendaLoadSeq=0, agendaMonthCache=new Map(), apptRecurringByVehicle=new Map(), recurrenceSyncAt=0;
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
@@ -30,9 +30,139 @@ async function loadWaterCounter(force=false){
 }
 const fail=e=>{const m=String(e?.message||e||"Erro");if(/Failed to fetch|NetworkError|Load failed|fetch failed/i.test(m))return"Não foi possível conectar ao servidor. Verifique a conexão e tente novamente.";if(e?.code==="23P01")return"Conflito de horário: colaborador ou veículo já ocupado.";if(e?.code==="23505"){if(m.includes("appointments_active_vehicle_start_uq"))return"Este veículo já possui esse serviço agendado nesse horário. Escolha outro horário ou cancele o agendamento existente.";if(m.includes("appointments_active_collaborator_start_uq"))return"Este colaborador já está ocupado nesse horário. Escolha outro horário ou outro colaborador.";return"Já existe um agendamento igual ou conflitante.";}if(e?.code==="23503")return"Cliente e veículo não correspondem.";return m};
 function show(id,text,type=""){const e=$(id);e.textContent=text;e.className="notice "+type;e.classList.toggle("hidden",!text)}
-async function submitRecoveryPassword(event){event.preventDefault();const pass=$("recovery-password").value;const confirm=$("recovery-confirm").value;const msg=$("recovery-msg");if(pass.length<12){msg.textContent="Use uma senha de pelo menos 12 caracteres.";return}if(pass!==confirm){msg.textContent="As senhas não coincidem.";return}const result=await sb.auth.updateUser({password:pass});if(result.error){msg.textContent="Não foi possível atualizar a senha: "+result.error.message;return}msg.textContent="Senha atualizada. Faça login com a nova senha.";sessionStorage.removeItem("v3_recovery_pending");await sb.auth.signOut({scope:"local"});history.replaceState(null,"",location.pathname);$("recovery").classList.add("hidden");$("auth").classList.remove("hidden");}
-async function boot(){window.__vaporeasyAppBooted=false;wire();window.__vaporeasyAppBooted=true;const ready=$("loginready");if(ready){ready.textContent="Sistema pronto";ready.classList.add("is-ready")};configureAndroidContactImport();document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo-original.svg?v=20260928-05"}});prefillLoginEmailFromUrl();restoreLoginEmail();if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}$("date").value=today();$("adt").value=today();const {data}=await sb.auth.getSession();const params=new URLSearchParams(location.search),hashParams=new URLSearchParams(location.hash.replace(/^#/,""));const isRecovery=params.get("type")==="recovery"||hashParams.get("type")==="recovery"||params.has("token_hash")||params.has("code")||hashParams.has("access_token")||sessionStorage.getItem("v3_recovery_pending")==="1";if(isRecovery){sessionStorage.setItem("v3_recovery_pending","1");$("auth").classList.add("hidden");$("main").classList.add("hidden");$("hdr").classList.add("hidden");$("recovery").classList.remove("hidden");return}if(data.session)await enter(data.session)}
+// URL callbacks are consumed explicitly, before any authenticated module is opened.
+const RECOVERY_KEY="v3_recovery_pending";
+let recoveryActive=false,recoveryReady=false,recoveryBusy=false,recoveryCompleted=false,recoveryIdentity=null;
+function recoveryRecord(){try{return JSON.parse(sessionStorage.getItem(RECOVERY_KEY)||"null")}catch{return null}}
+function saveRecoveryRecord(value){sessionStorage.setItem(RECOVERY_KEY,JSON.stringify(value))}
+function recoverySessionId(session){
+  // Only binds the local UI state. getUser below validates the token with Auth.
+  try{return JSON.parse(atob(session.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).session_id||""}catch{return ""}
+}
+function recoveryControls(disabled){
+  $("recovery-form").querySelectorAll("input,button").forEach(el=>{el.disabled=disabled});
+}
+function showRecovery(){
+  recoveryActive=true;
+  for(const id of ["auth","main","hdr","public"]){const el=$(id);if(el){el.classList.add("hidden");el.style.display="none"}}
+  document.querySelectorAll("dialog[open]").forEach(el=>el.close());
+  $("recovery").classList.remove("hidden");
+  recoveryControls(true);
+}
+function cleanRecoveryUrl(){
+  const url=new URL(location.href);
+  for(const key of ["type","token_hash","code","access_token","refresh_token","expires_in","expires_at","token_type","error","error_code","error_description","sb_flow_id"]){url.searchParams.delete(key)}
+  history.replaceState(null,"",url.pathname+url.search);
+}
+async function validatedRecoverySession(expected){
+  const result=await sb.auth.getSession(),session=result.data?.session;
+  if(result.error||!session?.access_token||!session.user?.id)throw Error("Sessão de recuperação inválida ou expirada.");
+  const checked=await sb.auth.getUser(session.access_token);
+  if(checked.error||!checked.data?.user||checked.data.user.id!==session.user.id)throw Error("Sessão de recuperação inválida ou expirada.");
+  const identity={userId:checked.data.user.id,sessionId:recoverySessionId(session)};
+  if(!identity.sessionId||(expected&&(identity.userId!==expected.userId||identity.sessionId!==expected.sessionId||expected.expiresAt<=Date.now())))throw Error("Sessão de recuperação inválida ou expirada.");
+  return identity;
+}
+async function initializeRecovery(){
+  const query=new URLSearchParams(location.search),hash=new URLSearchParams(location.hash.replace(/^#/,""));
+  const keys=["token_hash","code","access_token","refresh_token","error","error_code","error_description"];
+  const pending=sessionStorage.getItem(RECOVERY_KEY);
+  if(query.get("type")!=="recovery"&&hash.get("type")!=="recovery"&&!keys.some(k=>query.has(k)||hash.has(k))&&!pending)return false;
+  showRecovery();
+  $("recovery-cancel").disabled=true;
+  $("recovery-msg").textContent="Validando link de recuperação...";
+  cleanRecoveryUrl();
+  try{
+    const get=key=>query.get(key)||hash.get(key);
+    if(get("error")||get("error_code")||get("error_description"))throw Error("Link de recuperação inválido ou expirado.");
+    const tokenHash=get("token_hash"),code=get("code"),access=get("access_token"),refresh=get("refresh_token"),type=get("type");
+    const kinds=Number(!!tokenHash)+Number(!!code)+Number(!!(access||refresh));
+    if(kinds>1||(type&&type!=="recovery"))throw Error("Link de recuperação inválido.");
+    let result;
+    if(tokenHash){result=await sb.auth.verifyOtp({token_hash:tokenHash,type:"recovery"})}
+    else if(code){result=await sb.auth.exchangeCodeForSession(code)}
+    else if(access||refresh){
+      if(type!=="recovery"||!access||!refresh)throw Error("Link de recuperação incompleto.");
+      result=await sb.auth.setSession({access_token:access,refresh_token:refresh});
+    }else{
+      const record=recoveryRecord();
+      if(record?.completed){recoveryCompleted=true;await finishRecovery();return true}
+      if(!record?.userId||!record?.sessionId)throw Error("Abra um link de recuperação válido para continuar.");
+      recoveryIdentity={...await validatedRecoverySession(record),expiresAt:record.expiresAt};
+    }
+    if(kinds){
+      if(result?.error||!result?.data?.session)throw Error("Link de recuperação inválido, expirado ou já utilizado. Abra o link no navegador em que iniciou a recuperação.");
+      recoveryIdentity={...await validatedRecoverySession(),expiresAt:Date.now()+60*60*1000};
+    }
+    if(!recoveryIdentity)throw Error("Abra um link de recuperação válido para continuar.");
+    saveRecoveryRecord(recoveryIdentity);
+    recoveryReady=true;
+    recoveryControls(false);
+    $("recovery-msg").textContent="Link validado. Defina sua nova senha.";
+  }catch(e){
+    recoveryReady=false;
+    saveRecoveryRecord({invalid:true});
+    $("recovery-msg").textContent=e.message;
+  }finally{$("recovery-cancel").disabled=false}
+  return true;
+}
+async function finishRecovery(){
+  // Keep the app locked (including reloads) until local sign-out is confirmed.
+  recoveryReady=false;
+  recoveryControls(true);
+  saveRecoveryRecord({completed:recoveryCompleted,invalid:!recoveryCompleted});
+  try{
+    const result=await sb.auth.signOut({scope:"local"});
+    if(result.error)throw result.error;
+    const check=await sb.auth.getSession();
+    if(check.error||check.data?.session)throw Error("Sessão ainda ativa.");
+    sessionStorage.removeItem(RECOVERY_KEY);
+    cleanRecoveryUrl();
+    recoveryIdentity=null;recoveryActive=false;
+    currentUserId=null;currentRole="";currentApps=[];
+    $("recovery-form").reset();$("pass").value="";
+    $("recovery").classList.add("hidden");
+    $("auth").style.display="";$("auth").classList.remove("hidden");
+    show("amsg",recoveryCompleted?"Senha atualizada. Faça login com a nova senha.":"Recuperação encerrada. Faça login para continuar.","ok");
+  }catch{
+    $("recovery-msg").textContent=(recoveryCompleted?"Senha atualizada. ":"")+"Não foi possível encerrar a sessão. Clique em Voltar ao login para tentar novamente.";
+  }
+}
+async function submitRecoveryPassword(event){
+  event.preventDefault();
+  if(recoveryBusy)return;
+  const msg=$("recovery-msg");
+  if(!recoveryActive||!recoveryReady||recoveryCompleted){msg.textContent="É necessário validar o link de recuperação antes de alterar a senha.";return}
+  const pass=$("recovery-password").value,confirm=$("recovery-confirm").value;
+  if(pass.length<12){msg.textContent="Use uma senha de pelo menos 12 caracteres.";return}
+  if(pass!==confirm){msg.textContent="As senhas não coincidem.";return}
+  recoveryBusy=true;recoveryControls(true);$("recovery-cancel").disabled=true;
+  try{
+    try{await validatedRecoverySession(recoveryIdentity)}catch(e){recoveryReady=false;saveRecoveryRecord({invalid:true});throw e}
+    const result=await sb.auth.updateUser({password:pass});
+    if(result.error)throw Error("Não foi possível atualizar a senha. Verifique a conexão e os requisitos da senha e tente novamente.");
+    recoveryCompleted=true;
+    $("recovery-form").reset();
+    await finishRecovery();
+  }catch(e){msg.textContent=e.message}
+  finally{recoveryBusy=false;recoveryControls(!recoveryReady||recoveryCompleted);$("recovery-cancel").disabled=false}
+}
+async function boot(){
+  window.__vaporeasyAppBooted=false;wire();window.__vaporeasyAppBooted=true;
+  const ready=$("loginready");if(ready){ready.textContent="Sistema pronto";ready.classList.add("is-ready")}
+  // Recovery has precedence even over public booking and an existing login.
+  if(await initializeRecovery())return;
+  configureAndroidContactImport();
+  document.querySelectorAll("[data-brand-logo]").forEach(img=>{img.onerror=()=>{img.onerror=null;img.src="/vaporeasy-logo-original.svg?v=20260928-05"}});
+  prefillLoginEmailFromUrl();restoreLoginEmail();
+  if(new URLSearchParams(location.search).get("booking")==="1"&&publicToken){await publicBoot();return}
+  $("date").value=today();$("adt").value=today();
+  const {data,error}=await sb.auth.getSession();
+  if(error){show("amsg","Não foi possível validar a sessão. Entre novamente.","error");return}
+  if(data.session)await enter(data.session);
+}
 function wire(){
+ $("recovery-cancel").onclick=async()=>{if(!recoveryBusy){recoveryBusy=true;try{await finishRecovery()}finally{recoveryBusy=false}}};
  const recoveryForm=$("recovery-form");if(recoveryForm)recoveryForm.onsubmit=submitRecoveryPassword;
 
  $("af").onsubmit=authSubmit;$("email").addEventListener("input",rememberLoginEmail);$("email").addEventListener("change",rememberLoginEmail);$("passtoggle").onclick=()=>{const p=$("pass"),show=p.type==="password";p.type=show?"text":"password";$("passtoggle").textContent=show?"Ocultar":"Mostrar";$("passtoggle").setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha")};$("bell").onclick=openNotifications;$("out").onclick=async()=>{if(notifTimer)clearInterval(notifTimer);if(notifChannel)await sb.removeChannel(notifChannel);const r=await sb.auth.signOut({scope:"local"});if(r.error){show("msg","Não foi possível encerrar a sessão. Tente novamente.","error");return}const check=await sb.auth.getSession();if(check.data?.session){show("msg","A sessão anterior ainda está ativa. Tente sair novamente.","error");return}currentUserId=null;currentRole=null;currentApps=[];$("pass").value="";location.reload()};document.addEventListener("pointerdown",prepareSound,{once:true});
@@ -181,8 +311,9 @@ function prefillLoginEmailFromUrl(){
   u.searchParams.delete("login");
   history.replaceState(null,"",u.pathname+(u.search?u.search:"")+u.hash)
 }
-async function authSubmit(e){e.preventDefault();rememberLoginEmail();const email=$("email").value.trim(),password=$("pass").value;if(!email)return show("amsg","Informe o e-mail.","error");if(!password)return show("amsg","Informe a senha.","error");const b=$("ab");b.disabled=true;b.textContent="Entrando...";show("amsg","");try{const r=await sb.auth.signInWithPassword({email,password});if(r.error)throw r.error;const session=r.data.session,user=r.data.user||session?.user;if(!session||!user?.id)throw Error("Login não retornou uma sessão válida.");if(user.email&&user.email.trim().toLowerCase()!==email.toLowerCase()){await sb.auth.signOut({scope:"local"});throw Error("O usuário autenticado não corresponde ao e-mail informado. Digite o login novamente.")}await enter(session)}catch(e){show("amsg",fail(e),"error")}finally{b.disabled=false;b.textContent="Entrar no Vaporeasy"}}
+async function authSubmit(e){e.preventDefault();if(recoveryActive)return;rememberLoginEmail();const email=$("email").value.trim(),password=$("pass").value;if(!email)return show("amsg","Informe o e-mail.","error");if(!password)return show("amsg","Informe a senha.","error");const b=$("ab");b.disabled=true;b.textContent="Entrando...";show("amsg","");try{const r=await sb.auth.signInWithPassword({email,password});if(r.error)throw r.error;const session=r.data.session,user=r.data.user||session?.user;if(!session||!user?.id)throw Error("Login não retornou uma sessão válida.");if(user.email&&user.email.trim().toLowerCase()!==email.toLowerCase()){await sb.auth.signOut({scope:"local"});throw Error("O usuário autenticado não corresponde ao e-mail informado. Digite o login novamente.")}await enter(session)}catch(e){show("amsg",fail(e),"error")}finally{b.disabled=false;b.textContent="Entrar no Vaporeasy"}}
 async function enter(session){
+  if(recoveryActive)return;
   try{
     const sessionUser=session?.user;
     if(!session?.access_token||!sessionUser?.id)throw Error("Sessão inválida. Entre novamente.");
@@ -190,6 +321,7 @@ async function enter(session){
     if(!u.data.user||u.data.user.id!==sessionUser.id)throw Error("Sessão inconsistente. Saia e entre novamente.");
     const p=await sb.from("app_profiles").select("name,role,active").eq("user_id",sessionUser.id).maybeSingle();
     if(p.error)throw p.error;if(!p.data||!p.data.active)throw Error("Este usuário ainda não possui acesso ao staging.");
+    if(recoveryActive)return;
     currentUserId=sessionUser.id;currentRole=p.data.role;
     $("main-primary-nav").dataset.role=currentRole;
     const operator=currentRole==="operator",manager=["owner","admin"].includes(currentRole);
