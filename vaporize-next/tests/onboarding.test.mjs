@@ -41,3 +41,34 @@ test('onboarding form exists and is hidden by default', () => {
   assert.match(main, /controller\.createFirstOrganization\(/);
   assert.match(main, /await controller\.canOnboard\(\)/);
 });
+
+test('late onboarding membership response cannot reopen onboarding after logout', async () => {
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  const auth = { getUser: async () => ({ data: { user: { id: 'user-a' } }, error: null }) };
+  const controller = createAuthController({
+    auth, rpc: async () => pending
+  });
+  const attempt = controller.canOnboard();
+  await new Promise(resolve => setImmediate(resolve));
+  controller.clearAccess();
+  release({ data: [], error: null });
+  assert.equal(await attempt, false);
+  assert.equal(controller.state().internalAccess, false);
+});
+
+test('late onboarding response cannot enable onboarding during recovery', async () => {
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  const auth = {
+    getUser: async () => ({ data: { user: { id: 'user-a' } }, error: null }),
+    verifyOtp: async () => ({ data: { session: { user: { id: 'user-a' } } }, error: null })
+  };
+  const controller = createAuthController({ auth, rpc: async () => pending });
+  const attempt = controller.canOnboard();
+  await new Promise(resolve => setImmediate(resolve));
+  await controller.beginRecovery('https://example.com/vaporize-next/?token_hash=example&type=recovery');
+  release({ data: [], error: null });
+  assert.equal(await attempt, false);
+  assert.equal(controller.state().recovering, true);
+});
