@@ -9,7 +9,7 @@ export function createAuthController(supabase) {
   let recoveryMode = false;
   const listeners = new Set();
   const publish = (state) => { for (const fn of listeners) fn(state); };
-  const state = () => ({ recovering: recoveryMode, internalAccess: !recoveryMode });
+  const state = () => ({ recovering: recoveryMode, internalAccess: false });
   const subscribe = (fn) => {
     listeners.add(fn);
     fn(state());
@@ -95,7 +95,11 @@ export function createAuthController(supabase) {
   async function requireInternalAccess() {
     if (recoveryMode) return false;
     const { data, error } = await supabase.auth.getUser();
-    return !error && Boolean(data?.user);
+    if (error || !data?.user) return false;
+    // Authentication alone never authorizes access to tenant data.
+    // Until membership and organization status are validated server-side,
+    // fail closed. Do not enable internal modules from a client-only check.
+    return false;
   }
 
   return { beginRecovery, changePassword, requireInternalAccess, subscribe, state };
