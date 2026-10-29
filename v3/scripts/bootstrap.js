@@ -6,7 +6,7 @@ if(!window.supabase){
 }
 const {createClient}=window.supabase;
 const SUPABASE_URL="https://cfpvexgkjsqpwhebsoos.supabase.co", KEY="sb_publishable_6nwmh1z_tkjIOj3yyXE4JA_ycJcrRIL", FN=SUPABASE_URL+"/functions/v1/vaporeasy-v2-staging", PUBLIC_FN=SUPABASE_URL+"/functions/v1/vaporeasy-public-booking";
-const sb=createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+const sb=createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,flowType:"implicit"}});
 const BRAND_LOGO="/vaporeasy-logo-original.svg?v=20261006-01",brandLogoImg=new Image();brandLogoImg.src=BRAND_LOGO;
 const $=id=>document.getElementById(id); let mode="login", clients=[], services=[], collabs=[], vehicleBrands=[], vehicleModels=[], currentApps=[], vehicles=new Map(), teams=[], teamMembers=[], allCollabs=[], currentUserId=null, currentRole="", currentReceipt=null, currentReceiptGroup=null, currentMonthlyReceipt=null, currentFinishExistingPhoto=null, notifTimer=null, notifChannel=null, knownUnread=new Set(), soundCtx=null, publicCfg=null, publicToken=new URLSearchParams(location.search).get("share")||"", publicRequestId=crypto.randomUUID(), generatedLinkClientName="", generatedLinkClientId="", slotRequestSeq=0, publicDates=[], publicDateLimit=6, publicAddonIds=[], androidImportContacts=[], collabAccess=new Map(), currentPaymentQuote=null, currentPaymentMode="receive", currentPaymentGroupIds=[], refsLoadedAt=0, vehicleCatalogLoadedAt=0, waterCounterLoadedAt=0, agendaLoadSeq=0, agendaMonthCache=new Map(), apptRecurringByVehicle=new Map(), recurrenceSyncAt=0;
 const esc=s=>String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
@@ -320,7 +320,7 @@ async function requestPasswordRecovery(){
   btn.disabled=true;
   show("amsg","Solicitando link de recuperação...");
   try{
-    const redirectTo=new URL("/v3/",location.origin).href;
+    const redirectTo="https://vaporeasy-git-v3-homologacao-modular-20261027-vaporeasy.vercel.app/v3/";
     const result=await sb.auth.resetPasswordForEmail(email,{redirectTo});
     if(result.error)throw result.error;
     show("amsg","Se o e-mail estiver cadastrado, você receberá um link de recuperação. Verifique também o spam.","ok");
