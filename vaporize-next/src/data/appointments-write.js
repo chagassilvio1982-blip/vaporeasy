@@ -82,3 +82,32 @@ export async function cancelAppointment(supabase,controller,appointmentId) {
     throw new Error('Unexpected cancellation response');
   return data;
 }
+
+/** Persist recurring appointments atomically through a single database statement.
+ * Requires the no-overlap exclusion constraint to be installed in homologation.
+ */
+export async function createRecurringAppointments(supabase,controller,{vehicle_id,occurrences}) {
+  if (!uuid.test(vehicle_id)) throw new TypeError('Invalid vehicle');
+  if (!Array.isArray(occurrences) || occurrences.length < 2 || occurrences.length > 52)
+    throw new RangeError('Invalid recurrence count');
+  const intervals = occurrences.map(slot => {
+    const durationMinutes = (Date.parse(slot.ends_at)-Date.parse(slot.starts_at))/60000;
+    const valid = validateAppointmentInput({startsAt:slot.starts_at,durationMinutes});
+    if (valid.ends_at !== new Date(slot.ends_at).toISOString()) throw new RangeError('Invalid interval end');
+    return valid;
+  });
+  const id = await organization(controller);
+  verify(controller,id);
+  const rows = intervals.map(interval => ({
+    organization_id:id,vehicle_id,...interval,status:'scheduled'
+  }));
+  const {data,error} = await supabase.schema('vaporize_next').from('appointments')
+    .insert(rows).select('id,organization_id,vehicle_id,starts_at,ends_at,status');
+  if (error) throw error;
+  verify(controller,id);
+  if (!Array.isArray(data) || data.length !== rows.length ||
+      data.some(item => item.organization_id !== id || item.vehicle_id !== vehicle_id)) {
+    throw new Error('Unexpected recurrence response');
+  }
+  return data;
+}
