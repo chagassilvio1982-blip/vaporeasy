@@ -1,6 +1,6 @@
 import { listVehicles } from '../data/vehicles.js';
 import { listClients } from '../data/clients.js';
-import { createVehicle } from '../data/records-write.js';
+import { createVehicle, updateVehicle } from '../data/records-write.js';
 
 export function attachVehiclesPanel(supabase, controller, document) {
   const button = document.getElementById('load-vehicles');
@@ -11,6 +11,9 @@ export function attachVehiclesPanel(supabase, controller, document) {
   const form = document.getElementById('vehicle-create-form');
   const owner = document.getElementById('vehicle-owner');
   const writeStatus = document.getElementById('vehicle-write-status');
+  const editForm = document.getElementById('vehicle-edit-form');
+  let selectedVehicle = null;
+  document.getElementById('vehicle-edit-cancel').addEventListener('click',()=>{selectedVehicle=null;editForm.hidden=true;});
   const canWrite = () => { const st = controller.state(); return !st.recovering && st.internalAccess && st.organizations?.length === 1 && ['owner','manager'].includes(st.organizations[0].membership_role); };
   const option = (label, value) => { const el = document.createElement('option'); el.textContent = label; el.value = value; return el; };
   let generation = 0;
@@ -27,6 +30,7 @@ export function attachVehiclesPanel(supabase, controller, document) {
       owner.replaceChildren();
       form.reset();
       writeStatus.textContent = '';
+      selectedVehicle=null;editForm.hidden=true;editForm.reset();
     }
   });
   async function refreshClients() {
