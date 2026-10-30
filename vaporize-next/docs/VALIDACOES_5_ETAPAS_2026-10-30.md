@@ -45,3 +45,11 @@ Requisitos mínimos antes de implementar:
 
 ## Critério de conclusão
 Bloco 4 **não concluído** enquanto operações reais de escrita e permissões por JWT não forem verificadas. Nenhum resultado de produção pode ser inferido dos testes de homologação.
+
+
+## Atualização de execução — bloqueio comprovado
+- GitHub commit `776382e2301e54459f38945d860b12b57bc8889`: status Vercel `failure` por `build-rate-limit`.
+- Tentativa de deploy direto via API Vercel, usando `gitSource` da branch isolada e sem target de produção: HTTP **402**, código `api-deployments-free-per-day`, mensagem `Resource is limited - try again in 24 hours (more than 100)`, `retryAfter=86400`. Nenhum deploy novo foi confirmado.
+- Consulta SQL somente leitura na homologação: `appointments=0`, `scheduled=0`, veículo de teste encontrado `1`, vínculos dos três perfis encontrados `3`.
+- Operações HTTP/JWT reais de escrita e bloqueio do colaborador **não executadas**. Não aprovar Bloco 4 sem essas evidências.
+- Próxima tentativa de deploy somente após liberação do limite; preservar a branch e evitar novas publicações até então.
