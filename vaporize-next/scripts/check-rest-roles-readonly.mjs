@@ -1,6 +1,6 @@
 /** Read-only HTTP/JWT role verification. No database writes or credential logging. */
 const expectedHost = 'cfpvexgkjsqpwhebsoos.supabase.co';
-const required = ['SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','TEST_OWNER_JWT','TEST_MANAGER_JWT','TEST_COLLABORATOR_JWT','TEST_ORG_A_ID'];
+const required = ['SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','TEST_OWNER_JWT','TEST_MANAGER_JWT','TEST_COLLABORATOR_JWT','TEST_ORG_A_ID','TEST_OWNER_USER_ID','TEST_MANAGER_USER_ID','TEST_COLLABORATOR_USER_ID'];
 const missing = required.filter(k => !process.env[k]);
 if (missing.length) { console.error('Missing configuration:', missing.join(', ')); process.exit(2); }
 const base = new URL(process.env.SUPABASE_URL);
@@ -17,6 +17,10 @@ if (!uuid.test(org) || (otherOrg && (!uuid.test(otherOrg) || otherOrg === org)))
   console.error('Invalid organization fixture IDs'); process.exit(2);
 }
 const tokens = {owner:process.env.TEST_OWNER_JWT,manager:process.env.TEST_MANAGER_JWT,collaborator:process.env.TEST_COLLABORATOR_JWT};
+const expectedIds = {owner:process.env.TEST_OWNER_USER_ID,manager:process.env.TEST_MANAGER_USER_ID,collaborator:process.env.TEST_COLLABORATOR_USER_ID};
+if (Object.values(expectedIds).some(id=>!uuid.test(id)) || new Set(Object.values(expectedIds)).size !== 3) {
+  console.error('Invalid or duplicated expected user IDs'); process.exit(2);
+}
 const ids = new Set();
 let failures = 0;
 for (const [role,jwt] of Object.entries(tokens)) {
@@ -25,7 +29,7 @@ for (const [role,jwt] of Object.entries(tokens)) {
     const auth = await fetch(new URL('/auth/v1/user',base),{headers,redirect:'error',signal:AbortSignal.timeout(12000)});
     if (auth.status !== 200) throw Error('Auth HTTP '+auth.status);
     const user = await auth.json();
-    if (!uuid.test(user.id) || ids.has(user.id)) throw Error('Invalid or duplicate identity');
+    if (!uuid.test(user.id) || ids.has(user.id) || user.id !== expectedIds[role]) throw Error('Unexpected or duplicate authenticated identity');
     ids.add(user.id);
     const membershipUrl = new URL('/rest/v1/memberships',base);
     membershipUrl.searchParams.set('select','role,status,organization_id');
