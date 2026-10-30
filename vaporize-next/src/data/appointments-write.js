@@ -37,3 +37,48 @@ export async function createAppointment(supabase, controller, input) {
   if (data?.organization_id !== id || data.vehicle_id !== input.vehicle_id) throw new Error('Unexpected appointment response');
   return data;
 }
+
+/** Update a scheduled appointment, preserving organization and vehicle isolation. */
+export async function updateAppointment(supabase,controller,appointmentId,input) {
+  if (!uuid.test(appointmentId)) throw new TypeError('Invalid appointment');
+  const id = await organization(controller);
+  const {data:current,error:readError} = await supabase.schema('vaporize_next').from('appointments')
+    .select('id,organization_id,vehicle_id,starts_at,ends_at,status')
+    .eq('organization_id',id).eq('id',appointmentId).single();
+  if (readError) throw readError;
+  if (current?.organization_id !== id || current.status !== 'scheduled') throw new Error('Appointment not editable');
+  const vehicleId = input?.vehicle_id ?? current.vehicle_id;
+  if (!uuid.test(vehicleId)) throw new TypeError('Invalid vehicle');
+  const duration = input?.durationMinutes ??
+    Math.round((Date.parse(current.ends_at)-Date.parse(current.starts_at))/60000);
+  const interval = validateAppointmentInput({startsAt:input?.startsAt ?? current.starts_at,durationMinutes:duration});
+  const {data:existing,error:conflictError} = await supabase.schema('vaporize_next').from('appointments')
+    .select('id,vehicle_id,starts_at,ends_at,status').eq('organization_id',id).eq('vehicle_id',vehicleId)
+    .neq('id',appointmentId).lt('starts_at',interval.ends_at).gt('ends_at',interval.starts_at)
+    .neq('status','cancelled');
+  if (conflictError) throw conflictError;
+  if (findVehicleConflicts({...interval,vehicle_id:vehicleId},existing ?? []).length) throw new Error('Vehicle schedule conflict');
+  verify(controller,id);
+  const {data,error} = await supabase.schema('vaporize_next').from('appointments')
+    .update({...interval,vehicle_id:vehicleId}).eq('organization_id',id).eq('id',appointmentId)
+    .eq('status','scheduled').select('id,organization_id,vehicle_id,starts_at,ends_at,status').single();
+  if (error) throw error;
+  verify(controller,id);
+  if (data?.id !== appointmentId || data.organization_id !== id) throw new Error('Unexpected update response');
+  return data;
+}
+
+/** Cancel an appointment without deleting its record. */
+export async function cancelAppointment(supabase,controller,appointmentId) {
+  if (!uuid.test(appointmentId)) throw new TypeError('Invalid appointment');
+  const id = await organization(controller);
+  verify(controller,id);
+  const {data,error} = await supabase.schema('vaporize_next').from('appointments')
+    .update({status:'cancelled'}).eq('organization_id',id).eq('id',appointmentId)
+    .eq('status','scheduled').select('id,organization_id,status').single();
+  if (error) throw error;
+  verify(controller,id);
+  if (data?.id !== appointmentId || data.organization_id !== id || data.status !== 'cancelled')
+    throw new Error('Unexpected cancellation response');
+  return data;
+}
