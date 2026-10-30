@@ -43,3 +43,10 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Performance: índices ausentes em FKs `next_appointment_vehicle_same_org` e `next_vehicle_client_same_org`. Referência: https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys
 - Outros alertas de funções `public.*` e índices do schema `public` também existem, mas são externos ao escopo de alteração do Bloco 2; não modificar.
 - Nenhum privilégio, RLS, Auth, tabela ou índice alterado nesta auditoria. A execução HTTP/JWT real segue pendente.
+
+## Fixtures de isolamento HTTP/JWT — 30/10/2026
+- Criados e confirmados exclusivamente no Supabase de homologação: organização A `4eed149d-2907-4604-8d92-ecf212762664`, organização B `c49f62ac-94b5-47bc-a292-3b53c563ae04` (`vaporeasy-rls-fixture-b`).
+- Cliente fictício A `ca21e0de-05e3-49f0-b0d5-8f3cb0010101` e cliente fictício B `cb21e0de-05e3-49f0-b0d5-8f3cb0010102`; verificados por SQL, um cliente por organização.
+- O script `scripts/check-rest-roles-readonly.mjs` agora exige `TEST_ORG_B_ID` e presença de um cliente visível na organização A. Deve receber `TEST_ORG_B_ID=c49f62ac-94b5-47bc-a292-3b53c563ae04` por variável de ambiente.
+- Organização B não possui membro autenticado próprio; a consulta de memberships B vazia não comprova isolamento de memberships (resultado explicitamente `no-visible-rows-unverified-fixture`).
+- Pendente: três sessões JWT reais, execução e evidências HTTP. Não armazenar JWT no GitHub nem nos logs. Fixtures são artificiais e precisam ser excluídas após os testes com rotina de limpeza validada.
