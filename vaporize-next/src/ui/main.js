@@ -5,9 +5,11 @@ import { attachAppointmentsPanel } from './appointments-panel.js';
 import { createEphemeralPkceStorage } from '../auth/storage.js';
 const $ = (id) => document.getElementById(id);
 const status = (message) => { $('status').textContent = message; };
+const clearIdentity = () => { $('session-identity').textContent = ''; };
 const show = (id) => {
   for (const name of ['login-form','recovery-form','onboarding-form','workspace']) $(name).hidden = name !== id;
   if (id !== 'workspace') {
+    clearIdentity();
     for (const module of ['clients','vehicles','appointments']) {
       $(module + '-list').replaceChildren();
       $(module + '-status').textContent = '';
@@ -32,6 +34,16 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
     attachClientsPanel(supabase, controller, document);
     attachVehiclesPanel(supabase, controller, document);
     attachAppointmentsPanel(supabase, controller, document);
+    const showIdentity = async () => {
+      const current = controller.state();
+      if (!current.internalAccess || current.recovering || $('workspace').hidden) return;
+      const { data, error } = await supabase.auth.getUser();
+      const latest = controller.state();
+      if (error || !data?.user || latest.recovering || !latest.internalAccess || $('workspace').hidden) return;
+      const roles = [...new Set(latest.organizations.map(o => o.membership_role).filter(role => ['owner','manager','collaborator'].includes(role)))];
+      const labels = { owner: 'Proprietário', manager: 'Gerente', collaborator: 'Colaborador' };
+      $('session-identity').textContent = `Conta: ${data.user.email || 'não informada'} | Perfil: ${roles.map(role => labels[role]).join(', ') || 'não identificado'}`;
+    };
     controller.subscribe(({ recovering, internalAccess }) => {
       if (recovering) show('recovery-form');
       else if (!internalAccess && !$('workspace').hidden) {
@@ -60,6 +72,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
     } else if (await controller.requireInternalAccess()) {
       show('workspace');
       status('Sessão autenticada.');
+      await showIdentity();
     } else if (await controller.canOnboard()) {
       show('onboarding-form');
       status('Identidade confirmada. Cadastre sua primeira empresa.');
@@ -89,6 +102,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         $('password').value = '';
         show('workspace');
         status('Sessão autenticada.');
+        await showIdentity();
       } catch (error) { status(error?.message === 'Vínculo com empresa ainda não validado' ? 'Identidade confirmada, mas acesso aos módulos bloqueado até a validação da empresa.' : 'Não foi possível entrar. Verifique suas credenciais.'); }
       finally { busy(false); }
     });
@@ -101,6 +115,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         if (!authorized) throw new Error('Organization membership not verified');
         show('workspace');
         status('Empresa vinculada. Consultas de clientes, veículos e agendamentos disponíveis.');
+        await showIdentity();
       } catch {
         status('Não foi possível criar ou validar a empresa. Verifique os dados e tente novamente.');
       } finally { busy(false); }
