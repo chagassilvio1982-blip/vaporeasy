@@ -39,12 +39,16 @@ for (const [role,jwt] of Object.entries(tokens)) {
     if (membership.status !== 200) throw Error('Membership HTTP '+membership.status);
     const rows = await membership.json();
     if (!Array.isArray(rows) || rows.length !== 1 || rows[0].user_id !== user.id || rows[0].organization_id !== org || rows[0].role !== role || rows[0].status !== 'active') throw Error('Membership mismatch');
+    // Verify access to the real tenant-scoped clients query, without writes.
     const clientsUrl = new URL('/rest/v1/clients',base);
-    clientsUrl.searchParams.set('select','id');
-    clientsUrl.searchParams.set('limit','0');
+    clientsUrl.searchParams.set('select','id,organization_id');
+    clientsUrl.searchParams.set('organization_id','eq.'+org);
+    clientsUrl.searchParams.set('limit','1');
     const clients = await fetch(clientsUrl,{headers:{...headers,'Accept-Profile':'vaporize_next'},redirect:'error',signal:AbortSignal.timeout(12000)});
     if (clients.status !== 200) throw Error('Clients GET HTTP '+clients.status);
-    // A successful zero-row GET proves endpoint accessibility, not row-level isolation.
+    // HTTP 200 alone does not prove row-level isolation; assert tenant on returned rows.
+    const clientRows = await clients.json();
+    if (!Array.isArray(clientRows) || clientRows.length > 1 || clientRows.some(row => row.organization_id !== org)) throw Error('Unexpected clients response');
     // If a separate tenant fixture is provided, verify the current identity
     // cannot see membership rows from that organization.
     let crossTenantMembership = 'not-tested';
