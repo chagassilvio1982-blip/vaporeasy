@@ -4,7 +4,7 @@ import { createRecurringAppointments } from '../src/data/appointments-write.js';
 import { saoPauloRecurrence } from '../src/scheduling/rules.js';
 
 const org='4eed149d-2907-4604-8d92-ecf212762664';
-const vehicle='ca21e0de-05e3-49f0-b0d5-8f3cb0010101';
+const vehicle='aa21e0de-05e3-49f0-b0d5-8f3cb0010101';
 const occurrences=saoPauloRecurrence('2026-11-02T07:30',{count:3,intervalDays:7});
 function harness(role='owner', databaseError=null) {
   const calls=[];
