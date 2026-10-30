@@ -12,7 +12,10 @@ const key = process.env.SUPABASE_PUBLISHABLE_KEY;
 if (!key.startsWith('sb_publishable_')) { console.error('Invalid publishable key'); process.exit(2); }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const org = process.env.TEST_ORG_A_ID;
-if (!uuid.test(org)) { console.error('Invalid organization ID'); process.exit(2); }
+const otherOrg = process.env.TEST_ORG_B_ID || null;
+if (!uuid.test(org) || (otherOrg && (!uuid.test(otherOrg) || otherOrg === org))) {
+  console.error('Invalid organization fixture IDs'); process.exit(2);
+}
 const tokens = {owner:process.env.TEST_OWNER_JWT,manager:process.env.TEST_MANAGER_JWT,collaborator:process.env.TEST_COLLABORATOR_JWT};
 const ids = new Set();
 let failures = 0;
@@ -36,7 +39,21 @@ for (const [role,jwt] of Object.entries(tokens)) {
     clientsUrl.searchParams.set('limit','0');
     const clients = await fetch(clientsUrl,{headers:{...headers,'Accept-Profile':'vaporize_next'},redirect:'error',signal:AbortSignal.timeout(12000)});
     if (clients.status !== 200) throw Error('Clients GET HTTP '+clients.status);
-    console.log(JSON.stringify({role,auth:200,membership:200,clients:200,pass:true}));
+    // A successful zero-row GET proves endpoint accessibility, not row-level isolation.
+    // If a separate tenant fixture is provided, verify the current identity
+    // cannot see membership rows from that organization.
+    let crossTenantMembership = 'not-tested';
+    if (otherOrg) {
+      const otherUrl = new URL('/rest/v1/memberships',base);
+      otherUrl.searchParams.set('select','organization_id');
+      otherUrl.searchParams.set('organization_id','eq.'+otherOrg);
+      const other = await fetch(otherUrl,{headers:{...headers,'Accept-Profile':'vaporize_next'},redirect:'error',signal:AbortSignal.timeout(12000)});
+      if (other.status !== 200) throw Error('Cross-tenant membership HTTP '+other.status);
+      const otherRows = await other.json();
+      if (!Array.isArray(otherRows) || otherRows.length !== 0) throw Error('Cross-tenant membership visibility');
+      crossTenantMembership = 'no-visible-rows';
+    }
+    console.log(JSON.stringify({role,auth:200,membership:200,clients:200,crossTenantMembership,pass:true}));
   } catch (error) {
     failures++;
     console.error(JSON.stringify({role,pass:false,error:error.message}));
