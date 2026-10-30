@@ -1,4 +1,6 @@
 import { listAppointments } from '../data/appointments.js';
+import { listVehicles } from '../data/vehicles.js';
+import { createAppointment } from '../data/appointments-write.js';
 import { validateAppointmentInput, saoPauloLocalToDate, saoPauloRecurrence } from '../scheduling/rules.js';
 
 export function attachAppointmentsPanel(supabase, controller, document) {
@@ -10,7 +12,60 @@ export function attachAppointmentsPanel(supabase, controller, document) {
   const planList = document.getElementById('appointment-plan-list');
   const planStatus = document.getElementById('appointment-plan-status');
   const formatBusinessTime = value => new Date(value).toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo'});
+  const createForm = document.getElementById('appointment-create-form');
+  const vehicleSelect = document.getElementById('appointment-vehicle');
+  const writeStatus = document.getElementById('appointment-write-status');
+  const canWrite = () => {
+    const state = controller.state();
+    return !state.recovering && state.internalAccess && state.organizations?.length === 1 &&
+      ['owner','manager'].includes(state.organizations[0].membership_role);
+  };
   let generation = 0;
+  planForm.addEventListener('change', () => {
+    createForm.hidden = true;
+    writeStatus.textContent = '';
+  });
+  planForm.addEventListener('submit', async () => {
+    createForm.hidden = true;
+    if (!canWrite() || workspace.hidden ||
+        document.getElementById('appointment-plan-recurrence').value !== 'none' ||
+        document.getElementById('appointment-plan-count').value !== '1') return;
+    const requestGeneration = generation;
+    try {
+      const vehicles = await listVehicles(supabase,controller,100);
+      if (requestGeneration !== generation || !canWrite() || workspace.hidden) return;
+      const options = vehicles.map(vehicle => {
+        const option = document.createElement('option');
+        option.value = vehicle.id;
+        option.textContent = [vehicle.brand,vehicle.model,vehicle.plate].filter(Boolean).join(' — ');
+        return option;
+      });
+      vehicleSelect.replaceChildren(...options);
+      createForm.hidden = options.length === 0;
+      if (!options.length) writeStatus.textContent = 'Cadastre um veículo antes de salvar um agendamento.';
+    } catch { if (!workspace.hidden && canWrite()) writeStatus.textContent = 'Não foi possível carregar veículos.'; }
+  });
+  createForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (workspace.hidden || !canWrite() || !vehicleSelect.value) return;
+    const submit = createForm.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    writeStatus.textContent = 'Salvando agendamento...';
+    try {
+      const startsAt = saoPauloLocalToDate(document.getElementById('appointment-plan-start').value);
+      const durationMinutes = Number(document.getElementById('appointment-plan-duration').value);
+      await createAppointment(supabase,controller,{vehicle_id:vehicleSelect.value,startsAt,durationMinutes});
+      if (workspace.hidden || !canWrite()) return;
+      writeStatus.textContent = 'Agendamento cadastrado.';
+      createForm.hidden = true;
+      button.click();
+    } catch (error) {
+      if (!workspace.hidden && canWrite()) writeStatus.textContent =
+        error?.message === 'Vehicle schedule conflict' || error?.code === '23P01'
+          ? 'Conflito: veículo já possui atendimento neste horário.'
+          : 'Não foi possível salvar. Verifique permissões e conexão.';
+    } finally { submit.disabled = false; }
+  });
   planForm.addEventListener('submit', event => {
     event.preventDefault();
     planList.replaceChildren();
@@ -40,6 +95,9 @@ export function attachAppointmentsPanel(supabase, controller, document) {
       planList.replaceChildren();
       planStatus.textContent = '';
       planForm.reset();
+      createForm.hidden = true;
+      vehicleSelect.replaceChildren();
+      writeStatus.textContent = '';
     }
   });
   button.addEventListener('click', async () => {
