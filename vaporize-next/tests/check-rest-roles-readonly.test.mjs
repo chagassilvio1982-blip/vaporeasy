@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -59,4 +60,12 @@ test('duplicate expected user identities are rejected', () => {
 test('malformed expected user identity is rejected', () => {
   const result = probe({ TEST_OWNER_USER_ID: 'invalid' });
   assert.equal(result.status, 2);
+});
+
+test('membership GET is scoped to the authenticated user and organization', () => {
+  const source = readFileSync(script, 'utf8');
+  assert.ok(source.includes("membershipUrl.searchParams.set('user_id','eq.'+user.id)"));
+  assert.ok(source.includes("membershipUrl.searchParams.set('organization_id','eq.'+org)"));
+  assert.ok(source.includes("rows[0].user_id !== user.id"));
+  assert.ok(source.includes("rows[0].organization_id !== org"));
 });
