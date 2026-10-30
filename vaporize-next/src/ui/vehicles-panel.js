@@ -30,7 +30,14 @@ export function attachVehiclesPanel(supabase, controller, document) {
   }
   filter.addEventListener('focus', async () => {
     if (filterReady || loading || workspace.hidden || !controller.state().internalAccess) return;
-    try { await refreshClients(); } catch { status.textContent = 'Não foi possível carregar os clientes para o filtro.'; }
+    const requestGeneration = generation;
+    try {
+      await refreshClients();
+      if (requestGeneration !== generation || workspace.hidden || !controller.state().internalAccess) {
+        filter.replaceChildren(option('Todos os clientes', ''));
+        filterReady = false;
+      }
+    } catch { if (!workspace.hidden && controller.state().internalAccess) status.textContent = 'Não foi possível carregar os clientes para o filtro.'; }
   });
   filter.addEventListener('change', () => {
     if (!workspace.hidden && controller.state().internalAccess && !loading) button.click();
