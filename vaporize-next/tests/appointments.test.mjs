@@ -25,7 +25,7 @@ test('appointments query uses verified organization and rejects stale access', a
     return { from(table) {
       assert.equal(table, 'appointments');
       return { select(fields) {
-        assert.equal(fields, 'id,vehicle_id,starts_at,ends_at,status');
+        assert.equal(fields, 'id,organization_id,vehicle_id,starts_at,ends_at,status');
         return { eq(field, value) {
           assert.equal(field, 'organization_id'); assert.equal(value, 'org-1');
           return { order(field, opts) {
