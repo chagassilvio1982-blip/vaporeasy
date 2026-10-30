@@ -85,3 +85,8 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Vercel `dpl_Crgyv26EUBuvYGP9yrzAE3NorUoF`, commit `02a86c2`, estado READY, Preview `https://vaporeasy-ehuzqpc7s-vaporeasy.vercel.app/vaporize-next/`.
 - Navegador automatizado TinyFish run `4a9aa081-c406-4178-9ed6-50620cd6e2c9` confirmou página pública carregando, título `Vaporize Next — Acesso`, formulário de login visível e módulos internos ocultos sem autenticação; nenhum erro visível. Evidência: `https://agent.tinyfish.ai/runs/4a9aa081-c406-4178-9ed6-50620cd6e2c9`.
 - Ainda pendente: execução da suíte Node no checkout integral e validação CRUD HTTP/JWT com três perfis autenticados. Não afirmar Bloco 3 homologado.
+
+## Bloco 3 — correção de revalidação de acesso (30/10/2026)
+- Defeito identificado no código: `requireInternalAccess()` publicava temporariamente `internalAccess=false` em toda consulta, e os painéis assinantes apagavam listas e formulários durante a revalidação. Corrigido em `src/auth/controller.js` para preservar a UI durante revalidação bem-sucedida e revogar explicitamente em caso de falha.
+- Testes de regressão `tests/access-recheck.test.mjs` adicionados para acesso preservado e revogação em erro.
+- Esta alteração ainda não tem execução da suíte nem Preview própria confirmadas. Não declarar finalização até testes e homologação autenticada.
