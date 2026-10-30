@@ -10,7 +10,7 @@ export async function listVehicles(supabase, controller, limit = 50, clientId = 
   const organizationId = before.organizations[0].organization_id;
   let query = supabase.schema('vaporize_next')
     .from('vehicles')
-    .select('id,client_id,brand,model,plate,created_at')
+    .select('id,organization_id,client_id,brand,model,plate,created_at')
     .eq('organization_id', organizationId);
   if (clientId !== null) query = query.eq('client_id', clientId);
   const { data, error } = await query.order('created_at', { ascending: false }).limit(limit);
@@ -21,7 +21,7 @@ export async function listVehicles(supabase, controller, limit = 50, clientId = 
     throw new Error('Access changed during request');
   }
   if (!Array.isArray(data) || data.some(row => !row || typeof row.id !== 'string' ||
-      typeof row.client_id !== 'string' || typeof row.brand !== 'string' ||
+      row.organization_id !== organizationId || typeof row.client_id !== 'string' || typeof row.brand !== 'string' ||
       typeof row.model !== 'string' || (clientId !== null && row.client_id !== clientId))) {
     throw new Error('Unexpected vehicles response');
   }
