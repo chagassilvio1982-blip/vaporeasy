@@ -1,7 +1,7 @@
 /** Read-only vehicles service scoped to the verified active organization. */
 export async function listVehicles(supabase, controller, limit = 50, clientId = null) {
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new RangeError('Invalid page size');
-  if (clientId !== null && (typeof clientId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(clientId))) throw new TypeError('Invalid client ID');
+  if (clientId !== null && (typeof clientId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) throw new TypeError('Invalid client ID');
   if (!await controller.requireInternalAccess()) throw new Error('Membership required');
   const before = controller.state();
   if (before.recovering || !before.internalAccess || before.organizations.length !== 1) {
