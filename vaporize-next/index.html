@@ -42,6 +42,15 @@
       <p id="clients-status" role="status" aria-live="polite"></p>
       <ul id="clients-list" aria-label="Clientes da empresa"></ul>
       <h2>Veículos</h2>
+      <form id="vehicle-create-form" hidden>
+        <h3>Cadastrar veículo</h3>
+        <label for="vehicle-owner">Cliente</label><select id="vehicle-owner" required></select>
+        <label for="vehicle-brand">Marca</label><input id="vehicle-brand" maxlength="100" required>
+        <label for="vehicle-model">Modelo</label><input id="vehicle-model" maxlength="100" required>
+        <label for="vehicle-plate">Placa (opcional)</label><input id="vehicle-plate" maxlength="16">
+        <button type="submit">Salvar veículo</button>
+      </form>
+      <p id="vehicle-write-status" role="status" aria-live="polite"></p>
       <p>Consulta somente leitura da empresa autenticada.</p>
       <label for="vehicle-client-filter">Filtrar veículos por cliente</label>
       <select id="vehicle-client-filter" aria-label="Filtrar veículos por cliente"><option value="">Todos os clientes</option></select>
