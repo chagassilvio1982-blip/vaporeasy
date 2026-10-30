@@ -3,6 +3,7 @@ import { attachClientsPanel } from './clients-panel.js';
 import { attachVehiclesPanel } from './vehicles-panel.js';
 import { attachAppointmentsPanel } from './appointments-panel.js';
 import { attachHttpJwtProbe } from './http-jwt-probe.js';
+import { attachAppointmentWriteProbe } from './appointment-write-probe.js';
 import { createEphemeralPkceStorage } from '../auth/storage.js';
 const $ = (id) => document.getElementById(id);
 const status = (message) => { $('status').textContent = message; };
@@ -36,6 +37,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
     attachVehiclesPanel(supabase, controller, document);
     attachAppointmentsPanel(supabase, controller, document);
     attachHttpJwtProbe(supabase, controller, document, config);
+    attachAppointmentWriteProbe(supabase, controller, document);
     const showIdentity = async () => {
       const current = controller.state();
       if (!current.internalAccess || current.recovering || $('workspace').hidden) return;
