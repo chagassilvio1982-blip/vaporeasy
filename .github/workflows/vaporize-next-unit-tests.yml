@@ -7,6 +7,7 @@ on:
     paths:
       - 'vaporize-next/src/**'
       - 'vaporize-next/tests/**'
+      - 'vaporize-next/scripts/check-rest-roles-readonly.mjs'
       - 'vaporize-next/package.json'
       - '.github/workflows/vaporize-next-unit-tests.yml'
   workflow_dispatch:
@@ -26,5 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Check read-only JWT verifier syntax
+        run: node --check scripts/check-rest-roles-readonly.mjs
       - name: Run isolated unit tests
         run: npm test
