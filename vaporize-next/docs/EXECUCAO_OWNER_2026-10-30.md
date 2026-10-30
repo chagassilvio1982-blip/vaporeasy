@@ -96,3 +96,10 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Corrigidos `tests/create-client-security.test.mjs`, `tests/list-client-security.test.mjs`, `tests/appointments.test.mjs`, `tests/panels-runtime.test.mjs` sem remover as validações de isolamento.
 - GitHub Actions run `41053093539`, job `124053744438`, commit `77e6960a112ca0c351572016c399fae2ddd48f5e`: **125 testes aprovados, 0 falhas**, conforme logs oficiais. Evidência `https://github.com/chagassilvio1982-blip/vaporeasy/actions/runs/41053093539`.
 - Última pendência: homologação real com sessão de owner/manager/collaborator, inclusive HTTP/JWT; perfis de navegador existentes não têm sessão registrada para a Preview do Vaporize Next. Não executar credenciais em conversa nem declarar o bloco concluído antes desse teste.
+
+## Bloco 3 — persistência de sessão e limite de deploy (30/10/2026)
+- Causa do retorno à tela de login identificada em `src/auth/storage.js`: sessões eram mantidas em `Map` volátil e perdidas em nova página. Corrigido para `sessionStorage` com prefixo isolado `vaporize-next:auth:`; `src/ui/main.js` habilita autoRefreshToken; logout remove sessão.
+- Commits `c53cec40a13814985e2dd61413275e93ee9d6377`, `8bab3ba63de331b34123d952c7fd10e4025ece7a`, `0ba1a6a95b4264338a8b02624a22a96c21cb8050`.
+- CI GitHub Actions run `41054661796`, job `124059044440`: 126/126 testes aprovados, 0 falhas. https://github.com/chagassilvio1982-blip/vaporeasy/actions/runs/41054661796
+- Tentativa de deploy Preview Git SHA `0ba1a6a` via Vercel API `POST /v13/deployments` retornou HTTP 402 `api-deployments-free-per-day` (>100 deploys/dia), retryAfter 86400 segundos. Não criar deploy de produção, não mudar plano, não afirmar Preview atualizada.
+- Pendente após liberação do limite: publicar Preview exata do commit corrigido, autenticar novamente na Preview atualizada e testar reload/persistência e CRUD owner/manager/collaborator. O perfil TinyFish salvo anteriormente pertence à Preview antiga e não prova persistência.
