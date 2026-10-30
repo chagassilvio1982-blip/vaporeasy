@@ -90,3 +90,9 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Defeito identificado no código: `requireInternalAccess()` publicava temporariamente `internalAccess=false` em toda consulta, e os painéis assinantes apagavam listas e formulários durante a revalidação. Corrigido em `src/auth/controller.js` para preservar a UI durante revalidação bem-sucedida e revogar explicitamente em caso de falha.
 - Testes de regressão `tests/access-recheck.test.mjs` adicionados para acesso preservado e revogação em erro.
 - Esta alteração ainda não tem execução da suíte nem Preview própria confirmadas. Não declarar finalização até testes e homologação autenticada.
+
+## Bloco 3 — CI recuperado (30/10/2026)
+- GitHub Actions run `41052572319` apresentou 114/125 testes aprovados; falhas em fixtures desatualizadas de campos tenant e DOM dos formulários.
+- Corrigidos `tests/create-client-security.test.mjs`, `tests/list-client-security.test.mjs`, `tests/appointments.test.mjs`, `tests/panels-runtime.test.mjs` sem remover as validações de isolamento.
+- GitHub Actions run `41053093539`, job `124053744438`, commit `77e6960a112ca0c351572016c399fae2ddd48f5e`: **125 testes aprovados, 0 falhas**, conforme logs oficiais. Evidência `https://github.com/chagassilvio1982-blip/vaporeasy/actions/runs/41053093539`.
+- Última pendência: homologação real com sessão de owner/manager/collaborator, inclusive HTTP/JWT; perfis de navegador existentes não têm sessão registrada para a Preview do Vaporize Next. Não executar credenciais em conversa nem declarar o bloco concluído antes desse teste.
