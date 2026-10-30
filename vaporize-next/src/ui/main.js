@@ -26,7 +26,7 @@ if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const authStorage = createEphemeralPkceStorage(sessionStorage);
     const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
-      auth: { flowType: 'pkce', storage: authStorage, detectSessionInUrl: false, persistSession: true, autoRefreshToken: false }
+      auth: { flowType: 'pkce', storage: authStorage, detectSessionInUrl: false, persistSession: true, autoRefreshToken: true }
     });
     const controller = createAuthController(supabase);
     attachClientsPanel(supabase, controller, document);
