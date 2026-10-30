@@ -140,22 +140,30 @@ export function createAuthController(supabase) {
 
   async function requireInternalAccess() {
     const epoch = ++accessEpoch;
-    authorizedOrganizations = [];
-    publish(state());
-    if (recoveryMode) return false;
+    // Preserve the verified workspace while rechecking membership.
+    // A transient empty state would erase forms and cancel every list request.
+    // On any failed recheck, explicitly revoke access below.
+    const deny = () => {
+      if (epoch === accessEpoch) {
+        authorizedOrganizations = [];
+        publish(state());
+      }
+      return false;
+    };
+    if (recoveryMode) return deny();
     let identity;
     try { identity = await supabase.auth.getUser(); }
-    catch { return false; }
+    catch { return deny(); }
     const { data, error } = identity || {};
-    if (epoch !== accessEpoch || error || !data?.user || typeof supabase.rpc !== 'function') return false;
+    if (epoch !== accessEpoch || error || !data?.user || typeof supabase.rpc !== 'function') return deny();
     try {
       const result = await supabase.rpc('vaporize_next_my_organizations');
-      if (epoch !== accessEpoch || recoveryMode || result.error || !Array.isArray(result.data)) return false;
+      if (epoch !== accessEpoch || recoveryMode || result.error || !Array.isArray(result.data)) return deny();
       authorizedOrganizations = result.data.filter((o) => o && typeof o.organization_id === 'string' && typeof o.organization_name === 'string');
       publish(state());
       return authorizedOrganizations.length > 0;
     } catch {
-      return false;
+      return deny();
     }
   }
 
