@@ -32,12 +32,13 @@ for (const [role,jwt] of Object.entries(tokens)) {
     if (!uuid.test(user.id) || ids.has(user.id) || user.id !== expectedIds[role]) throw Error('Unexpected or duplicate authenticated identity');
     ids.add(user.id);
     const membershipUrl = new URL('/rest/v1/memberships',base);
-    membershipUrl.searchParams.set('select','role,status,organization_id');
+    membershipUrl.searchParams.set('select','user_id,role,status,organization_id');
+    membershipUrl.searchParams.set('user_id','eq.'+user.id);
     membershipUrl.searchParams.set('organization_id','eq.'+org);
     const membership = await fetch(membershipUrl,{headers:{...headers,'Accept-Profile':'vaporize_next'},redirect:'error',signal:AbortSignal.timeout(12000)});
     if (membership.status !== 200) throw Error('Membership HTTP '+membership.status);
     const rows = await membership.json();
-    if (!Array.isArray(rows) || rows.length !== 1 || rows[0].role !== role || rows[0].status !== 'active') throw Error('Membership mismatch');
+    if (!Array.isArray(rows) || rows.length !== 1 || rows[0].user_id !== user.id || rows[0].organization_id !== org || rows[0].role !== role || rows[0].status !== 'active') throw Error('Membership mismatch');
     const clientsUrl = new URL('/rest/v1/clients',base);
     clientsUrl.searchParams.set('select','id');
     clientsUrl.searchParams.set('limit','0');
