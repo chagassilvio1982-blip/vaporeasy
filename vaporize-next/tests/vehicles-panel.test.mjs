@@ -12,7 +12,7 @@ test('vehicles panel is inside the hidden authenticated workspace', () => {
 test('vehicles panel uses safe text rendering and verified data service', () => {
   const panel = read('../src/ui/vehicles-panel.js');
   const main = read('../src/ui/main.js');
-  assert.match(panel, /listVehicles\(supabase, controller\)/);
+  assert.ok(panel.includes('listVehicles(supabase, controller, 100, selectedClient)'));
   assert.match(panel, /item\.textContent/);
   assert.doesNotMatch(panel, /innerHTML/);
   assert.match(main, /attachVehiclesPanel\(supabase, controller, document\)/);
