@@ -60,7 +60,7 @@ export async function createClient(supabase, controller, input) {
   if (after.recovering || !after.internalAccess || after.organizations.length !== 1 ||
       after.organizations[0].organization_id !== organizationId ||
       !['owner', 'manager'].includes(after.organizations[0].membership_role)) throw new Error('Access changed during request');
-  if (!data || typeof data.id !== 'string' || typeof data.name !== 'string') {
+  if (!data || typeof data.id !== 'string' || data.organization_id !== organizationId || typeof data.name !== 'string') {
     throw new Error('Unexpected client creation response');
   }
   return data;
