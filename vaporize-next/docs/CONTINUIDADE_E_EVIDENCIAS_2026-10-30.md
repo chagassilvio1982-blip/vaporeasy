@@ -30,3 +30,10 @@ Este documento é o ponto de retomada. Consultar antes de solicitar ações ao u
 Antes de qualquer passo: (a) consultar este registro e `AMBIENTES_CONFIRMADOS.md`; (b) conferir ID do projeto; (c) distinguir ação nova de repetição; (d) executar o que for seguro com conectores; (e) registrar evidência e bloqueio; (f) pedir no máximo 1–2 ações ao usuário somente quando necessárias.
 
 Nenhuma senha, token JWT, chave, cookie ou dado pessoal de autenticação deve ser incluído neste registro.
+
+## Verificação complementar de Auth — 2026-10-30
+Consulta somente leitura em `auth.users` no projeto isolado:
+- `chagassilvio1982@gmail.com`: criado em 2026-10-29 22:43:22 UTC (19:43 Brasília), e-mail confirmado, login registrado, sem marcador `synthetic_test`.
+- `daysupabase@gmail.com`: criado em 2026-10-29 11:12:56 UTC (08:12 Brasília), e-mail confirmado, login registrado, sem marcador `synthetic_test`.
+- Ambos são contas existentes; a criação mais recente foi à noite. **Não presumir que sejam contas sintéticas ou reutilizá-las em testes destrutivos.**
+- Vínculos de `vaporize_next.memberships`: zero na última consulta. Falta uma fixture de autenticação com finalidade comprovada, organização e papéis adequados. Nenhum usuário foi criado ou modificado nesta verificação.
