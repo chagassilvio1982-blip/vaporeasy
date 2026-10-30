@@ -16,10 +16,27 @@ Ambiente: Supabase isolado `cfpvexgkjsqpwhebsoos`; branch `vaporize-next/isolado
 - Teste de recorrência corrigido para UUID real do veículo em commit `a4c1ed1`.
 
 ## Pendências de liberação — não declarar conclusão antes da evidência
-1. Executar a suíte completa `npm test` em runtime Node 22 e registrar saída. Workflow GitHub Actions existe, mas nenhuma execução associada foi confirmada.
-2. Publicar a versão mais recente da branch em **Preview** e validar a URL exata. Última Preview READY verificada: commit `b74d3dd`, URL `https://vaporeasy-2rrihvhg6-vaporeasy.vercel.app/vaporize-next/`; ela NÃO contém as correções posteriores. O limite gratuito de builds da Vercel bloqueou publicações mais recentes.
+1. Suíte completa `npm test` em Node 22 **aprovada** em GitHub Actions run #247 (147/147); evidência abaixo.
+2. Preview READY no commit `a8d1d73`, com código runtime idêntico ao commit `a75eec6` aprovado no CI. Último SHA ainda não publicado por limite diário Vercel.
 3. Testar fluxos HTTP/PostgREST com JWT de sessões reais owner/manager/collaborator e navegação E2E da Preview atualizada; não coletar senhas/tokens no chat.
 4. Verificar funcionalidade no dispositivo e estados de erro, incluindo conflito, edição, cancelamento e recorrência.
 
 ## Regra de continuidade
 Continuar automaticamente; só solicitar intervenção do usuário para autenticação estritamente necessária. Nunca publicar produção nem declarar homologação concluída sem os testes finais.
+
+## Verificação executada em 2026-10-30 — CI, SQL e Preview
+- GitHub Actions `Vaporize Next unit tests`: run #246 (`41123549927`) executou 147 testes: 145 passaram, 2 falharam, ambos em `tests/panels-runtime.test.mjs` porque o mock de DOM não incluía `appointment-plan-form` e outros elementos adicionados ao formulário. Não era falha demonstrada da interface real.
+- Fixture de DOM atualizada no commit `a75eec617564fae6114d23a3ef782b46f59960dd` sem alterar código de produção. Run #247 (`41123902801`) comprovado via logs do job `auth-tests`: **147 testes, 147 aprovados, zero falhas, zero ignorados**, Node 22. Evidência: https://github.com/chagassilvio1982-blip/vaporeasy/actions/runs/41123902801.
+- SQL de homologação com contexto `authenticated` e identidade do manager: inserção de dois agendamentos recorrentes, edição do primeiro e cancelamento do segundo, todos em transação revertida. SELECT na transação retornou `total=2, edited=1, cancelled=1`. SELECT administrativo posterior confirmou **zero agendamentos persistidos**.
+- Tentativa de manager gravar na organização B com veículo B recebeu `42501 new row violates row-level security policy`, confirmando negação cross-tenant na camada SQL. Esse teste **não substitui** requisição HTTP com JWT real.
+- Vercel Preview READY `dpl_4GLLvtQF2Vp7ksEcHZRXx9abkHeG`, commit `a8d1d73df8bdcacce1922a5b262fc080c5ed3562`, URL: https://vaporeasy-ho9zb9si4-vaporeasy.vercel.app/vaporize-next/. A página de acesso e os painéis foram carregados em smoke test público anterior.
+- Comparação GitHub entre commit publicado `a8d1d73` e commit aprovado em CI `a75eec6` mostrou **somente dois arquivos de teste alterados**, nenhum arquivo de runtime. Portanto a Preview READY contém o mesmo código executável que passou no CI, embora não o último SHA.
+- Tentativa de publicar o SHA `a75eec6` foi recusada pela Vercel com HTTP 402, código `api-deployments-free-per-day`, limite diário gratuito e `retryAfter=86400`. **Não contratar plano nem alterar cobrança.** Reavaliar quando liberar.
+
+### Bloqueios ainda reais
+1. Não há sessões JWT reais independentes e acessíveis com segurança para owner, manager e collaborator. O teste HTTP/PostgREST por papel, com leitura e escrita controlada, continua **não executado**. O teste SQL com `SET LOCAL ROLE authenticated` não é equivalente a autenticação de rede.
+2. Não houve E2E autenticado na Preview, incluindo criação, edição, cancelamento e recorrência por interface. Exige sessão de homologação válida; não pedir credenciais nem tokens em chat.
+3. Publicação com o último SHA bloqueada temporariamente pelo limite gratuito, mas **nenhuma diferença de runtime** em relação à Preview READY. Aguardar liberação sem gastar recursos.
+
+### Próxima execução
+Verificar disponibilidade de Preview sem criar builds repetidos; tentar autenticação E2E somente quando houver sessão autorizada e segura. Preservar V2, V3, produção e domínios. Não declarar homologação final até HTTP/JWT e E2E.
