@@ -11,6 +11,13 @@
  */
 import { randomUUID } from 'node:crypto';
 
+// Fail closed: this project currently has no DELETE RLS policy on clients.
+// HTTP test writes must not run until a separately approved, verified cleanup
+// mechanism is available. Never enable by granting broad DELETE access.
+if (process.env.VAPORIZE_NEXT_APPROVED_CLEANUP !== 'verified') {
+  console.error('HTTP INSERT test blocked: verified isolated cleanup required (no clients DELETE RLS policy)');
+  process.exit(2);
+}
 const expectedHost = 'cfpvexgkjsqpwhebsoos.supabase.co';
 const vars = ['SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','TEST_OWNER_JWT','TEST_MANAGER_JWT','TEST_COLLABORATOR_JWT','TEST_ORG_A_ID','TEST_ORG_B_ID'];
 const missing = vars.filter(k => !process.env[k]);
