@@ -38,6 +38,9 @@
     <section id="workspace" hidden aria-label="Área interna">
       <h2>Clientes</h2>
       <p>Consulta somente leitura da empresa autenticada.</p>
+      <form id="client-create-form" hidden><label for="client-name">Nome</label><input id="client-name" required minlength="2" maxlength="160"><label for="client-phone">Telefone</label><input id="client-phone" maxlength="40"><button type="submit">Cadastrar cliente</button></form>
+      <form id="client-edit-form" hidden><label for="client-edit-name">Nome</label><input id="client-edit-name" required minlength="2" maxlength="160"><label for="client-edit-phone">Telefone</label><input id="client-edit-phone" maxlength="40"><button type="submit">Salvar edição</button><button type="button" id="client-edit-cancel">Cancelar</button></form>
+      <p id="client-write-status" role="status" aria-live="polite"></p>
       <button id="load-clients" type="button">Consultar clientes</button>
       <p id="clients-status" role="status" aria-live="polite"></p>
       <ul id="clients-list" aria-label="Clientes da empresa"></ul>
