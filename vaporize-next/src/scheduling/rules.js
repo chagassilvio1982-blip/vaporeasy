@@ -39,3 +39,53 @@ export function buildRecurringOccurrences(firstStart, { count, intervalDays, dur
     return validateAppointmentInput({ startsAt: start, durationMinutes });
   });
 }
+
+/** Interpret an HTML datetime-local value in the business time zone, not the device zone. */
+export function saoPauloLocalToDate(localValue) {
+  const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})$/.exec(localValue ?? '');
+  if (!match) throw new RangeError('Invalid local date and time');
+  const [, year, month, day, hour, minute] = match.map(Number);
+  const naive = Date.UTC(year, month - 1, day, hour, minute);
+  const date = new Date(naive);
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day || date.getUTCHours() !== hour || date.getUTCMinutes() !== minute) {
+    throw new RangeError('Invalid calendar date');
+  }
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE, year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+  });
+  const parts = (timestamp) => Object.fromEntries(formatter.formatToParts(timestamp)
+    .filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+  let timestamp = naive;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const local = parts(timestamp);
+    const seen = Date.UTC(local.year,local.month-1,local.day,local.hour,local.minute);
+    const delta = naive - seen;
+    if (delta === 0) break;
+    timestamp += delta;
+  }
+  const resolved = parts(timestamp);
+  if ([resolved.year,resolved.month,resolved.day,resolved.hour,resolved.minute].join(',') !==
+      [year,month,day,hour,minute].join(',')) throw new RangeError('Nonexistent local time');
+  return new Date(timestamp);
+}
+
+export function saoPauloRecurrence(localValue, {count, intervalDays, durationMinutes = DEFAULT_DURATION_MINUTES}) {
+  if (!Number.isInteger(count) || count < 1 || count > 52) throw new RangeError('Invalid occurrence count');
+  if (![7,14].includes(intervalDays)) throw new RangeError('Invalid recurrence interval');
+  const first = saoPauloLocalToDate(localValue);
+  const local = new Intl.DateTimeFormat('sv-SE', {
+    timeZone:TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+  }).format(first).replace(' ','T');
+  const [datePart,timePart] = local.split('T');
+  const [y,m,d] = datePart.split('-').map(Number);
+  return Array.from({length:count}, (_,i) => {
+    const day = new Date(Date.UTC(y,m-1,d + i*intervalDays));
+    const date = day.toISOString().slice(0,10);
+    return validateAppointmentInput({
+      startsAt:saoPauloLocalToDate(date+'T'+timePart),durationMinutes
+    });
+  });
+}
