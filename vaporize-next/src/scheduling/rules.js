@@ -35,7 +35,7 @@ export function buildRecurringOccurrences(firstStart, { count, intervalDays, dur
   const first = validateAppointmentInput({ startsAt: firstStart, durationMinutes });
   return Array.from({ length: count }, (_, i) => {
     const start = new Date(first.starts_at);
-    start.setDate(start.getDate() + i * intervalDays);
+    start.setUTCDate(start.getUTCDate() + i * intervalDays);
     return validateAppointmentInput({ startsAt: start, durationMinutes });
   });
 }
