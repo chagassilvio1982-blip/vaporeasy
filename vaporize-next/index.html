@@ -80,6 +80,13 @@
         <button type="submit">Simular horários (sem salvar)</button>
       </form>
       <p id="appointment-plan-status" role="status" aria-live="polite"></p>
+      <form id="appointment-create-form" hidden>
+        <h3>Cadastrar atendimento único</h3>
+        <label for="appointment-vehicle">Veículo</label>
+        <select id="appointment-vehicle" required></select>
+        <button type="submit">Salvar agendamento</button>
+      </form>
+      <p id="appointment-write-status" role="status" aria-live="polite"></p>
       <ul id="appointment-plan-list" aria-label="Prévia dos horários"></ul>
       <p>Consulta somente leitura dos atendimentos da empresa autenticada.</p>
       <button id="load-appointments" type="button">Consultar agendamentos</button>
