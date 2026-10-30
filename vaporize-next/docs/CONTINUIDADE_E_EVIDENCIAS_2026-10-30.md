@@ -37,3 +37,9 @@ Consulta somente leitura em `auth.users` no projeto isolado:
 - `daysupabase@gmail.com`: criado em 2026-10-29 11:12:56 UTC (08:12 Brasília), e-mail confirmado, login registrado, sem marcador `synthetic_test`.
 - Ambos são contas existentes; a criação mais recente foi à noite. **Não presumir que sejam contas sintéticas ou reutilizá-las em testes destrutivos.**
 - Vínculos de `vaporize_next.memberships`: zero na última consulta. Falta uma fixture de autenticação com finalidade comprovada, organização e papéis adequados. Nenhum usuário foi criado ou modificado nesta verificação.
+
+## Atualização de estado — 2026-10-30, após implantação do Bloco 4
+- As contagens acima (2 usuários Auth, zero organizations/memberships) eram válidas para a leitura anterior, mas **estão desatualizadas**. Nova consulta somente leitura no Supabase `cfpvexgkjsqpwhebsoos`: `auth.users=3`, `vaporize_next.organizations=2`, `memberships=3`, `appointments=0`.
+- O Bloco 4 tem suíte de 147/147 testes aprovada no GitHub Actions `41123902801` e Preview READY para commit `f1804ea0ee2296756d62339dca9d2f9d1123476b`: https://vaporeasy-67mn2pv1n-vaporeasy.vercel.app/vaporize-next/ . Smoke test público aprovado: https://agent.tinyfish.ai/runs/606dbd20-82fe-4121-87b2-83eee6b4d199 .
+- **Não declarar Bloco 4 concluído:** faltam testes HTTP/JWT e E2E com sessões reais e independentes por perfil. Perfis TinyFish de owner/manager/collaborator não apresentam site autenticado salvo. Preservar contas existentes e não pedir tokens ou senhas no chat.
+- Evidências completas no documento `BLOCO_4_PENDENCIAS_E_IMPLANTACAO.md`. Novos commits de documentação não alteram o runtime publicado.
