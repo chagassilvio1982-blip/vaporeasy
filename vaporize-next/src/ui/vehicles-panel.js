@@ -43,6 +43,20 @@ export function attachVehiclesPanel(supabase, controller, document) {
     form.hidden = !canWrite() || clients.length === 0;
     filterReady = true;
   }
+  editForm.addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(workspace.hidden || !canWrite() || !selectedVehicle) return;
+    try {
+      await updateVehicle(supabase,controller,selectedVehicle,{
+        brand:document.getElementById('vehicle-edit-brand').value,
+        model:document.getElementById('vehicle-edit-model').value,
+        plate:document.getElementById('vehicle-edit-plate').value
+      });
+      if(workspace.hidden || !canWrite()) return;
+      selectedVehicle=null;editForm.hidden=true;writeStatus.textContent='Veículo atualizado.';
+      button.click();
+    } catch { if(!workspace.hidden && canWrite()) writeStatus.textContent='Falha ao atualizar veículo.'; }
+  });
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (workspace.hidden || !canWrite()) return;
