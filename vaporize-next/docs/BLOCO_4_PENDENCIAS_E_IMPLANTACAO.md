@@ -42,3 +42,11 @@ Continuar automaticamente; só solicitar intervenção do usuário para autentic
 
 ### Próxima execução
 Verificar disponibilidade de Preview sem criar builds repetidos; tentar autenticação E2E somente quando houver sessão autorizada e segura. Preservar V2, V3, produção e domínios. Não declarar homologação final até HTTP/JWT e E2E.
+
+## Execução de continuidade — 2026-10-30, 17h40–17h50 (São Paulo)
+- Verificado o commit HEAD `f1804ea0ee2296756d62339dca9d2f9d1123476b` da branch isolada. Comparação GitHub `a75eec6..f1804ea`: apenas este documento alterado; **nenhuma mudança de runtime** após a suíte aprovada de 147/147 testes (Actions `41123902801`). Não repetir suíte sem regressão.
+- **Limite Vercel liberado.** Preview do HEAD publicado com sucesso, sem target de produção e sem alterar domínios: deployment `dpl_9g7eRanPzLwsnZ3pyQYd6t3oidzf`, estado **READY**, commit `f1804ea0ee2296756d62339dca9d2f9d1123476b`, URL https://vaporeasy-67mn2pv1n-vaporeasy.vercel.app/vaporize-next/ .
+- Smoke test público do novo endereço por navegador TinyFish, execução `606dbd20-82fe-4121-87b2-83eee6b4d199`: tela `Vaporize Next — Acesso`, indicação `AMBIENTE DE HOMOLOGAÇÃO`, formulário de login e recuperação de senha visíveis, sem erros HTTP ou de interface observados. Evidência: https://agent.tinyfish.ai/runs/606dbd20-82fe-4121-87b2-83eee6b4d199 . Teste **não autenticado**; não confundir com E2E.
+- Leitura de integridade no Supabase homologação: `auth.users=3`, `organizations=2`, `memberships=3`, `appointments=0`. Sem gravações nesta execução. Documento `CONTINUIDADE_E_EVIDENCIAS_2026-10-30.md` contém contagens antigas de 2 usuários e 0 memberships; usar estas contagens mais recentes, sem alterar contas pessoais.
+- TinyFish `list_profiles`: perfis `Vaporize Next — Homologação`, `Vaporize Next — Gerente` e `Vaporize Next — Colaborador` existem, mas **nenhum possui site autenticado registrado**. Não há sessão segura utilizável para HTTP/JWT por papel ou E2E autenticado. Não pedir senhas ou tokens na conversa; aguardar autenticação de perfil pelo titular.
+- **Pendências únicas para fechar o Bloco 4:** HTTP/PostgREST com JWT real de owner, manager e collaborator (incluindo cross-tenant) e E2E autenticado na Preview acima (criar/editar/cancelar/recorrência/conflitos). A publicação e os testes unitários já estão aprovados; não repetir.
