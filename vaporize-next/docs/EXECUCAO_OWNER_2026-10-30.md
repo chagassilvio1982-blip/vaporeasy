@@ -65,3 +65,10 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Módulo existente ampliado para filtro opcional por `clientId` sem perder verificação de organização ativa e checagem de acesso após a consulta. Commits `129d16a` e `a182106`.
 - Três testes adicionais criados no arquivo de testes existente: filtro por cliente, ID inválido, resposta fora do filtro. Commit `b387bcf`.
 - **Não testado:** execução real da suíte após as mudanças, integração UI, fluxo de cadastro/edição de veículos, políticas INSERT/UPDATE/DELETE. Não declarar Bloco 3 finalizado.
+
+## Bloco 3 — execução de cadastro e edição (30/10/2026)
+- Supabase homologação cfpvexgkjsqpwhebsoos: migração `next_block3_owner_manager_vehicle_client_writes` aplicada com sucesso. INSERT/UPDATE de veículos e UPDATE de clientes restritos por RLS a `can_manage_clients(organization_id)`; colaboradores sem permissão de escrita.
+- GitHub branch isolada: serviço `src/data/records-write.js` implementa createVehicle, updateVehicle e updateClient, com verificação de organização, perfil e sessão; formulário de cadastro de veículo e formulários de cadastro/edição de cliente e edição de veículo conectados aos serviços.
+- Testes `tests/records-write.test.mjs` adicionados, mas **a suíte integral não foi executada**: checkout GitHub indisponível no ambiente de execução (falha de DNS). Não afirmar homologação ou testes aprovados.
+- Pendente: executar `npm test` em checkout confiável, corrigir falhas, verificar navegação e CRUD real com JWT owner/manager/collaborator em Preview, registrar evidências e fechar o bloco somente após aprovação.
+- Produção, V2, V3, BarberGestão e domínios oficiais não modificados.
