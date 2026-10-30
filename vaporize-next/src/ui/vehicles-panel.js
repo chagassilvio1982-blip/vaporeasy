@@ -1,5 +1,6 @@
 import { listVehicles } from '../data/vehicles.js';
 import { listClients } from '../data/clients.js';
+import { createVehicle } from '../data/records-write.js';
 
 export function attachVehiclesPanel(supabase, controller, document) {
   const button = document.getElementById('load-vehicles');
@@ -7,6 +8,10 @@ export function attachVehiclesPanel(supabase, controller, document) {
   const status = document.getElementById('vehicles-status');
   const workspace = document.getElementById('workspace');
   const filter = document.getElementById('vehicle-client-filter');
+  const form = document.getElementById('vehicle-create-form');
+  const owner = document.getElementById('vehicle-owner');
+  const writeStatus = document.getElementById('vehicle-write-status');
+  const canWrite = () => { const st = controller.state(); return !st.recovering && st.internalAccess && st.organizations?.length === 1 && ['owner','manager'].includes(st.organizations[0].membership_role); };
   const option = (label, value) => { const el = document.createElement('option'); el.textContent = label; el.value = value; return el; };
   let generation = 0;
   let loading = false;
@@ -18,6 +23,10 @@ export function attachVehiclesPanel(supabase, controller, document) {
       status.textContent = '';
       filter.replaceChildren(option('Todos os clientes', ''));
       filterReady = false;
+      form.hidden = true;
+      owner.replaceChildren();
+      form.reset();
+      writeStatus.textContent = '';
     }
   });
   async function refreshClients() {
@@ -26,8 +35,29 @@ export function attachVehiclesPanel(supabase, controller, document) {
     const selected = filter.value;
     filter.replaceChildren(option('Todos os clientes', ''), ...clients.map(c => option(c.name, c.id)));
     filter.value = selected && clients.some(c => c.id === selected) ? selected : '';
+    owner.replaceChildren(...clients.map(c => option(c.name,c.id)));
+    form.hidden = !canWrite() || clients.length === 0;
     filterReady = true;
   }
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (workspace.hidden || !canWrite()) return;
+    const submit = form.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    writeStatus.textContent = 'Salvando veículo...';
+    try {
+      await createVehicle(supabase, controller, {
+        client_id: owner.value, brand: document.getElementById('vehicle-brand').value,
+        model: document.getElementById('vehicle-model').value,
+        plate: document.getElementById('vehicle-plate').value
+      });
+      if (workspace.hidden || !canWrite()) return;
+      writeStatus.textContent = 'Veículo cadastrado.';
+      form.reset();
+      button.click();
+    } catch { if (!workspace.hidden && canWrite()) writeStatus.textContent = 'Não foi possível cadastrar o veículo.'; }
+    finally { submit.disabled = false; }
+  });
   filter.addEventListener('focus', async () => {
     if (filterReady || loading || workspace.hidden || !controller.state().internalAccess) return;
     const requestGeneration = generation;
