@@ -63,6 +63,24 @@
       <p id="vehicles-status" role="status" aria-live="polite"></p>
       <ul id="vehicles-list" aria-label="Veículos da empresa"></ul>
       <h2>Agendamentos</h2>
+      <p>Planejamento em homologação. Horários de 20 minutos, duração padrão de 90 minutos.</p>
+      <form id="appointment-plan-form">
+        <label for="appointment-plan-start">Início do atendimento</label>
+        <input id="appointment-plan-start" type="datetime-local" step="1200" required>
+        <label for="appointment-plan-duration">Duração (minutos)</label>
+        <input id="appointment-plan-duration" type="number" min="20" max="480" step="10" value="90" required>
+        <label for="appointment-plan-recurrence">Recorrência</label>
+        <select id="appointment-plan-recurrence">
+          <option value="none">Único</option>
+          <option value="7">Semanal</option>
+          <option value="14">Quinzenal</option>
+        </select>
+        <label for="appointment-plan-count">Quantidade de atendimentos</label>
+        <input id="appointment-plan-count" type="number" min="1" max="52" value="1" required>
+        <button type="submit">Simular horários (sem salvar)</button>
+      </form>
+      <p id="appointment-plan-status" role="status" aria-live="polite"></p>
+      <ul id="appointment-plan-list" aria-label="Prévia dos horários"></ul>
       <p>Consulta somente leitura dos atendimentos da empresa autenticada.</p>
       <button id="load-appointments" type="button">Consultar agendamentos</button>
       <p id="appointments-status" role="status" aria-live="polite"></p>
