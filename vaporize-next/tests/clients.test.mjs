@@ -16,7 +16,7 @@ function mock({ allow = true, rows = [], error = null, onRead = () => {} } = {})
       return { from(table) {
         assert.equal(table, 'clients');
         return { select(cols) {
-          assert.equal(cols, 'id,name,phone,created_at');
+          assert.equal(cols, 'id,organization_id,name,phone,created_at');
           return { eq(key, value) {
             assert.equal(key, 'organization_id');
             assert.equal(value, 'org-a');
@@ -38,8 +38,8 @@ function mock({ allow = true, rows = [], error = null, onRead = () => {} } = {})
   return { supabase, controller, state, reads: () => queryCount };
 }
 test('read-only clients query is scoped to verified organization', async () => {
-  const x = mock({ rows: [{ id: 'client-a', name: 'Cliente A' }] });
-  assert.deepEqual(await listClients(x.supabase, x.controller), [{ id: 'client-a', name: 'Cliente A' }]);
+  const x = mock({ rows: [{ id: 'client-a', organization_id: 'org-a', name: 'Cliente A' }] });
+  assert.deepEqual(await listClients(x.supabase, x.controller), [{ id: 'client-a', organization_id: 'org-a', name: 'Cliente A' }]);
   assert.equal(x.reads(), 1);
 });
 test('no verified membership never queries clients', async () => {
@@ -48,7 +48,7 @@ test('no verified membership never queries clients', async () => {
   assert.equal(x.reads(), 0);
 });
 test('revocation during request discards returned client records', async () => {
-  const x = mock({ rows: [{ id: 'client-a', name: 'Cliente A' }], onRead: s => {
+  const x = mock({ rows: [{ id: 'client-a', organization_id: 'org-a', name: 'Cliente A' }], onRead: s => {
     s.internalAccess = false;
     s.organizations = [];
   } });
@@ -63,4 +63,9 @@ test('backend error and malformed responses fail closed', async () => {
 test('invalid page size is rejected before access', async () => {
   const x = mock();
   await assert.rejects(listClients(x.supabase, x.controller, 101), /Invalid page size/);
+});
+
+test('client listing rejects cross-organization records', async () => {
+  const x = mock({ rows: [{ id:'client-b', organization_id:'org-b', name:'Cliente B' }] });
+  await assert.rejects(listClients(x.supabase,x.controller),/Unexpected clients response/);
 });
