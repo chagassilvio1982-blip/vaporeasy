@@ -18,3 +18,13 @@ Autorização explícita do usuário nesta conversa: vincular `chagassilvio1982@
 
 ## Isolamento
 Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
+
+## Atualização — perfis de homologação (30/10/2026)
+- Consulta autenticada no projeto `cfpvexgkjsqpwhebsoos` confirmou três usuários Auth com `email_confirmed_at` preenchido.
+- `chagassilvio1982@gmail.com`: `owner`, `active`, preservado.
+- `vaporeasy@outlook.com`: usuário Auth existente, confirmado em 30/10/2026; novo vínculo `manager`, `active` na organização `vaporize-next-homologacao`.
+- `daysupabase@gmail.com`: usuário Auth existente, confirmado em 29/10/2026; novo vínculo `collaborator`, `active` na mesma organização.
+- SQL INSERT retornou ambos os vínculos novos. Nenhum usuário Auth foi criado via SQL. Nenhuma credencial foi acessada.
+- Leitura de `pg_policies` confirmou SELECT de clients por membro, INSERT de clients por owner/manager, SELECT de memberships por membro. Não há DELETE de clients; limpeza de fixtures após POST real segue bloqueada.
+- **PENDENTE:** teste HTTP POST/JWT com sessão real de cada papel, teste cross-tenant com conta independente, limpeza segura pós-COMMIT. Não declarar Bloco 2 concluído.
+- Preservados produção, V2, V3, BarberGestão e domínios.
