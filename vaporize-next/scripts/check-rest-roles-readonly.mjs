@@ -1,6 +1,6 @@
 /** Read-only HTTP/JWT role verification. No database writes or credential logging. */
 const expectedHost = 'cfpvexgkjsqpwhebsoos.supabase.co';
-const required = ['SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','TEST_OWNER_JWT','TEST_MANAGER_JWT','TEST_COLLABORATOR_JWT','TEST_ORG_A_ID','TEST_OWNER_USER_ID','TEST_MANAGER_USER_ID','TEST_COLLABORATOR_USER_ID'];
+const required = ['SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','TEST_OWNER_JWT','TEST_MANAGER_JWT','TEST_COLLABORATOR_JWT','TEST_ORG_A_ID','TEST_ORG_B_ID','TEST_OWNER_USER_ID','TEST_MANAGER_USER_ID','TEST_COLLABORATOR_USER_ID'];
 const missing = required.filter(k => !process.env[k]);
 if (missing.length) { console.error('Missing configuration:', missing.join(', ')); process.exit(2); }
 const base = new URL(process.env.SUPABASE_URL);
@@ -12,8 +12,8 @@ const key = process.env.SUPABASE_PUBLISHABLE_KEY;
 if (!key.startsWith('sb_publishable_')) { console.error('Invalid publishable key'); process.exit(2); }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const org = process.env.TEST_ORG_A_ID;
-const otherOrg = process.env.TEST_ORG_B_ID || null;
-if (!uuid.test(org) || (otherOrg && (!uuid.test(otherOrg) || otherOrg === org))) {
+const otherOrg = process.env.TEST_ORG_B_ID;
+if (!uuid.test(org) || !uuid.test(otherOrg) || otherOrg === org) {
   console.error('Invalid organization fixture IDs'); process.exit(2);
 }
 const tokens = {owner:process.env.TEST_OWNER_JWT,manager:process.env.TEST_MANAGER_JWT,collaborator:process.env.TEST_COLLABORATOR_JWT};
@@ -48,7 +48,7 @@ for (const [role,jwt] of Object.entries(tokens)) {
     if (clients.status !== 200) throw Error('Clients GET HTTP '+clients.status);
     // HTTP 200 alone does not prove row-level isolation; assert tenant on returned rows.
     const clientRows = await clients.json();
-    if (!Array.isArray(clientRows) || clientRows.length > 1 || clientRows.some(row => row.organization_id !== org)) throw Error('Unexpected clients response');
+    if (!Array.isArray(clientRows) || clientRows.length !== 1 || clientRows[0].organization_id !== org) throw Error('Unexpected clients response');
     // If a separate tenant fixture is provided, verify the current identity
     // cannot see membership rows from that organization.
     let crossTenantMembership = 'not-tested';
@@ -60,7 +60,7 @@ for (const [role,jwt] of Object.entries(tokens)) {
       if (other.status !== 200) throw Error('Cross-tenant membership HTTP '+other.status);
       const otherRows = await other.json();
       if (!Array.isArray(otherRows) || otherRows.length !== 0) throw Error('Cross-tenant membership visibility');
-      crossTenantMembership = 'no-visible-rows';
+      crossTenantMembership = 'no-visible-rows-unverified-fixture';
       const otherClientsUrl = new URL('/rest/v1/clients',base);
       otherClientsUrl.searchParams.set('select','id,organization_id');
       otherClientsUrl.searchParams.set('organization_id','eq.'+otherOrg);
@@ -70,7 +70,7 @@ for (const [role,jwt] of Object.entries(tokens)) {
       const otherClientRows = await otherClients.json();
       if (!Array.isArray(otherClientRows) || otherClientRows.length !== 0) throw Error('Cross-tenant clients visibility');
     }
-    console.log(JSON.stringify({role,auth:200,membership:200,clients:200,crossTenantMembership,crossTenantClients:otherOrg?'no-visible-rows':'not-tested',pass:true}));
+    console.log(JSON.stringify({role,auth:200,membership:200,clients:200,crossTenantMembership,crossTenantClients:'no-visible-rows',pass:true}));
   } catch (error) {
     failures++;
     console.error(JSON.stringify({role,pass:false,error:error.message}));
