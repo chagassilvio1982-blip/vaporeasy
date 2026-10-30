@@ -1,5 +1,5 @@
 import { listAppointments } from '../data/appointments.js';
-import { validateAppointmentInput, buildRecurringOccurrences } from '../scheduling/rules.js';
+import { validateAppointmentInput, saoPauloLocalToDate, saoPauloRecurrence } from '../scheduling/rules.js';
 
 export function attachAppointmentsPanel(supabase, controller, document) {
   const button = document.getElementById('load-appointments');
@@ -17,11 +17,11 @@ export function attachAppointmentsPanel(supabase, controller, document) {
     try {
       const localStart = document.getElementById('appointment-plan-start').value;
       if (!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(localStart)) throw new RangeError('Invalid date');
-      const start = new Date(localStart);
+      const start = saoPauloLocalToDate(localStart);
       const durationMinutes = Number(document.getElementById('appointment-plan-duration').value);
       const interval = document.getElementById('appointment-plan-recurrence').value;
       const count = Number(document.getElementById('appointment-plan-count').value);
-      const occurrences = interval === 'none' ? (count === 1 ? [validateAppointmentInput({startsAt:start, durationMinutes})] : (() => {throw new RangeError('Single appointment must have count 1');})()) : buildRecurringOccurrences(start,{count,intervalDays:Number(interval),durationMinutes});
+      const occurrences = interval === 'none' ? (count === 1 ? [validateAppointmentInput({startsAt:start, durationMinutes})] : (() => {throw new RangeError('Single appointment must have count 1');})()) : saoPauloRecurrence(localStart,{count,intervalDays:Number(interval),durationMinutes});
       const items = occurrences.map((slot) => {
         const item = document.createElement('li');
         item.textContent = `${new Date(slot.starts_at).toLocaleString('pt-BR')} — ${new Date(slot.ends_at).toLocaleString('pt-BR')}`;
