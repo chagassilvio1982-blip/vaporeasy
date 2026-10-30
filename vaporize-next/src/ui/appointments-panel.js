@@ -1,6 +1,6 @@
 import { listAppointments } from '../data/appointments.js';
 import { listVehicles } from '../data/vehicles.js';
-import { createAppointment } from '../data/appointments-write.js';
+import { createAppointment, updateAppointment, cancelAppointment } from '../data/appointments-write.js';
 import { validateAppointmentInput, saoPauloLocalToDate, saoPauloRecurrence } from '../scheduling/rules.js';
 
 export function attachAppointmentsPanel(supabase, controller, document) {
@@ -117,6 +117,36 @@ export function attachAppointmentsPanel(supabase, controller, document) {
           throw new Error('Invalid appointment dates');
         }
         item.textContent = `${formatBusinessTime(start)} — ${formatBusinessTime(end)} | ${appointment.status}`;
+        if (canWrite() && appointment.status === 'scheduled') {
+          const edit = document.createElement('button');
+          edit.type = 'button'; edit.textContent = 'Editar';
+          edit.addEventListener('click', async () => {
+            if (!canWrite() || workspace.hidden) return;
+            const startLocal = new Intl.DateTimeFormat('sv-SE', {
+              timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',
+              hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+            }).format(start).replace(' ','T');
+            const newLocal = document.defaultView.prompt('Novo início (AAAA-MM-DDTHH:MM)',startLocal);
+            if (newLocal === null) return;
+            try {
+              await updateAppointment(supabase,controller,appointment.id,{
+                startsAt:saoPauloLocalToDate(newLocal)
+              });
+              if (!workspace.hidden && canWrite()) {status.textContent='Agendamento atualizado.';button.click();}
+            } catch {if (!workspace.hidden && canWrite()) status.textContent='Falha ao atualizar agendamento.';}
+          });
+          const cancel = document.createElement('button');
+          cancel.type = 'button'; cancel.textContent = 'Cancelar agendamento';
+          cancel.addEventListener('click', async () => {
+            if (!canWrite() || workspace.hidden ||
+                !document.defaultView.confirm('Cancelar este agendamento?')) return;
+            try {
+              await cancelAppointment(supabase,controller,appointment.id);
+              if (!workspace.hidden && canWrite()) {status.textContent='Agendamento cancelado.';button.click();}
+            } catch {if (!workspace.hidden && canWrite()) status.textContent='Falha ao cancelar agendamento.';}
+          });
+          item.append(' ',edit,' ',cancel);
+        }
         return item;
       });
       list.replaceChildren(...items);
