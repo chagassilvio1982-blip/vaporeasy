@@ -22,13 +22,14 @@ export function attachAppointmentsPanel(supabase, controller, document) {
   };
   let generation = 0;
   planForm.addEventListener('change', () => {
+    generation++;
     createForm.hidden = true;
     writeStatus.textContent = '';
   });
   planForm.addEventListener('submit', async () => {
+    const requestGeneration = ++generation;
     createForm.hidden = true;
     if (!canWrite() || workspace.hidden) return;
-    const requestGeneration = generation;
     try {
       const localStart = document.getElementById('appointment-plan-start').value;
       const durationMinutes = Number(document.getElementById('appointment-plan-duration').value);
@@ -48,7 +49,7 @@ export function attachAppointmentsPanel(supabase, controller, document) {
       vehicleSelect.replaceChildren(...options);
       createForm.hidden = options.length === 0;
       if (!options.length) writeStatus.textContent = 'Cadastre um veículo antes de salvar um agendamento.';
-    } catch { if (!workspace.hidden && canWrite()) writeStatus.textContent = 'Não foi possível carregar veículos.'; }
+    } catch { if (requestGeneration === generation && !workspace.hidden && canWrite()) writeStatus.textContent = 'Não foi possível carregar veículos.'; }
   });
   createForm.addEventListener('submit', async event => {
     event.preventDefault();
