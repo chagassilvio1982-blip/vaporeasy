@@ -12,7 +12,7 @@ function setup(rows=[]) {
     return {from(table){
       assert.equal(table,'clients');
       return {select(columns){
-        assert.equal(columns,'id,name,phone,created_at');
+        assert.equal(columns,'id,organization_id,name,phone,created_at');
         return {eq(field,value){
           filter=[field,value];
           return {order(field,opts){
@@ -30,7 +30,7 @@ function setup(rows=[]) {
   return {controller,supabase,setState:s=>{state=s;},get calls(){return {queries,filter,limit};}};
 }
 test('read is filtered by authenticated organization',async()=>{
-  const f=setup([{id:'id-1',name:'Cliente'}]);
+  const f=setup([{id:'id-1',organization_id:org,name:'Cliente'}]);
   assert.equal((await listClients(f.supabase,f.controller)).length,1);
   assert.deepEqual(f.calls,{queries:1,filter:['organization_id',org],limit:50});
 });
