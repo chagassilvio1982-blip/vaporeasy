@@ -57,3 +57,38 @@ test('vehicle listing rejects oversized requests', async () => {
   const x = mock();
   await assert.rejects(listVehicles(x.supabase, x.controller, 101), /Invalid page size/);
 });
+
+test('vehicle listing filters by client within verified tenant', async () => {
+  const clientId = 'ca21e0de-05e3-49f0-b0d5-8f3cb0010101';
+  const rows = [{ id:'vehicle-1', client_id:clientId, brand:'VW', model:'Polo' }];
+  const state = { recovering:false, internalAccess:true, organizations:[{ organization_id:'org-1' }] };
+  const controller = { state:()=>state, requireInternalAccess:async()=>true };
+  let filters = [];
+  const query = {
+    eq(field,value) { filters.push([field,value]); return this; },
+    order() { return this; },
+    async limit() { return { data:rows, error:null }; }
+  };
+  const supabase = { schema(name) {
+    assert.equal(name,'vaporize_next');
+    return { from(table) {
+      assert.equal(table,'vehicles');
+      return { select() { return query; } };
+    } };
+  } };
+  assert.deepEqual(await listVehicles(supabase,controller,50,clientId),rows);
+  assert.deepEqual(filters,[['organization_id','org-1'],['client_id',clientId]]);
+});
+test('vehicle listing rejects malformed client filter before network', async () => {
+  const x=mock();
+  await assert.rejects(listVehicles(x.supabase,x.controller,50,'invalid-client'),/Invalid client ID/);
+  assert.equal(x.reads(),0);
+});
+test('vehicle listing rejects rows outside requested client', async () => {
+  const clientId='ca21e0de-05e3-49f0-b0d5-8f3cb0010101';
+  const state={recovering:false,internalAccess:true,organizations:[{organization_id:'org-1'}]};
+  const controller={state:()=>state,requireInternalAccess:async()=>true};
+  const query={eq(){return this},order(){return this},async limit(){return {data:[{id:'v',client_id:'cb21e0de-05e3-49f0-b0d5-8f3cb0010102',brand:'VW',model:'Polo'}],error:null}}};
+  const supabase={schema(){return {from(){return {select(){return query}}}}}};
+  await assert.rejects(listVehicles(supabase,controller,50,clientId),/Unexpected vehicles response/);
+});
