@@ -49,3 +49,20 @@ test('invalid recurrence cannot write',async()=>{
   await assert.rejects(createRecurringAppointments(h.supabase,h.controller,{vehicle_id:vehicle,occurrences:[]}),RangeError);
   assert.equal(h.calls.length,0);
 });
+
+test('manager can create recurring appointments',async()=>{
+  const h=harness('manager');
+  const data=await createRecurringAppointments(h.supabase,h.controller,{vehicle_id:vehicle,occurrences});
+  assert.equal(data.length,3);
+  assert.equal(h.calls.length,1);
+});
+test('invalid vehicle identifier is rejected before database access',async()=>{
+  const h=harness();
+  await assert.rejects(createRecurringAppointments(h.supabase,h.controller,{vehicle_id:org.replace('4','x'),occurrences}),TypeError);
+  assert.equal(h.calls.length,0);
+});
+test('recurrence with one occurrence is rejected before database access',async()=>{
+  const h=harness();
+  await assert.rejects(createRecurringAppointments(h.supabase,h.controller,{vehicle_id:vehicle,occurrences:occurrences.slice(0,1)}),RangeError);
+  assert.equal(h.calls.length,0);
+});
