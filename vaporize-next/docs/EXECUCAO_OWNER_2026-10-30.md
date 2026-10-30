@@ -35,3 +35,11 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Consulta de workflow runs associados ao commit `1f4014014ed67355034e73814191c0e77480e453` retornou lista vazia. A consulta disponível filtra execuções associadas a pull requests; **não comprova ausência de execuções push**. CI permanece não comprovado.
 - Não há acesso a JWTs independentes seguros para executar o script nesta sessão. Nenhuma requisição autenticada de teste foi executada, e nenhuma escrita em clients foi feita.
 - Próximas condições: execução de leitura com três sessões Auth independentes; evidência de CI; fixture de segundo tenant e estratégia administrativa de limpeza antes de POST.
+
+## Auditoria Supabase Advisors — 30/10/2026
+- Consulta somente leitura `get_advisors(type=security|performance)` no projeto de homologação `cfpvexgkjsqpwhebsoos`.
+- Segurança: alerta `authenticated_security_definer_function_executable` inclui `vaporize_next.is_member` e `vaporize_next.can_manage_clients`. A exposição de execução é sinalizada pelo linter; verificar se o EXECUTE é necessário para RLS antes de qualquer REVOKE. Referência: https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
+- Segurança: `auth_leaked_password_protection` desativado. Referência: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+- Performance: índices ausentes em FKs `next_appointment_vehicle_same_org` e `next_vehicle_client_same_org`. Referência: https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys
+- Outros alertas de funções `public.*` e índices do schema `public` também existem, mas são externos ao escopo de alteração do Bloco 2; não modificar.
+- Nenhum privilégio, RLS, Auth, tabela ou índice alterado nesta auditoria. A execução HTTP/JWT real segue pendente.
