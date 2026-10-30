@@ -28,3 +28,10 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Leitura de `pg_policies` confirmou SELECT de clients por membro, INSERT de clients por owner/manager, SELECT de memberships por membro. Não há DELETE de clients; limpeza de fixtures após POST real segue bloqueada.
 - **PENDENTE:** teste HTTP POST/JWT com sessão real de cada papel, teste cross-tenant com conta independente, limpeza segura pós-COMMIT. Não declarar Bloco 2 concluído.
 - Preservados produção, V2, V3, BarberGestão e domínios.
+
+## Verificador de leitura e CI — atualização de 30/10/2026
+- Criado `vaporize-next/scripts/check-rest-roles-readonly.mjs`, commit `94f51bae618ec2ba6d33c701ae73be755c2797a1`. O script faz GET de Auth, memberships e clients para owner/manager/collaborator; não realiza gravações e não imprime credenciais.
+- Workflow `.github/workflows/vaporize-next-unit-tests.yml` atualizado no commit `1f4014014ed67355034e73814191c0e77480e453` para validar sintaxe do verificador e executar `npm test` quando acionado.
+- Consulta de workflow runs associados ao commit `1f4014014ed67355034e73814191c0e77480e453` retornou lista vazia. A consulta disponível filtra execuções associadas a pull requests; **não comprova ausência de execuções push**. CI permanece não comprovado.
+- Não há acesso a JWTs independentes seguros para executar o script nesta sessão. Nenhuma requisição autenticada de teste foi executada, e nenhuma escrita em clients foi feita.
+- Próximas condições: execução de leitura com três sessões Auth independentes; evidência de CI; fixture de segundo tenant e estratégia administrativa de limpeza antes de POST.
