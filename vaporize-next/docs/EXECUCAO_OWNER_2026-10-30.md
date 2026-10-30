@@ -57,3 +57,11 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Consulta administrativa sem contexto JWT retornou `false` para `is_member`; isso é esperado e NÃO comprova acesso de qualquer perfil.
 - Tentativa de simular contexto `authenticated` com `set local role` foi bloqueada pela ferramenta. Não contornar o bloqueio.
 - **Não declarar Bloco 2 concluído**: faltam sessões JWT reais de três usuários, execução HTTP read-only, prova de acesso/negação e teste controlado de escrita. O conector SQL administrativo não substitui uma sessão HTTP autenticada.
+
+## Bloco 3 — Clientes e Veículos (iniciado em 30/10/2026)
+- Bloco 2: testes HTTP/JWT finais adiados por decisão explícita do proprietário; bloqueio permanece obrigatório antes de uso real.
+- Verificado no schema de homologação: tabelas `clients`, `vehicles`, `appointments` existentes. Veículos e agendamentos possuem apenas política SELECT para membros ativos; não implementar gravações sem políticas RLS próprias.
+- Já existia módulo `src/data/vehicles.js` e testes `tests/vehicles.test.mjs`. Tentativa inicial de novo módulo duplicado foi revertida (commit `d63f1a9`); preservar o existente.
+- Módulo existente ampliado para filtro opcional por `clientId` sem perder verificação de organização ativa e checagem de acesso após a consulta. Commits `129d16a` e `a182106`.
+- Três testes adicionais criados no arquivo de testes existente: filtro por cliente, ID inválido, resposta fora do filtro. Commit `b387bcf`.
+- **Não testado:** execução real da suíte após as mudanças, integração UI, fluxo de cadastro/edição de veículos, políticas INSERT/UPDATE/DELETE. Não declarar Bloco 3 finalizado.
