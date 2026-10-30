@@ -66,7 +66,7 @@
       <p>Planejamento em homologação. Horários de 20 minutos, duração padrão de 90 minutos.</p>
       <form id="appointment-plan-form">
         <label for="appointment-plan-start">Início do atendimento</label>
-        <input id="appointment-plan-start" type="datetime-local" step="1200" required>
+        <input id="appointment-plan-start" type="datetime-local" step="60" required>
         <label for="appointment-plan-duration">Duração (minutos)</label>
         <input id="appointment-plan-duration" type="number" min="20" max="480" step="10" value="90" required>
         <label for="appointment-plan-recurrence">Recorrência</label>
@@ -81,7 +81,7 @@
       </form>
       <p id="appointment-plan-status" role="status" aria-live="polite"></p>
       <form id="appointment-create-form" hidden>
-        <h3>Cadastrar atendimento único</h3>
+        <h3>Salvar atendimento planejado</h3>
         <label for="appointment-vehicle">Veículo</label>
         <select id="appointment-vehicle" required></select>
         <button type="submit">Salvar agendamento</button>
