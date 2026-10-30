@@ -79,3 +79,9 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Testes estáticos adicionados em `tests/block3-security.test.mjs` para políticas e formulários privados.
 - Último status de deploy Vercel consultado: `failure` com URL `upgradeToPro=build-rate-limit` (limite de builds), sem URL Preview verificada. Não pagar ou alterar plano automaticamente.
 - GitHub Actions: workflow de testes existe na branch isolada, mas nenhuma execução de testes foi comprovada. Checkout local do GitHub falhou por DNS. **Bloco 3 não homologado**. Para encerramento exigem-se resultados `npm test`, verificação HTTP/JWT com os perfis de teste e navegação real da Preview.
+
+## Bloco 3 — Preview e smoke test público (30/10/2026)
+- Correção `src/data/clients.js`: seleção de `organization_id` na resposta de `createClient` (commit `02a86c2645833584532c4619b5e5c45c5012f2c0`), necessário para validação pós-escrita.
+- Vercel `dpl_Crgyv26EUBuvYGP9yrzAE3NorUoF`, commit `02a86c2`, estado READY, Preview `https://vaporeasy-ehuzqpc7s-vaporeasy.vercel.app/vaporize-next/`.
+- Navegador automatizado TinyFish run `4a9aa081-c406-4178-9ed6-50620cd6e2c9` confirmou página pública carregando, título `Vaporize Next — Acesso`, formulário de login visível e módulos internos ocultos sem autenticação; nenhum erro visível. Evidência: `https://agent.tinyfish.ai/runs/4a9aa081-c406-4178-9ed6-50620cd6e2c9`.
+- Ainda pendente: execução da suíte Node no checkout integral e validação CRUD HTTP/JWT com três perfis autenticados. Não afirmar Bloco 3 homologado.
