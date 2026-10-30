@@ -27,7 +27,7 @@ function fixture(name, table, row) {
   for (const id of ['workspace', 'load-' + name, name + '-list', name + '-status']) {
     elements.set(id, element(id));
   }
-  for (const id of ['client-create-form','client-edit-form','client-write-status','client-edit-cancel','client-name','client-phone','client-edit-name','client-edit-phone','vehicle-create-form','vehicle-edit-form','vehicle-edit-cancel','vehicle-owner','vehicle-write-status','vehicle-client-filter','vehicle-brand','vehicle-model','vehicle-plate','vehicle-edit-brand','vehicle-edit-model','vehicle-edit-plate']) elements.set(id,element(id));
+  for (const id of ['client-create-form','client-edit-form','client-write-status','client-edit-cancel','client-name','client-phone','client-edit-name','client-edit-phone','vehicle-create-form','vehicle-edit-form','vehicle-edit-cancel','vehicle-owner','vehicle-write-status','vehicle-client-filter','vehicle-brand','vehicle-model','vehicle-plate','vehicle-edit-brand','vehicle-edit-model','vehicle-edit-plate','appointment-plan-form','appointment-plan-list','appointment-plan-status','appointment-plan-start','appointment-plan-duration','appointment-plan-recurrence','appointment-plan-count','appointment-create-form','appointment-vehicle','appointment-write-status']) elements.set(id,element(id));
   const document = { getElementById: id => elements.get(id),
     createElement: tag => element(tag) };
   const state = { recovering: false, internalAccess: true, organizations: [{ organization_id: 'org-1', membership_role:'collaborator' }] };
