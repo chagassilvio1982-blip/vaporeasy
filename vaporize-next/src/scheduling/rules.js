@@ -7,6 +7,14 @@ export const TIME_ZONE = 'America/Sao_Paulo';
 export function validateAppointmentInput({ startsAt, durationMinutes = DEFAULT_DURATION_MINUTES }) {
   const start = new Date(startsAt);
   if (!Number.isFinite(start.getTime())) throw new RangeError('Invalid appointment start');
+  const clock = new Intl.DateTimeFormat('en-GB', {timeZone:TIME_ZONE,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(start);
+  const [hour,minute] = clock.split(':').map(Number);
+  const opening = 7*60+30;
+  const minutes = hour*60+minute;
+  if (start.getUTCSeconds() !== 0 || start.getUTCMilliseconds() !== 0 ||
+      minutes < opening || (minutes-opening)%SLOT_MINUTES !== 0) {
+    throw new RangeError('Appointment start must follow 20-minute slots from 07:30 Sao Paulo time');
+  }
   if (!Number.isInteger(durationMinutes) || durationMinutes < 20 || durationMinutes > 480) {
     throw new RangeError('Invalid appointment duration');
   }
