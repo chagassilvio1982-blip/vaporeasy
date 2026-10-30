@@ -9,6 +9,7 @@ export function attachAppointmentsPanel(supabase, controller, document) {
   const planForm = document.getElementById('appointment-plan-form');
   const planList = document.getElementById('appointment-plan-list');
   const planStatus = document.getElementById('appointment-plan-status');
+  const formatBusinessTime = value => new Date(value).toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo'});
   let generation = 0;
   planForm.addEventListener('submit', event => {
     event.preventDefault();
@@ -24,7 +25,7 @@ export function attachAppointmentsPanel(supabase, controller, document) {
       const occurrences = interval === 'none' ? (count === 1 ? [validateAppointmentInput({startsAt:start, durationMinutes})] : (() => {throw new RangeError('Single appointment must have count 1');})()) : saoPauloRecurrence(localStart,{count,intervalDays:Number(interval),durationMinutes});
       const items = occurrences.map((slot) => {
         const item = document.createElement('li');
-        item.textContent = `${new Date(slot.starts_at).toLocaleString('pt-BR')} — ${new Date(slot.ends_at).toLocaleString('pt-BR')}`;
+        item.textContent = `${formatBusinessTime(slot.starts_at)} — ${formatBusinessTime(slot.ends_at)}`;
         return item;
       });
       planList.replaceChildren(...items);
@@ -57,7 +58,7 @@ export function attachAppointmentsPanel(supabase, controller, document) {
         if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
           throw new Error('Invalid appointment dates');
         }
-        item.textContent = `${start.toLocaleString('pt-BR')} — ${end.toLocaleString('pt-BR')} | ${appointment.status}`;
+        item.textContent = `${formatBusinessTime(start)} — ${formatBusinessTime(end)} | ${appointment.status}`;
         return item;
       });
       list.replaceChildren(...items);
