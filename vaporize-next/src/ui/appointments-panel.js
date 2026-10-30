@@ -32,6 +32,9 @@ export function attachAppointmentsPanel(supabase, controller, document) {
         document.getElementById('appointment-plan-count').value !== '1') return;
     const requestGeneration = generation;
     try {
+      const localStart = document.getElementById('appointment-plan-start').value;
+      const durationMinutes = Number(document.getElementById('appointment-plan-duration').value);
+      validateAppointmentInput({startsAt:saoPauloLocalToDate(localStart),durationMinutes});
       const vehicles = await listVehicles(supabase,controller,100);
       if (requestGeneration !== generation || !canWrite() || workspace.hidden) return;
       const options = vehicles.map(vehicle => {
