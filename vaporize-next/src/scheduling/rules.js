@@ -34,7 +34,8 @@ export function buildRecurringOccurrences(firstStart, { count, intervalDays, dur
   if (![7, 14].includes(intervalDays)) throw new RangeError('Only weekly and biweekly recurrence is supported');
   const first = validateAppointmentInput({ startsAt: firstStart, durationMinutes });
   return Array.from({ length: count }, (_, i) => {
-    const start = new Date(Date.parse(first.starts_at) + i * intervalDays * 86_400_000);
+    const start = new Date(first.starts_at);
+    start.setDate(start.getDate() + i * intervalDays);
     return validateAppointmentInput({ startsAt: start, durationMinutes });
   });
 }
