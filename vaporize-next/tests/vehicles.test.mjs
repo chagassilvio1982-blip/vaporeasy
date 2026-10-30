@@ -12,7 +12,7 @@ function mock({ allow = true, rows = [], error = null, revoke = false } = {}) {
     return { from(table) {
       assert.equal(table, 'vehicles');
       return { select(fields) {
-        assert.equal(fields, 'id,client_id,brand,model,plate,created_at');
+        assert.equal(fields, 'id,organization_id,client_id,brand,model,plate,created_at');
         return { eq(field, value) {
           assert.equal(field, 'organization_id');
           assert.equal(value, 'org-1');
@@ -33,7 +33,7 @@ function mock({ allow = true, rows = [], error = null, revoke = false } = {}) {
   return { supabase, controller, reads: () => reads };
 }
 test('vehicle listing filters by verified tenant', async () => {
-  const rows = [{ id: 'vehicle-1', client_id: 'client-1', brand: 'VW', model: 'Polo' }];
+  const rows = [{ id: 'vehicle-1', organization_id:'org-1', client_id: 'client-1', brand: 'VW', model: 'Polo' }];
   const x = mock({ rows });
   assert.deepEqual(await listVehicles(x.supabase, x.controller), rows);
   assert.equal(x.reads(), 1);
@@ -50,7 +50,7 @@ test('vehicle listing discards response after access revocation', async () => {
 test('vehicle listing fails closed on RLS errors and malformed data', async () => {
   const x = mock({ error: new Error('RLS denied') });
   await assert.rejects(listVehicles(x.supabase, x.controller), /RLS denied/);
-  const y = mock({ rows: [{ id: 'vehicle-1', client_id: 'client-1', brand: null, model: 'Polo' }] });
+  const y = mock({ rows: [{ id: 'vehicle-1', organization_id:'org-1', client_id: 'client-1', brand: null, model: 'Polo' }] });
   await assert.rejects(listVehicles(y.supabase, y.controller), /Unexpected vehicles response/);
 });
 test('vehicle listing rejects oversized requests', async () => {
@@ -60,7 +60,7 @@ test('vehicle listing rejects oversized requests', async () => {
 
 test('vehicle listing filters by client within verified tenant', async () => {
   const clientId = 'ca21e0de-05e3-49f0-b0d5-8f3cb0010101';
-  const rows = [{ id:'vehicle-1', client_id:clientId, brand:'VW', model:'Polo' }];
+  const rows = [{ id:'vehicle-1', organization_id:'org-1', client_id:clientId, brand:'VW', model:'Polo' }];
   const state = { recovering:false, internalAccess:true, organizations:[{ organization_id:'org-1' }] };
   const controller = { state:()=>state, requireInternalAccess:async()=>true };
   let filters = [];
@@ -88,7 +88,15 @@ test('vehicle listing rejects rows outside requested client', async () => {
   const clientId='ca21e0de-05e3-49f0-b0d5-8f3cb0010101';
   const state={recovering:false,internalAccess:true,organizations:[{organization_id:'org-1'}]};
   const controller={state:()=>state,requireInternalAccess:async()=>true};
-  const query={eq(){return this},order(){return this},async limit(){return {data:[{id:'v',client_id:'cb21e0de-05e3-49f0-b0d5-8f3cb0010102',brand:'VW',model:'Polo'}],error:null}}};
+  const query={eq(){return this},order(){return this},async limit(){return {data:[{id:'v',organization_id:'org-1',client_id:'cb21e0de-05e3-49f0-b0d5-8f3cb0010102',brand:'VW',model:'Polo'}],error:null}}};
   const supabase={schema(){return {from(){return {select(){return query}}}}}};
   await assert.rejects(listVehicles(supabase,controller,50,clientId),/Unexpected vehicles response/);
+});
+
+test('vehicle listing rejects a row from another organization even if server filter is bypassed', async () => {
+  const state={recovering:false,internalAccess:true,organizations:[{organization_id:'org-1'}]};
+  const controller={state:()=>state,requireInternalAccess:async()=>true};
+  const query={eq(){return this},order(){return this},async limit(){return {data:[{id:'v',organization_id:'org-2',client_id:'c',brand:'VW',model:'Polo'}],error:null}}};
+  const supabase={schema(){return {from(){return {select(){return query}}}}}};
+  await assert.rejects(listVehicles(supabase,controller),/Unexpected vehicles response/);
 });
