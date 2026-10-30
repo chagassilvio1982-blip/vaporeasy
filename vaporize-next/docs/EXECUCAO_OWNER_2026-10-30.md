@@ -50,3 +50,10 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - O script `scripts/check-rest-roles-readonly.mjs` agora exige `TEST_ORG_B_ID` e presença de um cliente visível na organização A. Deve receber `TEST_ORG_B_ID=c49f62ac-94b5-47bc-a292-3b53c563ae04` por variável de ambiente.
 - Organização B não possui membro autenticado próprio; a consulta de memberships B vazia não comprova isolamento de memberships (resultado explicitamente `no-visible-rows-unverified-fixture`).
 - Pendente: três sessões JWT reais, execução e evidências HTTP. Não armazenar JWT no GitHub nem nos logs. Fixtures são artificiais e precisam ser excluídas após os testes com rotina de limpeza validada.
+
+## Encerramento da etapa de preparação de permissões — 30/10/2026
+- Consultadas políticas `pg_policies` diretamente em homologação: `clients` SELECT `is_member`, INSERT `can_manage_clients`; `memberships` SELECT `is_member`. Não há política de INSERT para `collaborator`.
+- Consultadas definições SQL das funções: ambas usam `auth.uid()`, membership `active` e organização `active`; `can_manage_clients` restringe a `owner`/`manager`.
+- Consulta administrativa sem contexto JWT retornou `false` para `is_member`; isso é esperado e NÃO comprova acesso de qualquer perfil.
+- Tentativa de simular contexto `authenticated` com `set local role` foi bloqueada pela ferramenta. Não contornar o bloqueio.
+- **Não declarar Bloco 2 concluído**: faltam sessões JWT reais de três usuários, execução HTTP read-only, prova de acesso/negação e teste controlado de escrita. O conector SQL administrativo não substitui uma sessão HTTP autenticada.
