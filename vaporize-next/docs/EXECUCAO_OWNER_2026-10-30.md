@@ -72,3 +72,10 @@ Não alterar Vaporeasy V2/V3, BarberGestão, produção ou domínios.
 - Testes `tests/records-write.test.mjs` adicionados, mas **a suíte integral não foi executada**: checkout GitHub indisponível no ambiente de execução (falha de DNS). Não afirmar homologação ou testes aprovados.
 - Pendente: executar `npm test` em checkout confiável, corrigir falhas, verificar navegação e CRUD real com JWT owner/manager/collaborator em Preview, registrar evidências e fechar o bloco somente após aprovação.
 - Produção, V2, V3, BarberGestão e domínios oficiais não modificados.
+
+## Bloco 3 — verificação complementar (30/10/2026)
+- Migração `0005_block3_writes.sql` versionada no GitHub; políticas INSERT/UPDATE de veículos e UPDATE de clientes conferidas por leitura de `pg_policies` no Supabase de homologação.
+- Migração `0006_block3_column_grants.sql` aplicada e versionada. Consulta `information_schema.column_privileges` confirmou UPDATE de authenticated somente em `clients.name`, `clients.phone`, `vehicles.brand`, `vehicles.model`, `vehicles.plate`. IDs de organização/cliente não receberam UPDATE.
+- Testes estáticos adicionados em `tests/block3-security.test.mjs` para políticas e formulários privados.
+- Último status de deploy Vercel consultado: `failure` com URL `upgradeToPro=build-rate-limit` (limite de builds), sem URL Preview verificada. Não pagar ou alterar plano automaticamente.
+- GitHub Actions: workflow de testes existe na branch isolada, mas nenhuma execução de testes foi comprovada. Checkout local do GitHub falhou por DNS. **Bloco 3 não homologado**. Para encerramento exigem-se resultados `npm test`, verificação HTTP/JWT com os perfis de teste e navegação real da Preview.
