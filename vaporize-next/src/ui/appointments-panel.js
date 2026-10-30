@@ -16,7 +16,7 @@ export function attachAppointmentsPanel(supabase, controller, document) {
     if (workspace.hidden || !controller.state().internalAccess || controller.state().recovering) return;
     try {
       const localStart = document.getElementById('appointment-plan-start').value;
-      if (!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(localStart)) throw new RangeError('Invalid date');
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(localStart)) throw new RangeError('Invalid date');
       const start = saoPauloLocalToDate(localStart);
       const durationMinutes = Number(document.getElementById('appointment-plan-duration').value);
       const interval = document.getElementById('appointment-plan-recurrence').value;
