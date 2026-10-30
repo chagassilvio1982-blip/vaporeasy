@@ -19,9 +19,9 @@ function fixture({ allow = true, error = null, onInsert = () => {} } = {}) {
           calls.push(payload);
           onInsert(state);
           return { select(columns) {
-            assert.equal(columns, 'id,name,phone,created_at');
+            assert.equal(columns, 'id,organization_id,name,phone,created_at');
             return { async single() {
-              return { data: { id: 'client-a', name: payload.name, phone: payload.phone }, error };
+              return { data: { id: 'client-a', organization_id: payload.organization_id, name: payload.name, phone: payload.phone }, error };
             } };
           } };
         } };
@@ -116,4 +116,30 @@ test('revoked organization before insert cannot write', async () => {
   };
   await assert.rejects(createClient(x.supabase, x.controller, { name: 'Cliente A' }), /Access changed before write/);
   assert.equal(x.calls.length, 0);
+});
+
+test('client creation rejects response from another organization', async () => {
+  const x=fixture();
+  const original=x.supabase.schema;
+  x.supabase.schema=(name)=>{
+    const schema=original(name);
+    const from=schema.from;
+    schema.from=(table)=>{
+      const base=from(table);
+      const insert=base.insert;
+      base.insert=(payload)=>{
+        const chain=insert(payload);
+        const select=chain.select;
+        chain.select=(columns)=>{
+          const result=select(columns);
+          result.single=async()=>({data:{id:'client-b',organization_id:'org-b',name:payload.name},error:null});
+          return result;
+        };
+        return chain;
+      };
+      return base;
+    };
+    return schema;
+  };
+  await assert.rejects(createClient(x.supabase,x.controller,{name:'Cliente A'}),/Unexpected client creation response/);
 });
