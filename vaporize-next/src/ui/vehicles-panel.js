@@ -107,6 +107,7 @@ export function attachVehiclesPanel(supabase, controller, document) {
       const items = vehicles.map(vehicle => {
         const item = document.createElement('li');
         item.textContent = [vehicle.brand, vehicle.model, vehicle.plate].filter(Boolean).join(' — ');
+        if(canWrite()) { const edit=document.createElement('button'); edit.type='button'; edit.textContent='Editar'; edit.addEventListener('click',()=>{ if(workspace.hidden || !canWrite()) return; selectedVehicle=vehicle.id; document.getElementById('vehicle-edit-brand').value=vehicle.brand; document.getElementById('vehicle-edit-model').value=vehicle.model; document.getElementById('vehicle-edit-plate').value=vehicle.plate||''; editForm.hidden=false; }); item.append(edit); }
         return item;
       });
       list.replaceChildren(...items);
