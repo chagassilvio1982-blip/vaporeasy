@@ -44,3 +44,12 @@ test('Sao Paulo recurrence preserves local time', () => {
   assert.equal(slots[0].starts_at,'2026-11-02T10:30:00.000Z');
   assert.equal(slots[1].starts_at,'2026-11-09T10:30:00.000Z');
 });
+
+test('start time follows 20-minute slots anchored at 07:30 Sao Paulo', () => {
+  for (const start of ['2026-11-02T10:30:00Z','2026-11-02T10:50:00Z','2026-11-02T11:10:00Z']) {
+    assert.doesNotThrow(() => validateAppointmentInput({startsAt:start}));
+  }
+  for (const start of ['2026-11-02T10:00:00Z','2026-11-02T10:40:00Z','2026-11-02T10:30:30Z']) {
+    assert.throws(() => validateAppointmentInput({startsAt:start}), RangeError);
+  }
+});
