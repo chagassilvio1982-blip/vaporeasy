@@ -61,8 +61,16 @@ for (const [role,jwt] of Object.entries(tokens)) {
       const otherRows = await other.json();
       if (!Array.isArray(otherRows) || otherRows.length !== 0) throw Error('Cross-tenant membership visibility');
       crossTenantMembership = 'no-visible-rows';
+      const otherClientsUrl = new URL('/rest/v1/clients',base);
+      otherClientsUrl.searchParams.set('select','id,organization_id');
+      otherClientsUrl.searchParams.set('organization_id','eq.'+otherOrg);
+      otherClientsUrl.searchParams.set('limit','1');
+      const otherClients = await fetch(otherClientsUrl,{headers:{...headers,'Accept-Profile':'vaporize_next'},redirect:'error',signal:AbortSignal.timeout(12000)});
+      if (otherClients.status !== 200) throw Error('Cross-tenant clients HTTP '+otherClients.status);
+      const otherClientRows = await otherClients.json();
+      if (!Array.isArray(otherClientRows) || otherClientRows.length !== 0) throw Error('Cross-tenant clients visibility');
     }
-    console.log(JSON.stringify({role,auth:200,membership:200,clients:200,crossTenantMembership,pass:true}));
+    console.log(JSON.stringify({role,auth:200,membership:200,clients:200,crossTenantMembership,crossTenantClients:otherOrg?'no-visible-rows':'not-tested',pass:true}));
   } catch (error) {
     failures++;
     console.error(JSON.stringify({role,pass:false,error:error.message}));
