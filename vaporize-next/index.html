@@ -55,6 +55,7 @@
       </form>
       <p id="vehicle-write-status" role="status" aria-live="polite"></p>
       <p>Consulta somente leitura da empresa autenticada.</p>
+      <form id="vehicle-edit-form" hidden><label for="vehicle-edit-brand">Marca</label><input id="vehicle-edit-brand" required maxlength="100"><label for="vehicle-edit-model">Modelo</label><input id="vehicle-edit-model" required maxlength="100"><label for="vehicle-edit-plate">Placa</label><input id="vehicle-edit-plate" maxlength="16"><button type="submit">Salvar edição</button><button type="button" id="vehicle-edit-cancel">Cancelar</button></form>
       <label for="vehicle-client-filter">Filtrar veículos por cliente</label>
       <select id="vehicle-client-filter" aria-label="Filtrar veículos por cliente"><option value="">Todos os clientes</option></select>
       <button id="load-vehicles" type="button">Consultar veículos</button>
