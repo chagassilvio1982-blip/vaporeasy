@@ -7,13 +7,14 @@ export function attachVehiclesPanel(supabase, controller, document) {
   const status = document.getElementById('vehicles-status');
   const workspace = document.getElementById('workspace');
   const filter = document.getElementById('vehicle-client-filter');
+  const option = (label, value) => { const el = document.createElement('option'); el.textContent = label; el.value = value; return el; };
   let generation = 0;
   controller.subscribe(({ recovering, internalAccess }) => {
     if (recovering || !internalAccess) {
       generation++;
       list.replaceChildren();
       status.textContent = '';
-      filter.replaceChildren(new Option('Todos os clientes', ''));
+      filter.replaceChildren(option('Todos os clientes', ''));
     }
   });
   button.addEventListener('click', async () => {
@@ -27,7 +28,7 @@ export function attachVehiclesPanel(supabase, controller, document) {
       const clients = await listClients(supabase, controller, 100);
       if (requestGeneration !== generation || workspace.hidden || !controller.state().internalAccess) return;
       const validSelection = selectedClient && clients.some(c => c.id === selectedClient) ? selectedClient : null;
-      filter.replaceChildren(new Option('Todos os clientes', ''), ...clients.map(c => new Option(c.name, c.id)));
+      filter.replaceChildren(option('Todos os clientes', ''), ...clients.map(c => option(c.name, c.id)));
       filter.value = validSelection || '';
       const vehicles = await listVehicles(supabase, controller, 100, validSelection);
       if (requestGeneration !== generation || workspace.hidden || !controller.state().internalAccess) return;
