@@ -17,5 +17,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run unit tests
-        run: npm test
+      - name: Run complete unit suite and save evidence
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          node --version | tee test-results/node-version.txt
+          npm test 2>&1 | tee test-results/unit-tests.tap
+      - name: Upload test evidence (including failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaporize-next-unit-tests
+          path: vaporize-next/test-results/
+          if-no-files-found: warn
+          retention-days: 14
