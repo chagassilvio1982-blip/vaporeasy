@@ -42,7 +42,7 @@ export function buildRecurringOccurrences(firstStart, { count, intervalDays, dur
 
 /** Interpret an HTML datetime-local value in the business time zone, not the device zone. */
 export function saoPauloLocalToDate(localValue) {
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})$/.exec(localValue ?? '');
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(localValue ?? '');
   if (!match) throw new RangeError('Invalid local date and time');
   const [, year, month, day, hour, minute] = match.map(Number);
   const naive = Date.UTC(year, month - 1, day, hour, minute);
