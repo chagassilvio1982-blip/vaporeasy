@@ -1,6 +1,6 @@
 import { listAppointments } from '../data/appointments.js';
 import { listVehicles } from '../data/vehicles.js';
-import { createAppointment, updateAppointment, cancelAppointment } from '../data/appointments-write.js';
+import { createAppointment, createRecurringAppointments, updateAppointment, cancelAppointment } from '../data/appointments-write.js';
 import { validateAppointmentInput, saoPauloLocalToDate, saoPauloRecurrence } from '../scheduling/rules.js';
 
 export function attachAppointmentsPanel(supabase, controller, document) {
@@ -27,14 +27,16 @@ export function attachAppointmentsPanel(supabase, controller, document) {
   });
   planForm.addEventListener('submit', async () => {
     createForm.hidden = true;
-    if (!canWrite() || workspace.hidden ||
-        document.getElementById('appointment-plan-recurrence').value !== 'none' ||
-        document.getElementById('appointment-plan-count').value !== '1') return;
+    if (!canWrite() || workspace.hidden) return;
     const requestGeneration = generation;
     try {
       const localStart = document.getElementById('appointment-plan-start').value;
       const durationMinutes = Number(document.getElementById('appointment-plan-duration').value);
       validateAppointmentInput({startsAt:saoPauloLocalToDate(localStart),durationMinutes});
+      const interval = document.getElementById('appointment-plan-recurrence').value;
+      const count = Number(document.getElementById('appointment-plan-count').value);
+      if (interval === 'none' && count !== 1) return;
+      if (interval !== 'none') saoPauloRecurrence(localStart,{count,intervalDays:Number(interval),durationMinutes});
       const vehicles = await listVehicles(supabase,controller,100);
       if (requestGeneration !== generation || !canWrite() || workspace.hidden) return;
       const options = vehicles.map(vehicle => {
@@ -57,7 +59,19 @@ export function attachAppointmentsPanel(supabase, controller, document) {
     try {
       const startsAt = saoPauloLocalToDate(document.getElementById('appointment-plan-start').value);
       const durationMinutes = Number(document.getElementById('appointment-plan-duration').value);
-      await createAppointment(supabase,controller,{vehicle_id:vehicleSelect.value,startsAt,durationMinutes});
+      const recurrence = document.getElementById('appointment-plan-recurrence').value;
+      if (recurrence === 'none') {
+        await createAppointment(supabase,controller,{vehicle_id:vehicleSelect.value,startsAt,durationMinutes});
+      } else {
+        const localStart = document.getElementById('appointment-plan-start').value;
+        const count = Number(document.getElementById('appointment-plan-count').value);
+        const occurrences = saoPauloRecurrence(localStart,{count,intervalDays:Number(recurrence),durationMinutes});
+        if (occurrences.length === 1) {
+          await createAppointment(supabase,controller,{vehicle_id:vehicleSelect.value,startsAt,durationMinutes});
+        } else {
+          await createRecurringAppointments(supabase,controller,{vehicle_id:vehicleSelect.value,occurrences});
+        }
+      }
       if (workspace.hidden || !canWrite()) return;
       writeStatus.textContent = 'Agendamento cadastrado.';
       createForm.hidden = true;
