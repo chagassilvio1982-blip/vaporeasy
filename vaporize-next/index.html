@@ -36,6 +36,7 @@
       <button type="button" id="onboarding-logout" class="secondary">Sair</button>
     </form>
     <section id="workspace" hidden aria-label="Área interna">
+      <p id="session-identity" role="status" aria-live="polite"></p>
       <h2>Clientes</h2>
       <p>Consulta somente leitura da empresa autenticada.</p>
       <form id="client-create-form" hidden><label for="client-name">Nome</label><input id="client-name" required minlength="2" maxlength="160"><label for="client-phone">Telefone</label><input id="client-phone" maxlength="40"><button type="submit">Cadastrar cliente</button></form>
