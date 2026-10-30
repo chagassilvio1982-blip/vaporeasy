@@ -9,7 +9,7 @@ export async function listAppointments(supabase, controller, limit = 50) {
   const organizationId = before.organizations[0].organization_id;
   const { data, error } = await supabase.schema('vaporize_next')
     .from('appointments')
-    .select('id,vehicle_id,starts_at,ends_at,status')
+    .select('id,organization_id,vehicle_id,starts_at,ends_at,status')
     .eq('organization_id', organizationId)
     .order('starts_at', { ascending: true })
     .limit(limit);
@@ -20,7 +20,7 @@ export async function listAppointments(supabase, controller, limit = 50) {
     throw new Error('Access changed during request');
   }
   if (!Array.isArray(data) || data.some(row => !row || typeof row.id !== 'string' ||
-      typeof row.vehicle_id !== 'string' || typeof row.starts_at !== 'string' ||
+      row.organization_id !== organizationId || typeof row.vehicle_id !== 'string' || typeof row.starts_at !== 'string' ||
       typeof row.ends_at !== 'string' || typeof row.status !== 'string')) {
     throw new Error('Unexpected appointments response');
   }
