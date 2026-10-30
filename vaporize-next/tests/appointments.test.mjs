@@ -38,3 +38,11 @@ test('appointments query uses verified organization and rejects stale access', a
   } };
   await assert.rejects(listAppointments(supabase, controller), /Access changed/);
 });
+
+test('appointments reject records belonging to another organization', async () => {
+  const state={recovering:false,internalAccess:true,organizations:[{organization_id:'org-1'}]};
+  const controller={requireInternalAccess:async()=>true,state:()=>state};
+  const query={eq(){return this},order(){return this},async limit(){return {data:[{id:'a',organization_id:'org-2',vehicle_id:'v',starts_at:'2026-10-30T10:00:00Z',ends_at:'2026-10-30T11:00:00Z',status:'scheduled'}],error:null}}};
+  const supabase={schema(){return {from(){return {select(){return query}}}}}};
+  await assert.rejects(listAppointments(supabase,controller),/Unexpected appointments response/);
+});
