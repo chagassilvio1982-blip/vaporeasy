@@ -54,7 +54,7 @@ export async function createClient(supabase, controller, input) {
       !['owner', 'manager'].includes(current.organizations[0].membership_role)) throw new Error('Access changed before write');
   const { data, error } = await supabase.schema('vaporize_next').from('clients')
     .insert({ organization_id: organizationId, name, phone })
-    .select('id,name,phone,created_at').single();
+    .select('id,organization_id,name,phone,created_at').single();
   if (error) throw error;
   const after = controller.state();
   if (after.recovering || !after.internalAccess || after.organizations.length !== 1 ||
