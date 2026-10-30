@@ -14,8 +14,8 @@ function fixture(role='owner') {
       return { insert(payload) {
         calls.push(payload);
         return { select(columns) {
-          assert.equal(columns,'id,name,phone,created_at');
-          return { single:async()=>({data:{id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',name:payload.name,phone:payload.phone},error:null}) };
+          assert.equal(columns,'id,organization_id,name,phone,created_at');
+          return { single:async()=>({data:{id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',organization_id:payload.organization_id,name:payload.name,phone:payload.phone},error:null}) };
         }};
       }};
     }};
