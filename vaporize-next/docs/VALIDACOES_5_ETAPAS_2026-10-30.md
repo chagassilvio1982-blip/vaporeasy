@@ -53,3 +53,11 @@ Bloco 4 **não concluído** enquanto operações reais de escrita e permissões 
 - Consulta SQL somente leitura na homologação: `appointments=0`, `scheduled=0`, veículo de teste encontrado `1`, vínculos dos três perfis encontrados `3`.
 - Operações HTTP/JWT reais de escrita e bloqueio do colaborador **não executadas**. Não aprovar Bloco 4 sem essas evidências.
 - Próxima tentativa de deploy somente após liberação do limite; preservar a branch e evitar novas publicações até então.
+
+## Atualização: Preview publicada
+- Vercel deployment ID: `dpl_7s9kqRNcasqsS95LkqawvQbPFriK`.
+- Preview: `https://vaporeasy-62srrop2u-vaporeasy.vercel.app/vaporize-next/`.
+- Vercel confirmou `READY`, commit `d181a1a831a96c0cfbba9d5dd557f901720379b6`, branch isolada, target Preview.
+- `main.js` importa e inicializa `attachAppointmentWriteProbe`; `index.html` contém botão `verify-appointment-writes` e campo de status.
+- Teste HTTP/JWT real de escrita pendente: perfis de navegador disponíveis sem login confirmado na Preview. Não simular sessão ou solicitar credenciais na conversa.
+- Aceite: owner e manager criam/editam/cancelam; collaborator sem permissão de escrita; conferir registro final cancelado e ausência de registros de teste ativos; registrar evidências.
