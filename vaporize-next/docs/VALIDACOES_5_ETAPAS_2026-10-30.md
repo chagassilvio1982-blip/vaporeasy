@@ -61,3 +61,9 @@ Bloco 4 **não concluído** enquanto operações reais de escrita e permissões 
 - `main.js` importa e inicializa `attachAppointmentWriteProbe`; `index.html` contém botão `verify-appointment-writes` e campo de status.
 - Teste HTTP/JWT real de escrita pendente: perfis de navegador disponíveis sem login confirmado na Preview. Não simular sessão ou solicitar credenciais na conversa.
 - Aceite: owner e manager criam/editam/cancelam; collaborator sem permissão de escrita; conferir registro final cancelado e ausência de registros de teste ativos; registrar evidências.
+
+## Evidência real do proprietário — 2026-10-30
+- Captura da interface autenticada fornecida pelo proprietário: `Criar: OK | Editar: OK | Cancelar: OK`.
+- Consulta SQL em `vaporize_next.appointments` agrupada por status confirmou exatamente 1 registro `cancelled`, nenhum outro status. Não foi necessária nova execução de teste.
+- Resultado: fluxo de escrita do proprietário validado pela interface e estado final confirmado no banco; auditoria do registro cancelado preservada.
+- Perfis TinyFish de gerente e colaborador ainda sem sessão autenticada confirmada. Não declarar seus testes concluídos até execução real.
