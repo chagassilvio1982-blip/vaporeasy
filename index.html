@@ -2885,12 +2885,14 @@ function financeReceiptGroupCards(apps,payMap,maps,paid=false){
     if(!a?.client_id||!a?.completed_at)continue;
     const isPaid=payMap.get(a.id)?.status==="paid";
     if(paid!==isPaid)continue;
-    const key=a.client_id+"|"+agendaLocalDateKey(a.completed_at);
+    const key=a.client_id+"|"+agendaLocalDateKey(a.completed_at).slice(0,7);
     const g=groups.get(key)||[];g.push(a);groups.set(key,g)
   }
   return [...groups.values()].filter(g=>g.length>1).map(g=>{
-    const first=g[0],cl=maps.cm.get(first.client_id),date=agendaLocalDateKey(first.completed_at),total=g.reduce((sum,a)=>sum+Number(payMap.get(a.id)?.amount??a.final_value??0),0),ids=g.map(a=>a.id).join(",");
-    return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div style="font-weight:950;font-size:16px">'+esc(cl?.name||"Cliente")+' · '+g.length+' veículos</div><div class="meta" style="margin-top:4px">Documento conjunto de '+esc(new Intl.DateTimeFormat("pt-BR").format(new Date(date+"T12:00:00")))+' · Total '+esc(money(total))+'</div><button type="button" class="primary" style="width:100%;margin-top:10px" data-fin-group="'+esc(ids)+'">'+(paid?'Recibo conjunto':'Comprovante conjunto')+' ('+g.length+' veículos)</button></div>'
+    const first=g[0],cl=maps.cm.get(first.client_id),month=agendaLocalDateKey(first.completed_at).slice(0,7);
+    const total=g.reduce((sum,a)=>sum+Number(payMap.get(a.id)?.amount??a.final_value??0),0),ids=g.map(a=>a.id).join(",");
+    const vehicles=new Set(g.map(a=>a.vehicle_id).filter(Boolean)).size;
+    return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div style="font-weight:950;font-size:16px">'+esc(cl?.name||"Cliente")+' · '+vehicles+' veículo'+(vehicles===1?'':'s')+'</div><div class="meta" style="margin-top:4px">Documento conjunto de '+esc(monthlyCompetenceLabel(month))+' · '+g.length+' atendimento'+(g.length===1?'':'s')+' · Total '+esc(money(total))+'</div><button type="button" class="primary" style="width:100%;margin-top:10px" data-fin-group="'+esc(ids)+'">'+(paid?'Recibo conjunto':'Comprovante conjunto')+' ('+g.length+' atendimentos)</button></div>'
   }).join("")
 }
 
