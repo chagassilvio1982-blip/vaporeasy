@@ -3785,7 +3785,15 @@ async function updateAppointmentStatus(id,newStatus){
   try{renderFinanceiro()}catch(e){}
   try{renderManagementDashboard()}catch(e){}
   try{renderRealizedServices()}catch(e){}
-  if(newStatus!=='Cancelado' && typeof cloudSyncAppointment==='function')cloudSyncAppointment(list[i]).catch(e=>console.warn('Cloud appointment status:',e));
+  if(newStatus!=='Cancelado' && typeof cloudSyncAppointment==='function' && typeof cloudReady==='function' && cloudReady()){
+    try{
+      await cloudSyncAppointment(list[i]);
+    }catch(e){
+      console.error('[V2] Falha ao sincronizar status do atendimento:',e);
+      showToast('Status salvo neste aparelho, mas não sincronizado com a nuvem: '+(e?.message||String(e)),'error');
+      return;
+    }
+  }
   showToast(newStatus==='Concluído'?'Serviço concluído: disponível para consulta na agenda e no histórico/financeiro':'Status atualizado para '+newStatus,'success');
 }
 const APPT_TOMBSTONES_KEY='vaporeasy_deleted_appointments_v1';
