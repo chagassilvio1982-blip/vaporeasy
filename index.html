@@ -4156,10 +4156,19 @@ async function loadOperatorJobs(date=operatorSelectedDate,refreshMonth=false){
 async function operatorStartJob(id){
   const b=document.querySelector('[data-op-start="'+id+'"]');
   if(b){b.disabled=true;b.textContent="Iniciando..."}
-  const r=await sb.rpc("operator_start_job",{p_appointment_id:id});
-  if(r.error){show("msg",fail(r.error),"error");if(b){b.disabled=false;b.textContent="Iniciar serviço"};return}
-  show("msg","Atendimento iniciado.","ok");
-  await loadOperatorJobs()
+  try{
+    if(!sb)throw new Error("Conexão com o banco indisponível.");
+    const r=await sb.rpc("operator_start_job",{p_appointment_id:id});
+    if(r.error)throw r.error;
+    show("msg","Atendimento iniciado.","ok");
+    await loadOperatorJobs();
+  }catch(error){
+    const detail=error?.message||String(error);
+    show("msg","Não foi possível iniciar o atendimento: "+detail,"error");
+    console.error("[V2] Falha ao iniciar atendimento",error);
+  }finally{
+    if(b&&b.isConnected){b.disabled=false;b.textContent="Iniciar serviço"}
+  }
 }
 function setRGOperatorMode(on){
   const report=$("rgreport");
