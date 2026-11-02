@@ -5343,6 +5343,7 @@ async function getReceiptGroupData(ids){
   if(new Set(days.map(d=>d.slice(0,7))).size!==1)throw Error("O documento conjunto só pode reunir atendimentos do mesmo mês.");
   const allPaid=items.every(d=>d.payment?.status==="paid");
   const nonePaid=items.every(d=>d.payment?.status!=="paid");
+  if(!allPaid&&!nonePaid)throw Error("Não é permitido agrupar atendimentos pagos e pendentes no mesmo documento.");
   const total=items.reduce((sum,d)=>sum+receiptAmounts(d).final,0);
   const gross=items.reduce((sum,d)=>sum+receiptAmounts(d).gross,0);
   const discount=items.reduce((sum,d)=>sum+receiptAmounts(d).discount,0);
@@ -5374,7 +5375,7 @@ function groupReceiptVehicleGroups(g){
   }))
 }
 function groupReceiptHtml(g){
-  const paid=g.allPaid,dateLabel=new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00")),groups=groupReceiptVehicleGroups(g);
+  const paid=g.allPaid,dateLabel=monthlyCompetenceLabel(g.dateKey.slice(0,7)),groups=groupReceiptVehicleGroups(g);
   const rows=groups.map(v=>{
     const dates=v.dates.map(x=>new Intl.DateTimeFormat("pt-BR").format(new Date(x+"T12:00:00"))).join(" · ");
     const services=v.services.join(" + ");
@@ -5894,7 +5895,7 @@ async function groupReceiptCanvas(g){
   if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,120);
   else{ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Vaporeasy",pad,110)}
   ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText(paid?"RECIBO DE PAGAMENTO":"ATENDIMENTOS CONCLUÍDOS",right,92);
-  ctx.font="600 17px system-ui, sans-serif";ctx.fillText(new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00")),right,124);ctx.textAlign="left";
+  ctx.font="600 17px system-ui, sans-serif";ctx.fillText(monthlyCompetenceLabel(g.dateKey.slice(0,7)),right,124);ctx.textAlign="left";
   ctx.strokeStyle="#d4d0c8";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,170);ctx.lineTo(right,170);ctx.stroke();
   ctx.font="400 39px Georgia, serif";ctx.fillStyle="#172832";ctx.fillText(g.items.length+" estética"+(g.items.length===1?"":"s")+" realizada"+(g.items.length===1?"":"s")+" em "+groups.length+" veículo"+(groups.length===1?"":"s")+".",pad,238);
   ctx.fillText("Obrigado pela confiança.",pad,288);
