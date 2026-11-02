@@ -2885,12 +2885,14 @@ function financeReceiptGroupCards(apps,payMap,maps,paid=false){
     if(!a?.client_id||!a?.completed_at)continue;
     const isPaid=payMap.get(a.id)?.status==="paid";
     if(paid!==isPaid)continue;
-    const key=a.client_id+"|"+agendaLocalDateKey(a.completed_at);
+    const key=a.client_id+"|"+agendaLocalDateKey(a.completed_at).slice(0,7);
     const g=groups.get(key)||[];g.push(a);groups.set(key,g)
   }
   return [...groups.values()].filter(g=>g.length>1).map(g=>{
-    const first=g[0],cl=maps.cm.get(first.client_id),date=agendaLocalDateKey(first.completed_at),total=g.reduce((sum,a)=>sum+Number(payMap.get(a.id)?.amount??a.final_value??0),0),ids=g.map(a=>a.id).join(",");
-    return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div style="font-weight:950;font-size:16px">'+esc(cl?.name||"Cliente")+' · '+g.length+' veículos</div><div class="meta" style="margin-top:4px">Documento conjunto de '+esc(new Intl.DateTimeFormat("pt-BR").format(new Date(date+"T12:00:00")))+' · Total '+esc(money(total))+'</div><button type="button" class="primary" style="width:100%;margin-top:10px" data-fin-group="'+esc(ids)+'">'+(paid?'Recibo conjunto':'Comprovante conjunto')+' ('+g.length+' veículos)</button></div>'
+    const first=g[0],cl=maps.cm.get(first.client_id),month=agendaLocalDateKey(first.completed_at).slice(0,7);
+    const total=g.reduce((sum,a)=>sum+Number(payMap.get(a.id)?.amount??a.final_value??0),0),ids=g.map(a=>a.id).join(",");
+    const vehicles=new Set(g.map(a=>a.vehicle_id).filter(Boolean)).size;
+    return '<div class="item" style="margin-top:8px;border-color:#2b718e;background:#0b2634"><div style="font-weight:950;font-size:16px">'+esc(cl?.name||"Cliente")+' · '+vehicles+' veículo'+(vehicles===1?'':'s')+'</div><div class="meta" style="margin-top:4px">Documento conjunto de '+esc(monthlyCompetenceLabel(month))+' · '+g.length+' atendimento'+(g.length===1?'':'s')+' · Total '+esc(money(total))+'</div><button type="button" class="primary" style="width:100%;margin-top:10px" data-fin-group="'+esc(ids)+'">'+(paid?'Recibo conjunto':'Comprovante conjunto')+' ('+g.length+' atendimentos)</button></div>'
   }).join("")
 }
 
@@ -5340,9 +5342,10 @@ async function getReceiptGroupData(ids){
   const first=items[0];
   if(items.some(d=>d.x.client_id!==first.x.client_id))throw Error("O documento conjunto só pode reunir atendimentos do mesmo cliente.");
   const days=[...new Set(items.map(d=>agendaLocalDateKey(d.x.completed_at||d.x.starts_at)))];
-  if(days.length!==1)throw Error("O documento conjunto só pode reunir atendimentos do mesmo dia.");
+  if(new Set(days.map(d=>d.slice(0,7))).size!==1)throw Error("O documento conjunto só pode reunir atendimentos do mesmo mês.");
   const allPaid=items.every(d=>d.payment?.status==="paid");
   const nonePaid=items.every(d=>d.payment?.status!=="paid");
+  if(!allPaid&&!nonePaid)throw Error("Não é permitido agrupar atendimentos pagos e pendentes no mesmo documento.");
   const total=items.reduce((sum,d)=>sum+receiptAmounts(d).final,0);
   const gross=items.reduce((sum,d)=>sum+receiptAmounts(d).gross,0);
   const discount=items.reduce((sum,d)=>sum+receiptAmounts(d).discount,0);
@@ -5374,7 +5377,7 @@ function groupReceiptVehicleGroups(g){
   }))
 }
 function groupReceiptHtml(g){
-  const paid=g.allPaid,dateLabel=new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00")),groups=groupReceiptVehicleGroups(g);
+  const paid=g.allPaid,dateLabel=monthlyCompetenceLabel(g.dateKey.slice(0,7)),groups=groupReceiptVehicleGroups(g);
   const rows=groups.map(v=>{
     const dates=v.dates.map(x=>new Intl.DateTimeFormat("pt-BR").format(new Date(x+"T12:00:00"))).join(" · ");
     const services=v.services.join(" + ");
@@ -5441,10 +5444,9 @@ async function openSameClientReceiptGroup(){
   if(!clientId||!baseId)return;
   const paid=currentReceipt.payment?.status==="paid";
   const dateKey=agendaLocalDateKey(currentReceipt.x.completed_at||currentReceipt.x.starts_at);
-  const startIso=new Date(dateKey+"T00:00:00-03:00").toISOString();
-  const nextDate=new Date(dateKey+"T12:00:00-03:00");nextDate.setDate(nextDate.getDate()+1);
-  const nextKey=nextDate.getFullYear()+"-"+String(nextDate.getMonth()+1).padStart(2,"0")+"-"+String(nextDate.getDate()).padStart(2,"0");
-  const nextIso=new Date(nextKey+"T00:00:00-03:00").toISOString();
+  const monthRange=monthKeysFromValue(dateKey.slice(0,7));
+  const startIso=monthRange.startIso;
+  const nextIso=monthRange.nextIso;
   try{
     show("rgroupmsg","Procurando outros atendimentos deste cliente...","");
     const ar=await sb.from("appointments")
@@ -5457,7 +5459,7 @@ async function openSameClientReceiptGroup(){
       .order("completed_at");
     if(ar.error)throw ar.error;
     const ids=(ar.data||[]).map(x=>x.id);
-    if(!ids.length)return show("rgroupmsg","Não há outros atendimentos deste cliente neste dia.","error");
+    if(!ids.length)return show("rgroupmsg","Não há outros atendimentos deste cliente neste mês.","error");
     const pr=await sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",ids);
     if(pr.error)throw pr.error;
     const pm=new Map((pr.data||[]).map(x=>[x.appointment_id,x]));
@@ -5465,7 +5467,7 @@ async function openSameClientReceiptGroup(){
     if(!eligible.includes(baseId))eligible.unshift(baseId);
     const unique=[...new Set(eligible)];
     if(unique.length<2){
-      return show("rgroupmsg",paid?"Não há outro recibo pago deste cliente para agrupar neste dia.":"Não há outro comprovante pendente deste cliente para agrupar neste dia.","error")
+      return show("rgroupmsg",paid?"Não há outro recibo pago deste cliente para agrupar neste mês.":"Não há outro comprovante pendente deste cliente para agrupar neste mês.","error")
     }
     if($("rd").open)$("rd").close();
     await openReceiptGroup(unique)
@@ -5895,7 +5897,7 @@ async function groupReceiptCanvas(g){
   if(brandLogoImg.complete&&brandLogoImg.naturalWidth)ctx.drawImage(brandLogoImg,pad,48,300,120);
   else{ctx.font="900 48px system-ui, sans-serif";ctx.fillStyle="#102532";ctx.fillText("Vaporeasy",pad,110)}
   ctx.textAlign="right";ctx.font="800 18px system-ui, sans-serif";ctx.fillStyle="#7b878d";ctx.fillText(paid?"RECIBO DE PAGAMENTO":"ATENDIMENTOS CONCLUÍDOS",right,92);
-  ctx.font="600 17px system-ui, sans-serif";ctx.fillText(new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00")),right,124);ctx.textAlign="left";
+  ctx.font="600 17px system-ui, sans-serif";ctx.fillText(monthlyCompetenceLabel(g.dateKey.slice(0,7)),right,124);ctx.textAlign="left";
   ctx.strokeStyle="#d4d0c8";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,170);ctx.lineTo(right,170);ctx.stroke();
   ctx.font="400 39px Georgia, serif";ctx.fillStyle="#172832";ctx.fillText(g.items.length+" estética"+(g.items.length===1?"":"s")+" realizada"+(g.items.length===1?"":"s")+" em "+groups.length+" veículo"+(groups.length===1?"":"s")+".",pad,238);
   ctx.fillText("Obrigado pela confiança.",pad,288);
@@ -6177,8 +6179,12 @@ async function loadApps(){
     }
     let p={status:b.dataset.st};
     if(b.dataset.st==="completed")p.completed_at=new Date().toISOString();
-    let u=await sb.from("appointments").update(p).eq("id",b.dataset.id);
-    if(u.error)return show("msg",fail(u.error),"error");
+    b.disabled=true;
+    try{
+      const u=await sb.from("appointments").update(p).eq("id",b.dataset.id).select("id,status");
+      if(u.error)throw u.error;
+      if(!u.data?.length)throw Error("O servidor não confirmou a alteração do atendimento. Verifique suas permissões ou as regras do agendamento.");
+    }catch(err){show("msg",fail(err),"error");b.disabled=false;return}
     agendaMonthCache.clear();
     if(b.dataset.st==="completed")waterCounterLoadedAt=0;
     await loadApps()
