@@ -2909,7 +2909,7 @@ function financePendingClientCards(apps,payMap,maps,k){
     const details=rows.map(a=>financeApptCard(a,payMap.get(a.id),maps,false)).join("");
     return '<details class="item" style="margin-top:8px;border-color:#31576a"><summary style="cursor:pointer;font-weight:900">'+esc(client?.name||"Cliente")+' · '+rows.length+' atendimento'+(rows.length===1?"":"s")+' · '+esc(money(total))+'</summary>'+
       '<button type="button" class="primary" style="width:100%;margin-top:12px" data-fin-month-client="'+esc(clientId)+'" data-fin-month="'+esc(k.month)+'">Documento mensal do cliente</button>'+
-      '<div class="meta" style="margin-top:9px">Atendimentos individuais e confirmação de pagamento</div>'+details+'</details>';
+      (rows.length>1?'<button type="button" class="success" style="width:100%;margin-top:9px" data-fin-batch="'+esc(rows.map(a=>a.id).join(','))+'">Confirmar pagamento do lote · '+esc(money(total))+'</button>':'')+'<div class="meta" style="margin-top:9px">Atendimentos individuais e confirmação de pagamento</div>'+details+'</details>';
   }).join("");
 }
 function monthKeysFromValue(month){
@@ -3700,7 +3700,7 @@ async function loadFinance(){
     const paidHtml=financeReceiptGroupCards(serviceApps,payMap,maps,true)+financePackageCards(packagePaidRows,maps,true,packageMonthRows)+paidRows.map(p=>{const a=appMap.get(p.appointment_id);return a?financeApptCard(a,p,maps,true):""}).join("");
     $("fpaid").innerHTML=paidCount?paidHtml:'<div class="empty">Nenhum recebimento confirmado neste mês.</div>';
     $("fexpenses").innerHTML=expenseRows.length?expenseRows.map(e=>'<div class="item" style="margin-top:8px"><div class="actions" style="align-items:flex-start"><div style="flex:3"><div style="font-weight:900">'+esc(e.description)+'</div><div class="meta">'+esc(e.category)+' • '+esc(new Intl.DateTimeFormat("pt-BR").format(new Date(e.expense_date+"T12:00:00"))) +(e.notes?'<br>'+esc(e.notes):'')+'</div></div><div style="font-weight:950;font-size:18px">'+esc(money(e.amount))+'</div></div><div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-exp-edit="'+e.id+'">Editar</button><button type="button" class="danger" data-exp-del="'+e.id+'">Excluir</button></div></div>').join(""):'<div class="empty">Nenhuma despesa registrada neste mês.</div>';
-    document.querySelectorAll("[data-fin-pay]").forEach(b=>b.onclick=()=>openPayment(b.dataset.finPay));
+    document.querySelectorAll("[data-fin-pay]").forEach(b=>b.onclick=()=>openPayment(b.dataset.finPay));document.querySelectorAll("[data-fin-batch]").forEach(b=>b.onclick=()=>openClientBatchPayment((b.dataset.finBatch||"").split(",").filter(Boolean)));
     document.querySelectorAll("[data-pkg-pay]").forEach(b=>b.onclick=()=>openPackagePayment(b.dataset.pkgPay));document.querySelectorAll("[data-pkg-charge-share]").forEach(b=>b.onclick=()=>sharePackageCharge(b.dataset.pkgChargeShare));
     document.querySelectorAll("[data-pkg-group-pay]").forEach(b=>b.onclick=()=>openPackageGroupPayment((b.dataset.pkgGroupPay||"").split(",").filter(Boolean)));
     document.querySelectorAll("[data-pkg-group-share]").forEach(b=>b.onclick=()=>sharePackageChargeGroup((b.dataset.pkgGroupShare||"").split(",").filter(Boolean)));
@@ -5639,7 +5639,31 @@ async function openPackagePayment(id){
     $("paydiscounttype").value="none";$("paydiscountvalue").value="";updatePaymentDiscountPreview()
   }catch(err){$("paysummary").innerHTML="";show("paymsg",fail(err),"error")}
 }
-async function openPayment(id,mode="receive"){
+async async function openClientBatchPayment(ids){
+  if(!financeAllowed()||ids.length<2)return;
+  currentPaymentMode="client_batch_receive";currentPaymentGroupIds=[...ids];
+  $("payf").reset();$("payid").value="";show("paymsg","");
+  $("paytitle").textContent="Confirmar pagamento do lote";
+  $("payreceivefields").classList.remove("hidden");$("paymethod").required=true;
+  $("paysubmit").textContent="Confirmar recebimento do lote";
+  $("paydiscountlabelwrap").classList.add("hidden");$("paydiscountwrap").classList.add("hidden");
+  $("paypreview").innerHTML="";$("paysummary").innerHTML='<div class="empty">Conferindo atendimentos...</div>';
+  currentPaymentQuote=null;$("pd").showModal();
+  try{
+    const [ar,pr]=await Promise.all([
+      sb.from("appointments").select("id,client_id,status,final_value,starts_at").in("id",ids).is("deleted_at",null),
+      sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",ids)
+    ]);
+    if(ar.error)throw ar.error;if(pr.error)throw pr.error;
+    const apps=ar.data||[],paid=new Set((pr.data||[]).filter(p=>p.status==="paid").map(p=>p.appointment_id));
+    if(apps.length!==ids.length||new Set(apps.map(a=>a.client_id)).size!==1||apps.some(a=>a.status!=="completed"||paid.has(a.id)))throw Error("O lote mudou. Atualize o financeiro antes de confirmar.");
+    const total=apps.reduce((n,a)=>n+Number(a.final_value||0),0);
+    currentPaymentQuote={gross:total,status:"completed"};
+    $("paysummary").innerHTML='<div><span>'+apps.length+' atendimentos pendentes</span><b>'+esc(money(total))+'</b></div>'+
+      apps.sort((a,b)=>a.starts_at.localeCompare(b.starts_at)).map(a=>'<div><span>'+esc(receiptDate(a.starts_at))+'</span><b>'+esc(money(a.final_value))+'</b></div>').join("");
+  }catch(err){currentPaymentQuote=null;show("paymsg",fail(err),"error")}
+}
+function openPayment(id,mode="receive"){
   $("pd").classList.remove("discount-picker");
   if(!financeAllowed())return show("msg","Seu nível de acesso não permite confirmar pagamentos.","error");
   currentPaymentMode=mode==="discount"?"discount":"receive";currentPaymentGroupIds=[];
@@ -5703,8 +5727,9 @@ function updatePaymentDiscountPreview(){
 }
 async function savePayment(e){
   e.preventDefault();
-  const id=$("payid").value,packageReceive=currentPaymentMode==="package_receive",packageGroupReceive=currentPaymentMode==="package_group_receive",receive=currentPaymentMode==="receive"||packageReceive||packageGroupReceive,monthlyDiscount=currentPaymentMode==="monthly_discount",groupDiscount=currentPaymentMode==="group_discount"||monthlyDiscount,method=$("paymethod").value,q=paymentDiscountCalc();
-  if(!groupDiscount&&!packageGroupReceive&&!id)return show("paymsg",packageReceive?"Cobrança de pacote não identificada.":"Atendimento não identificado.","error");
+  const id=$("payid").value,clientBatchReceive=currentPaymentMode==="client_batch_receive",packageReceive=currentPaymentMode==="package_receive",packageGroupReceive=currentPaymentMode==="package_group_receive",receive=currentPaymentMode==="receive"||packageReceive||packageGroupReceive||clientBatchReceive,monthlyDiscount=currentPaymentMode==="monthly_discount",groupDiscount=currentPaymentMode==="group_discount"||monthlyDiscount,method=$("paymethod").value,q=paymentDiscountCalc();
+  if(!groupDiscount&&!packageGroupReceive&&!clientBatchReceive&&!id)return show("paymsg",packageReceive?"Cobrança de pacote não identificada.":"Atendimento não identificado.","error");
+  if(clientBatchReceive&&currentPaymentGroupIds.length<2)return show("paymsg","Lote não identificado.","error");
   if(packageGroupReceive&&currentPaymentGroupIds.length<2)return show("paymsg","Grupo de mensalidades não identificado.","error");
   if(groupDiscount&&currentPaymentGroupIds.length<1)return show("paymsg","Selecione pelo menos uma estética para aplicar o desconto.","error");
   if(receive&&!method)return show("paymsg","Selecione a forma de pagamento.","error");
@@ -5712,7 +5737,9 @@ async function savePayment(e){
   if(q.error)return show("paymsg",q.error,"error");
   const submit=e.submitter;submit.disabled=true;submit.textContent=receive?"Confirmando...":"Salvando...";
   try{
-    const r=packageGroupReceive
+    const r=clientBatchReceive
+      ?await sb.rpc("confirm_client_payment_batch",{p_appointment_ids:currentPaymentGroupIds,p_payment_method:method,p_notes:$("paynotes").value.trim()})
+      :packageGroupReceive
       ?await sb.rpc("confirm_package_charge_group",{
         p_charge_ids:currentPaymentGroupIds,
         p_payment_method:method,
@@ -5759,7 +5786,7 @@ async function savePayment(e){
     const groupIds=(groupDiscount||packageGroupReceive)?[...currentPaymentGroupIds]:[];
     const monthlyReturn=monthlyDiscount&&currentMonthlyReceipt?{clientId:currentMonthlyReceipt.client?.id,month:currentMonthlyReceipt.month}:null;
     $("pd").close();currentPaymentQuote=null;currentPaymentGroupIds=[];agendaMonthCache.clear();
-    if(packageGroupReceive){
+    if(clientBatchReceive){show("msg","Pagamento do lote confirmado.","ok")}else if(packageGroupReceive){
       show("msg","Mensalidades confirmadas em uma única baixa.","ok")
     }else if(packageReceive){
       show("msg","Mensalidade do pacote confirmada como recebida.","ok")
@@ -5777,6 +5804,7 @@ async function savePayment(e){
       return
     }
     await Promise.all([loadApps(),financeAllowed()?loadFinance():Promise.resolve()]);
+    if(clientBatchReceive)return;
     if(packageGroupReceive){await sharePackageChargeGroup(groupIds);return;}
     if(packageReceive){await sharePackageCharge(id);return;}
     if(groupDiscount)await openReceiptGroup(groupIds);else await openReceipt(id)
