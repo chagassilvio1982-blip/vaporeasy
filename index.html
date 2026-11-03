@@ -5729,7 +5729,7 @@ async function savePayment(e){
               p_discount_type:q.type,
               p_discount_value:q.type==="none"?0:q.raw
             })
-            :await sb.rpc("apply_pending_group_discount",{
+            :await sb.rpc("apply_pending_monthly_discount",{
               p_appointment_ids:currentPaymentGroupIds,
               p_discount_type:q.type,
               p_discount_value:q.type==="none"?0:q.raw
