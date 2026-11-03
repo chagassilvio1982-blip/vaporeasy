@@ -2896,6 +2896,22 @@ function financeReceiptGroupCards(apps,payMap,maps,paid=false){
   }).join("")
 }
 
+function financePendingClientCards(apps,payMap,maps,k){
+  const groups=new Map();
+  for(const a of apps||[]){
+    if(!a?.client_id)continue;
+    const group=groups.get(a.client_id)||[];
+    group.push(a);groups.set(a.client_id,group);
+  }
+  return [...groups.entries()].sort((a,b)=>(maps.cm.get(a[0])?.name||"").localeCompare(maps.cm.get(b[0])?.name||"","pt-BR")).map(([clientId,rows])=>{
+    const client=maps.cm.get(clientId);
+    const total=rows.reduce((sum,a)=>sum+Number(payMap.get(a.id)?.amount??a.final_value??0),0);
+    const details=rows.map(a=>financeApptCard(a,payMap.get(a.id),maps,false)).join("");
+    return '<details class="item" style="margin-top:8px;border-color:#31576a"><summary style="cursor:pointer;font-weight:900">'+esc(client?.name||"Cliente")+' · '+rows.length+' atendimento'+(rows.length===1?"":"s")+' · '+esc(money(total))+'</summary>'+
+      '<button type="button" class="primary" style="width:100%;margin-top:12px" data-fin-month-client="'+esc(clientId)+'" data-fin-month="'+esc(k.month)+'">Documento mensal do cliente</button>'+
+      '<div class="meta" style="margin-top:9px">Atendimentos individuais e confirmação de pagamento</div>'+details+'</details>';
+  }).join("");
+}
 function monthKeysFromValue(month){
   if(!/^\d{4}-\d{2}$/.test(String(month||"")))throw Error("Mês de referência inválido.");
   const [y,mo]=month.split("-").map(Number);
@@ -3679,7 +3695,7 @@ async function loadFinance(){
     $("fmonthdoccount").textContent="("+monthlyClientCount+")";$("fmonthdocs").innerHTML=monthlyDocHtml||'<div class="empty">Nenhum serviço concluído neste mês.</div>';
     const pendingCount=pendingApps.length+pendingPackage.length,paidCount=paidRows.length+packagePaidRows.length;
     $("fpendingcount").textContent="("+pendingCount+")";$("fpaidcount").textContent="("+paidCount+")";$("fexpensecount").textContent="("+expenseRows.length+")";
-    const pendingHtml=financeReceiptGroupCards(serviceApps,payMap,maps,false)+financePackageCards(pendingPackage,maps,false,packageMonthRows)+pendingApps.map(a=>financeApptCard(a,payMap.get(a.id),maps,false)).join("");
+    const pendingHtml=financePendingClientCards(pendingApps,payMap,maps,k)+financePackageCards(pendingPackage,maps,false,packageMonthRows);
     $("fpending").innerHTML=pendingCount?pendingHtml:'<div class="empty">Nenhum valor pendente neste mês.</div>';
     const paidHtml=financeReceiptGroupCards(serviceApps,payMap,maps,true)+financePackageCards(packagePaidRows,maps,true,packageMonthRows)+paidRows.map(p=>{const a=appMap.get(p.appointment_id);return a?financeApptCard(a,p,maps,true):""}).join("");
     $("fpaid").innerHTML=paidCount?paidHtml:'<div class="empty">Nenhum recebimento confirmado neste mês.</div>';
