@@ -1645,11 +1645,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",apply,{once:true});
   else apply();
   window.__vaporeasyClassicBootstrap=true;
+  let bootError="";
+  const reportBootError=(message)=>{
+    if(window.__vaporeasyAppBooted)return;
+    bootError=String(message||"Erro desconhecido").slice(0,180);
+    const m=document.getElementById("amsg");
+    if(m){m.textContent="Falha na inicialização: "+bootError;m.className="notice error";m.classList.remove("hidden")}
+  };
+  window.addEventListener("error",e=>reportBootError(e.message||"Erro ao carregar recurso"));
+  window.addEventListener("unhandledrejection",e=>reportBootError(e.reason?.message||"Falha assíncrona"));
   setTimeout(()=>{
     if(window.__vaporeasyAppBooted)return;
     const msg=document.getElementById("amsg");
     if(msg){
-      msg.textContent="O aplicativo não terminou de iniciar. Atualize esta página; se continuar, envie este print para a Vaporeasy.";
+      msg.textContent=bootError?"Falha na inicialização: "+bootError:"O aplicativo não terminou de iniciar. Código: BOOT_TIMEOUT. Envie este print para a Vaporeasy.";
       msg.className="notice error";
       msg.classList.remove("hidden");
     }
