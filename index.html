@@ -5014,8 +5014,9 @@ async function getReceiptGroupData(ids){
   const first=items[0];
   if(items.some(d=>d.x.client_id!==first.x.client_id))throw Error("O documento conjunto só pode reunir atendimentos do mesmo cliente.");
   const days=[...new Set(items.map(d=>agendaLocalDateKey(d.x.completed_at||d.x.starts_at)))];
-  if(days.length!==1)throw Error("O documento conjunto só pode reunir atendimentos do mesmo dia.");
+  if(days.some(day=>day.slice(0,7)!==days[0].slice(0,7)))throw Error("O documento conjunto só pode reunir atendimentos do mesmo mês.");
   const allPaid=items.every(d=>d.payment?.status==="paid");
+  if(items.some(d=>(d.payment?.status==="paid")!==allPaid))throw Error("Não é permitido misturar pagamentos recebidos e pendentes no mesmo documento.");
   const nonePaid=items.every(d=>d.payment?.status!=="paid");
   const total=items.reduce((sum,d)=>sum+receiptAmounts(d).final,0);
   const gross=items.reduce((sum,d)=>sum+receiptAmounts(d).gross,0);
@@ -5023,7 +5024,7 @@ async function getReceiptGroupData(ids){
   const methods=[...new Set(items.filter(d=>d.payment?.status==="paid").map(d=>d.payment?.payment_method).filter(Boolean))];
   const paidAt=items.filter(d=>d.payment?.paid_at).map(d=>new Date(d.payment.paid_at)).sort((a,b)=>b-a)[0]||null;
   return{
-    isGroup:true,items,client:first.client,bank:first.bank,dateKey:days[0],
+    isGroup:true,items,client:first.client,bank:first.bank,dateKey:days[0],dateKeys:days,
     allPaid,nonePaid,total,gross,discount,methods,paidAt,
     waterForGroup:items.length*WATER_PER_COMPLETED_SERVICE,
     totalWater:Math.max(...items.map(d=>Number(d.totalWater||0)))
@@ -5048,7 +5049,7 @@ function groupReceiptVehicleGroups(g){
   }))
 }
 function groupReceiptHtml(g){
-  const paid=g.allPaid,dateLabel=new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00")),groups=groupReceiptVehicleGroups(g);
+  const paid=g.allPaid,dateLabel=g.dateKeys?.length>1?("Período: "+g.dateKeys.slice().sort().map(day=>new Intl.DateTimeFormat("pt-BR").format(new Date(day+"T12:00:00")))[0]+" a "+new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKeys.slice().sort().at(-1)+"T12:00:00"))):new Intl.DateTimeFormat("pt-BR").format(new Date(g.dateKey+"T12:00:00")),groups=groupReceiptVehicleGroups(g);
   const rows=groups.map(v=>{
     const dates=v.dates.map(x=>new Intl.DateTimeFormat("pt-BR").format(new Date(x+"T12:00:00"))).join(" · ");
     const services=v.services.join(" + ");
@@ -5115,23 +5116,24 @@ async function openSameClientReceiptGroup(){
   if(!clientId||!baseId)return;
   const paid=currentReceipt.payment?.status==="paid";
   const dateKey=agendaLocalDateKey(currentReceipt.x.completed_at||currentReceipt.x.starts_at);
-  const startIso=new Date(dateKey+"T00:00:00-03:00").toISOString();
-  const nextDate=new Date(dateKey+"T12:00:00-03:00");nextDate.setDate(nextDate.getDate()+1);
-  const nextKey=nextDate.getFullYear()+"-"+String(nextDate.getMonth()+1).padStart(2,"0")+"-"+String(nextDate.getDate()).padStart(2,"0");
-  const nextIso=new Date(nextKey+"T00:00:00-03:00").toISOString();
+  const monthStart=dateKey.slice(0,7)+"-01";
+  const [year,month]=monthStart.split("-").map(Number);
+  const monthEnd=new Date(Date.UTC(year,month,1)).toISOString().slice(0,10);
+  const startIso=new Date(monthStart+"T00:00:00-03:00").toISOString();
+  const endIso=new Date(monthEnd+"T00:00:00-03:00").toISOString();
   try{
-    show("rgroupmsg","Procurando outros atendimentos deste cliente...","");
+    show("rgroupmsg","Procurando atendimentos deste cliente no mês...","");
     const ar=await sb.from("appointments")
       .select("id,completed_at")
       .eq("client_id",clientId)
       .eq("status","completed")
       .is("deleted_at",null)
       .gte("completed_at",startIso)
-      .lt("completed_at",nextIso)
+      .lt("completed_at",endIso)
       .order("completed_at");
     if(ar.error)throw ar.error;
     const ids=(ar.data||[]).map(x=>x.id);
-    if(!ids.length)return show("rgroupmsg","Não há outros atendimentos deste cliente neste dia.","error");
+    if(!ids.length)return show("rgroupmsg","Não há atendimentos deste cliente neste mês.","error");
     const pr=await sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",ids);
     if(pr.error)throw pr.error;
     const pm=new Map((pr.data||[]).map(x=>[x.appointment_id,x]));
@@ -5139,7 +5141,7 @@ async function openSameClientReceiptGroup(){
     if(!eligible.includes(baseId))eligible.unshift(baseId);
     const unique=[...new Set(eligible)];
     if(unique.length<2){
-      return show("rgroupmsg",paid?"Não há outro recibo pago deste cliente para agrupar neste dia.":"Não há outro comprovante pendente deste cliente para agrupar neste dia.","error")
+      return show("rgroupmsg",paid?"Não há outro recibo pago deste cliente para agrupar neste mês.":"Não há outro comprovante pendente deste cliente para agrupar neste mês.","error");
     }
     if($("rd").open)$("rd").close();
     await openReceiptGroup(unique)
