@@ -5648,7 +5648,7 @@ async function openPackagePayment(id){
     $("paydiscounttype").value="none";$("paydiscountvalue").value="";updatePaymentDiscountPreview()
   }catch(err){$("paysummary").innerHTML="";show("paymsg",fail(err),"error")}
 }
-async async function openClientBatchPayment(ids){
+async function openClientBatchPayment(ids){
   if(!financeAllowed()||ids.length<2)return;
   currentPaymentMode="client_batch_receive";currentPaymentGroupIds=[...ids];
   $("payf").reset();$("payid").value="";show("paymsg","");
