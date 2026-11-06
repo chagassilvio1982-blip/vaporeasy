@@ -17,8 +17,9 @@
     const k=financeMonthKeys(),modal=el("dialog",{style:"max-width:650px;width:95%;max-height:90vh;overflow:auto;padding:20px"});
     const title=el("h3",{},"Selecionar cobrança · "+k.month),message=el("p",{},"Selecione o cliente para conferir mensalidades e serviços concluídos.");
     const client=el("select",{style:"width:100%;padding:10px;margin:8px 0"}),rows=el("div"),total=el("strong",{},"Total selecionado: "+format(0));
+    const exportButton=el("button",{type:"button"},"Gerar prévia para conferência");exportButton.disabled=true;
     const close=el("button",{type:"button"},"Fechar");close.onclick=()=>modal.close();
-    modal.append(title,message,client,rows,total,el("p",{},"Prévia para conferência. Nenhuma cobrança será emitida por esta tela."),close);
+    modal.append(title,message,client,rows,total,el("p",{},"Prévia para conferência. Nenhuma cobrança será emitida por esta tela."),exportButton,close);
     document.body.append(modal);modal.addEventListener("close",()=>modal.remove());modal.showModal();
     const [cr,ar,pc,subs,payments]=await Promise.all([
       sb.from("clients").select("id,name").order("name"),
@@ -35,20 +36,30 @@
     clients.forEach(c=>client.append(el("option",{value:c.id},c.name)));
     client.onchange=()=>{
       rows.replaceChildren();const id=client.value;let sum=0;const checks=[];
-      function addLine(name,amount,enabled,description){
+      exportButton.disabled=true;
+      exportButton.onclick=()=>{
+        const chosen=checks.filter(x=>x.input.checked).map(x=>x.line);
+        const amount=validateBillingSelection(chosen,{client_id:id,competence:k.month});
+        const selectedClient=clients.find(x=>x.id===id);
+        const report=["VAPOREASY — PRÉVIA DE COBRANÇA (NÃO EMITIDA)","Cliente: "+(selectedClient?.name||""),"Competência: "+k.month,"",...chosen.map(x=>x.label+" | "+format(x.amount)),"","TOTAL: "+format(amount),"DOCUMENTO DE CONFERÊNCIA — NÃO É RECIBO OU COBRANÇA"];
+        const blob=new Blob([report.join("\\n")],{type:"text/plain;charset=utf-8"});
+        const url=URL.createObjectURL(blob),link=el("a",{href:url,download:"vaporeasy-previa-"+k.month+".txt"});
+        document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      };
+      function addLine(name,amount,enabled,description,line){
         const label=el("label",{style:"display:block;padding:10px;border-bottom:1px solid #ddd"});
         const input=el("input",{type:"checkbox"});input.disabled=!enabled;
-        input.onchange=()=>{sum=checks.filter(x=>x.input.checked).reduce((n,x)=>n+x.amount,0);total.textContent="Total selecionado: "+format(sum)};
-        label.append(input,document.createTextNode(" "+name+" · "+format(amount)+" — "+description));rows.append(label);checks.push({input,amount});
+        input.onchange=()=>{sum=checks.filter(x=>x.input.checked).reduce((n,x)=>n+x.amount,0);total.textContent="Total selecionado: "+format(sum);exportButton.disabled=!checks.some(x=>x.input.checked)};
+        label.append(input,document.createTextNode(" "+name+" · "+format(amount)+" — "+description));rows.append(label);checks.push({input,amount,line});
       }
-      (pc.data||[]).filter(x=>x.client_id===id).forEach(c=>addLine("Mensalidade do plano",Number(c.amount||0),c.status==="pending",c.status==="paid"?"Já paga":"Pendente"));
+      (pc.data||[]).filter(x=>x.client_id===id).forEach(c=>addLine("Mensalidade do plano",Number(c.amount||0),c.status==="pending",c.status==="paid"?"Já paga":"Pendente",{kind:"package_charge",id:c.id,amount:Number(c.amount||0),status:c.status,client_id:id,competence_month:c.competence_month,label:"Mensalidade do plano"}));
       (ar.data||[]).filter(x=>x.client_id===id).forEach(a=>{
         const coverage=billingCoverage(a,subs.data||[],pc.data||[],k.month);
         const payment=paymentMap.get(a.id);
         const linkedToPlan=Boolean(a.recurring_plan_id)||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id);
         const isPaid=payment?.status==="paid";
         const isAvulso=!linkedToPlan&&coverage.kind==="review_required"&&!isPaid;
-        addLine("Atendimento "+String(a.starts_at).slice(0,10),Number(payment?.amount??a.final_value??0),isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura");
+        addLine("Atendimento "+String(a.starts_at).slice(0,10),Number(payment?.amount??a.final_value??0),isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:Number(payment?.amount??a.final_value??0),status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,label:"Atendimento "+String(a.starts_at).slice(0,10)});
       });
       total.textContent="Total selecionado: "+format(0);
     };
