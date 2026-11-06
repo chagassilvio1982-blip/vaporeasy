@@ -37,3 +37,8 @@ test("each charge and appointment displays its vehicle",()=>{
  assert.match(preview,/Atendimento "\+saoPauloDate\(a\.starts_at\)\+" · "\+vehicleLabel\(a\.vehicle_id\)/);
  assert.match(preview,/label:"Mensalidade do plano · "\+vehicleLabel\(c\.vehicle_id\)/);
 });
+
+test("São Paulo date uses locale-independent ISO ordering",()=>{
+ assert.match(preview,/\.formatToParts\(new Date\(iso\)\)/);
+ assert.match(preview,/part\("year"\)\+"-"\+part\("month"\)\+"-"\+part\("day"\)/);
+});
