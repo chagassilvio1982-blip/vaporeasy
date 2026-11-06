@@ -36,7 +36,7 @@ function build(r,cid){
       service:sm.get(c.service_id)?.name||'Mensalidade do pacote',
       date:dateBr(c.competence_month||c.created_at),status:covered?'Coberto por ajuste':paid?'Pago':'Pendente',
       value,received:paid?value:0,pending:paid?0:value,
-      detail:visits.length?visits.length+' serviço(s) realizado(s) incluído(s) nesta mensalidade, sem cobrança avulsa.':'Sem visitas vinculadas a este plano na competência',
+      detail:visits.length?visits.length+' visita(s) vinculada(s) ao plano nesta competência, sem cobrança avulsa.':'Sem visitas vinculadas nesta competência; cobrança do pacote independente da execução',
       discount:amount(c.commercial_discount||0),covered
    });
    // Cada serviço efetivamente realizado aparece como seleção independente,
@@ -86,7 +86,7 @@ function totals(rows){
  return rows.reduce(function(z,x){z.value+=x.value;z.received+=x.received;z.pending+=x.pending;return z},{value:0,received:0,pending:0})
 }
 function documentHtml(rows,clientName,month){
- var t=totals(rows),title='DEMONSTRATIVO CONSOLIDADO — PRÉVIA';
+ var t=totals(rows),title='DEMONSTRATIVO DE COBRANÇAS E PAGAMENTOS — PRÉVIA';
  var body=rows.map(function(row){
     return '<tr><td><b>'+esc(row.vehicle)+'</b><br><small>'+esc(row.kind)+' · '+esc(row.service)+' · '+esc(row.date)+'</small>'+
       (row.detail?'<br><small>'+esc(row.detail)+'</small>':'')+'</td>'+
@@ -175,7 +175,7 @@ function close(){
 function textDoc(){
  var rows=snapshot(),t=totals(rows),lines=['VAPOREASY — Demonstrativo consolidado',selectedClientName()+' · '+monthLabel(),''];
  rows.forEach(function(x){lines.push(x.vehicle+' | '+x.kind+' | '+x.service+' | '+x.status+' | '+money(x.value)+' | recebido '+money(x.received)+' | pendente '+money(x.pending))});
- lines.push('','Lançamentos: '+money(t.value),'Recebido: '+money(t.received),'A receber: '+money(t.pending),'Visitas incluídas em planos não são cobradas novamente.','Prévia não fiscal — consulte os registros originais.');
+ lines.push('','Lançamentos: '+money(t.value),'Recebido: '+money(t.received),'A receber: '+money(t.pending),'Mensalidades podem ser pagas antecipadamente; pagamento não comprova execução dos serviços. Visitas incluídas em planos não são cobradas novamente.','Prévia não fiscal — consulte os registros originais.');
  return lines.join('\n');
 }
 function share(){
