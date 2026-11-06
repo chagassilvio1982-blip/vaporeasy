@@ -109,12 +109,31 @@ function refreshPreview(){
 function refreshItems(){
  var body=document.getElementById('vpMixedReceiptItems');if(!body)return;
  data=build(fullReport(),clientId);selected=new Set(data.map(function(x){return x.key}));
- body.innerHTML=data.length?data.map(function(x){
-  return '<label class="vp-mixed-line"><input type="checkbox" data-vp-mixed-key="'+esc(x.key)+'" checked>'+
-   '<span><strong>'+esc(x.vehicle)+'</strong><small>'+esc(x.kind)+' · '+esc(x.service)+(x.date?' · '+esc(x.date):'')+
-   '</small><small>'+esc(x.status)+' · '+money(x.value)+(x.discount?' · desconto já aplicado '+money(x.discount):'')+
-   '</small></span></label>';
- }).join(''):'<div class="vp-mixed-empty">Este cliente não tem lançamentos nessa competência.</div>';
+ var groups=new Map();
+ data.forEach(function(item){
+  var v=groups.get(item.vehicle)||[];
+  v.push(item);groups.set(item.vehicle,v);
+ });
+ var controls='<div class="vp-mixed-pick-actions" aria-label="Selecionar serviços do documento">'+
+   '<span>Marque os serviços de cada carro</span>'+
+   '<button type="button" data-vp-action="all">Todos</button>'+
+   '<button type="button" data-vp-action="none">Limpar</button></div>';
+ var rows=[...groups.entries()].map(function(entry){
+  var name=entry[0],items=entry[1],groupTotal=items.reduce(function(n,x){return n+x.value},0);
+  return '<section class="vp-mixed-vehicle-group" aria-label="Lançamentos de '+esc(name)+'">'+
+    '<div class="vp-mixed-vehicle-header"><strong>'+esc(name)+'</strong><span>'+items.length+' item(ns) · '+money(groupTotal)+'</span></div>'+
+    items.map(function(x){
+      var statusClass=x.needsReview?'review':x.pending>0?'pending':'paid';
+      return '<label class="vp-mixed-line"><input type="checkbox" data-vp-mixed-key="'+esc(x.key)+'" checked>'+
+      '<span class="vp-mixed-line-body"><strong>'+esc(x.service)+'</strong>'+
+      '<small>'+esc(x.kind)+(x.date?' · '+esc(x.date):'')+'</small>'+
+      (x.detail?'<small class="vp-mixed-detail">'+esc(x.detail)+'</small>':'')+
+      (x.discount?'<small>Desconto já aplicado: '+money(x.discount)+'</small>':'')+
+      '</span><span class="vp-mixed-line-side"><b>'+money(x.value)+'</b>'+
+      '<small class="vp-mixed-chip '+statusClass+'">'+esc(x.status)+'</small></span></label>';
+    }).join('')+'</section>';
+ }).join('');
+ body.innerHTML=data.length?controls+rows:'<div class="vp-mixed-empty">Este cliente não tem lançamentos nessa competência.</div>';
  refreshPreview();
 }
 function setupClients(){
@@ -181,6 +200,15 @@ function install(){
  var monthInput=document.getElementById('fmonth');if(monthInput)monthInput.addEventListener('change',close);
  sheet.addEventListener('click',function(e){if(e.target===sheet)close()});
  document.getElementById('vpMixedReceiptClient').addEventListener('change',function(e){clientId=e.target.value;refreshItems()});
+ document.getElementById('vpMixedReceiptItems').addEventListener('click',function(e){
+  var action=e.target?.closest?.('[data-vp-action]')?.getAttribute('data-vp-action');
+  if(action!=='all'&&action!=='none')return;
+  selected=action==='all'?new Set(data.map(function(x){return x.key})):new Set();
+  document.querySelectorAll('#vpMixedReceiptItems input[data-vp-mixed-key]').forEach(function(input){
+   input.checked=selected.has(input.getAttribute('data-vp-mixed-key'));
+  });
+  refreshPreview();
+ });
  document.getElementById('vpMixedReceiptItems').addEventListener('change',function(e){
   var k=e.target?.getAttribute('data-vp-mixed-key');if(!k)return;
   if(e.target.checked)selected.add(k);else selected.delete(k);refreshPreview()
