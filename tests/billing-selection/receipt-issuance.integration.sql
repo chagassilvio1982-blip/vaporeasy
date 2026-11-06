@@ -60,5 +60,15 @@ begin
  begin perform public.issue_selected_monthly_receipt('ffffffff-ffff-4fff-8fff-ffffffffffff','2026-11-01',v_lines);
  exception when others then v_failed:=true;end;
  if not v_failed then raise exception 'Another client appointment was accepted';end if;
+ v_lines:='[{"kind":"appointment_extra","id":"33333333-3333-4333-8333-333333333333","amount":149}]';
+ v_failed:=false;
+ begin perform public.issue_selected_monthly_receipt('ffffffff-ffff-4fff-8fff-ffffffffffff','2026-11-01',v_lines);
+ exception when others then v_failed:=true;end;
+ if not v_failed then raise exception 'Altered amount was accepted';end if;
+ v_lines:='[{"kind":"package_charge","id":"22222222-2222-4222-8222-222222222222","amount":390},{"kind":"package_charge","id":"22222222-2222-4222-8222-222222222222","amount":390}]';
+ v_failed:=false;
+ begin perform public.issue_selected_monthly_receipt('ffffffff-ffff-4fff-8fff-ffffffffffff','2026-11-01',v_lines);
+ exception when others then v_failed:=true;end;
+ if not v_failed then raise exception 'Duplicate item was accepted';end if;
  if (select count(*) from public.monthly_receipt_snapshots)<>1 then raise exception 'Invalid receipt was inserted';end if;
 end $$;
