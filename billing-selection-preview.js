@@ -25,9 +25,35 @@
     const client=el("select",{style:"width:100%;padding:10px;margin:8px 0"}),rows=el("div"),total=el("strong",{},"Total selecionado: "+format(0));
     const exportButton=el("button",{type:"button"},"Gerar prévia para conferência");exportButton.disabled=true;
     const issueButton=el("button",{type:"button"},"Emitir recibo selecionado (aguardando integração ao histórico)");issueButton.disabled=true;
-    const selectedReceiptRendererReady=false; // Existing receipt history only accepts snapshotVersion 1; SQL issues schema_version 2.
+    const selectedReceiptRendererReady=false; // Keep issuance disabled until the existing receipt history supports this document.
+    const historyButton=el("button",{type:"button"},"Consultar documento mensal");
+    historyButton.onclick=async()=>{
+      const clientId=client.value;
+      if(!clientId){alert("Selecione um cliente.");return;}
+      try{
+        const result=await sb.from("monthly_receipt_snapshots").select("id,snapshot,issued_at").eq("client_id",clientId).eq("competence_month",k.startDate).maybeSingle();
+        if(result.error)throw result.error;
+        if(!result.data){alert("Nenhum documento mensal registrado para este cliente e mês.");return;}
+        const snap=result.data.snapshot||{};
+        if(snap.kind!=="selected_monthly_receipt"||Number(snap.schema_version)!==2){
+          alert("Documento existente no histórico tradicional. Consulte a área de recibos.");return;
+        }
+        const chosenClient=(cr.data||[]).find(c=>c.id===clientId);
+        const content=["VAPOREASY — DOCUMENTO MENSAL","Cliente: "+(chosenClient?.name||""),"Competência: "+k.month,"Emitido em: "+(result.data.issued_at||""),"Documento: "+result.data.id,"",...(snap.lines||[]).map(line=>(line.kind==="package_charge"?"Mensalidade":"Atendimento avulso")+" · "+line.id+" · "+format(Number(line.amount||0))),"","TOTAL: "+format(Number(snap.total||0)),"Documento de cobrança. Não comprova pagamento."].join("\\n");
+        const output=el("pre",{style:"white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#f6f7f8;color:#111"},content);
+        const view=el("dialog",{style:"width:95%;max-width:650px;max-height:85vh;overflow:auto"});
+        const download=el("button",{type:"button"},"Salvar documento");
+        download.onclick=()=>{
+          const blob=new Blob([content],{type:"text/plain;charset=utf-8"}),url=URL.createObjectURL(blob),link=el("a",{href:url,download:"vaporeasy-documento-"+k.month+".txt"});
+          document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+        };
+        const dismiss=el("button",{type:"button"},"Fechar");dismiss.onclick=()=>view.close();
+        view.append(el("h3",{},"Documento mensal registrado"),output,download,dismiss);
+        document.body.append(view);view.addEventListener("close",()=>view.remove());view.showModal();
+      }catch(error){alert("Falha ao consultar documento: "+(error.message||String(error)));}
+    };
     const close=el("button",{type:"button"},"Fechar");close.onclick=()=>modal.close();
-    modal.append(title,message,client,rows,total,el("p",{},"Confira os itens antes de emitir. A emissão registra um documento mensal e não altera pagamentos."),exportButton,issueButton,close);
+    modal.append(title,message,client,rows,total,el("p",{},"Confira os itens antes de emitir. A emissão registra um documento mensal e não altera pagamentos."),exportButton,issueButton,historyButton,close);
     document.body.append(modal);modal.addEventListener("close",()=>modal.remove());modal.showModal();
     const [cr,ar,pc,subs,vr]=await Promise.all([
       sb.from("clients").select("id,name").order("name"),
