@@ -4728,7 +4728,7 @@ async function loadAvailableSlots(preferred=""){
   if(req!==slotRequestSeq)return;
   b.textContent=appointmentSubmitLabel();
   if(r.error){t.innerHTML='<option value="">Não foi possível consultar</option>';help.textContent=fail(r.error);b.disabled=true;return}
-  const rows=(r.data||[]).filter(x=>/^\\d{2}:\\d{2}$/.test(x.local_time)&&x.local_time<=LAST_APPOINTMENT_START);
+  const rows=(r.data||[]).filter(x=>/^\d{2}:\d{2}$/.test(x.local_time)&&x.local_time<=LAST_APPOINTMENT_START);
   if(!rows.length){
     if(id&&preferred){
       t.innerHTML='<option value="'+esc(preferred)+'">'+esc(preferred)+' • horário atual</option>';
