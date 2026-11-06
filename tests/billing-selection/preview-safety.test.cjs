@@ -42,3 +42,9 @@ test("São Paulo date uses locale-independent ISO ordering",()=>{
  assert.match(preview,/\.formatToParts\(new Date\(iso\)\)/);
  assert.match(preview,/part\("year"\)\+"-"\+part\("month"\)\+"-"\+part\("day"\)/);
 });
+
+test("browser exposes the billing selection validator required by preview",()=>{
+ const guard=fs.readFileSync("billing-selection-guard.js","utf8");
+ assert.match(guard,/window\.validateBillingSelection = validateBillingSelection/);
+ assert.match(preview,/validateBillingSelection\(chosen/);
+});
