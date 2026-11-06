@@ -5,6 +5,7 @@ on:
       - 'billing-selection-guard.cjs'
       - 'billing-selection-guard.js'
       - 'billing-selection-preview.js'
+      - 'migrations/20261106_selected_monthly_receipt_DRAFT.sql'
       - 'tests/billing-selection/**'
       - '.github/workflows/v2-billing-safety.yml'
   workflow_dispatch:
