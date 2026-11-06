@@ -42,7 +42,7 @@
         const amount=validateBillingSelection(chosen,{client_id:id,competence:k.month});
         const selectedClient=clients.find(x=>x.id===id);
         const report=["VAPOREASY — PRÉVIA DE COBRANÇA (NÃO EMITIDA)","Cliente: "+(selectedClient?.name||""),"Competência: "+k.month,"",...chosen.map(x=>x.label+" | "+format(x.amount)),"","TOTAL: "+format(amount),"DOCUMENTO DE CONFERÊNCIA — NÃO É RECIBO OU COBRANÇA"];
-        const blob=new Blob([report.join("\\n")],{type:"text/plain;charset=utf-8"});
+        const blob=new Blob([report.join("\n")],{type:"text/plain;charset=utf-8"});
         const url=URL.createObjectURL(blob),link=el("a",{href:url,download:"vaporeasy-previa-"+k.month+".txt"});
         document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
       };
