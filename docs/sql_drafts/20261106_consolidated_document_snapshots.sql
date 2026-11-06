@@ -7,6 +7,9 @@
 --   private.is_active_user(), private.current_app_role()
 --   public.clients, auth.users.
 -- A versão publicada usa o mesmo Supabase que o preview da V2.
+-- Em 06/11/2026 foi confirmado que o projeto separado
+-- wwivmyhlwqyzmaexkmnk está INACTIVE. Não aplicar esta migração ao
+-- asuppjeomaymzromgcrp, que contém os registros da operação da V2.
 --
 -- ESCRITA EXCLUSIVA pelo backend validado com service_role;
 -- nenhum INSERT/UPDATE/DELETE é autorizado diretamente a clientes.
@@ -40,6 +43,9 @@ create index consolidated_snapshot_client_date
 alter table public.consolidated_document_snapshots enable row level security;
 revoke all on table public.consolidated_document_snapshots from PUBLIC, anon, authenticated;
 grant select on public.consolidated_document_snapshots to authenticated;
+-- A Edge Function validada acessará este banco exclusivamente pelo backend.
+-- Não conceder INSERT/UPDATE/DELETE a authenticated ou anon.
+grant insert, select on public.consolidated_document_snapshots to service_role;
 
 create policy consolidated_snapshot_finance_read
     on public.consolidated_document_snapshots
@@ -49,6 +55,9 @@ create policy consolidated_snapshot_finance_read
         and private.current_app_role() in ('owner','admin')
     );
 
+-- A função de inserção deverá construir snapshot.items no servidor,
+-- usando IDs de origem e pagamentos recuperados da base. Nunca confiar
+-- em valores de serviço, status ou totais enviados pelo navegador.
 -- Proteção em profundidade: mesmo papel privilegiado não deve modificar
 -- um documento já emitido. Correções exigem nova revisão.
 create function private.prevent_consolidated_snapshot_mutation()
@@ -64,6 +73,10 @@ revoke all on function private.prevent_consolidated_snapshot_mutation() from PUB
 create trigger consolidated_snapshot_immutable
 before update or delete on public.consolidated_document_snapshots
 for each row execute function private.prevent_consolidated_snapshot_mutation();
+
+create trigger consolidated_snapshot_no_truncate
+before truncate on public.consolidated_document_snapshots
+for each statement execute function private.prevent_consolidated_snapshot_mutation();
 
 -- Não há política INSERT. Uma função Edge autenticada deverá:
 --  1) verificar JWT no Auth, perfil financeiro ativo e pertencimento do cliente;
