@@ -1,0 +1,23 @@
+name: V2 Billing Safety Tests
+on:
+  pull_request:
+    paths:
+      - 'billing-selection-guard.cjs'
+      - 'billing-selection-guard.js'
+      - 'billing-selection-preview.js'
+      - 'tests/billing-selection/**'
+      - '.github/workflows/v2-billing-safety.yml'
+  workflow_dispatch:
+jobs:
+  billing-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/billing-selection/*.test.cjs
+      - run: node --check billing-selection-preview.js
+      - run: node --check billing-selection-guard.js
