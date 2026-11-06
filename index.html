@@ -4002,7 +4002,7 @@ async function loadAgendaList(){
   const r=await sb.from("appointments").select("id,client_id,vehicle_id,service_id,team_id,collaborator_id,starts_at,ends_at,duration_minutes,status").gte("starts_at",startIso).lt("starts_at",nextIso).is("deleted_at",null).order("starts_at");
   if(req!==agendaListLoadSeq)return;
   if(r.error){box.innerHTML='<div class="notice error">'+esc(fail(r.error))+'</div>';return}
-  const rows=(r.data||[]).filter(x=>/^\\d{2}:\\d{2}$/.test(x.local_time)&&x.local_time<=LAST_APPOINTMENT_START);
+  const rows=r.data||[];
   if(!rows.length){box.innerHTML='<div class="empty">Nenhum agendamento neste mês.</div>';return}
   const clientIds=[...new Set(rows.map(x=>x.client_id).filter(Boolean))],vehicleIds=[...new Set(rows.map(x=>x.vehicle_id).filter(Boolean))],serviceIds=[...new Set(rows.map(x=>x.service_id).filter(Boolean))],teamIds=[...new Set(rows.map(x=>x.team_id).filter(Boolean))],collabIds=[...new Set(rows.map(x=>x.collaborator_id).filter(Boolean))];
   const [cr,vr,sr,tr,cor]=await Promise.all([
@@ -4728,7 +4728,7 @@ async function loadAvailableSlots(preferred=""){
   if(req!==slotRequestSeq)return;
   b.textContent=appointmentSubmitLabel();
   if(r.error){t.innerHTML='<option value="">Não foi possível consultar</option>';help.textContent=fail(r.error);b.disabled=true;return}
-  const rows=r.data||[];
+  const rows=(r.data||[]).filter(x=>/^\\d{2}:\\d{2}$/.test(x.local_time)&&x.local_time<=LAST_APPOINTMENT_START);
   if(!rows.length){
     if(id&&preferred){
       t.innerHTML='<option value="'+esc(preferred)+'">'+esc(preferred)+' • horário atual</option>';
@@ -4860,7 +4860,7 @@ async function saveAppt(e){
   if(!serviceId)return show("apmsg","Selecione o serviço.","error");
   if(!date)return show("apmsg","Selecione a data.","error");
   if(!time)return show("apmsg","Selecione um horário disponível.","error");
-  if(time>LAST_APPOINTMENT_START&&!adminScheduleOverrideSelected()&&(!id||time!==spDateTime(currentApps.find(x=>x.id===id)?.starts_at||"").time))return show("apmsg","O último horário permitido para iniciar um atendimento é 16h00.","error");
+  if(time>LAST_APPOINTMENT_START&&!adminScheduleOverrideSelected()&&(!id||time!==(currentApps.find(x=>x.id===id)?.starts_at?spDateTime(currentApps.find(x=>x.id===id).starts_at).time:null)))return show("apmsg","O último horário permitido para iniciar um atendimento é 16h00.","error");
   if(!id&&date<today())return show("apmsg","Para datas passadas, use Ações da agenda → Registrar serviço realizado. Isso registra o histórico sem criar ou alterar recorrências futuras.","error");
   const s=services.find(x=>x.id===serviceId);
   if(!s)return show("apmsg","Serviço inválido. Feche e abra o agendamento novamente.","error");
