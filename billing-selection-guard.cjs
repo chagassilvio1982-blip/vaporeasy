@@ -23,12 +23,15 @@ function billingCoverage(appointment, subscriptions, charges, competence) {
   if (covered) return { kind: "included_in_plan", billable: false };
   return { kind: "review_required", billable: false };
 }
-function validateBillingSelection(lines) {
+function validateBillingSelection(lines, context = {}) {
   const seen = new Set();
   let total = 0;
   for (const line of lines) {
     if (!line || !["package_charge", "appointment_extra"].includes(line.kind)) throw Error("Tipo de cobrança inválido");
     if (!line.id || seen.has(line.kind + ":" + line.id)) throw Error("Item duplicado");
+    if (context.client_id && line.client_id !== context.client_id) throw Error("Cliente divergente");
+    if (context.competence && String(line.competence_month || "").slice(0, 7) !== context.competence) throw Error("Competência divergente");
+    if (line.kind === "appointment_extra" && line.coverage_verified !== true) throw Error("Cobertura do serviço não verificada");
     seen.add(line.kind + ":" + line.id);
     if (line.status === "paid" || line.status === "cancelled" || line.covered_by_plan) throw Error("Item indisponível para cobrança");
     if (!Number.isFinite(line.amount) || line.amount < 0) throw Error("Valor inválido");
