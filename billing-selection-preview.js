@@ -24,7 +24,8 @@
     const title=el("h3",{},"Selecionar cobrança · "+k.month),message=el("p",{},"Selecione o cliente para conferir mensalidades e serviços concluídos.");
     const client=el("select",{style:"width:100%;padding:10px;margin:8px 0"}),rows=el("div"),total=el("strong",{},"Total selecionado: "+format(0));
     const exportButton=el("button",{type:"button"},"Gerar prévia para conferência");exportButton.disabled=true;
-    const issueButton=el("button",{type:"button"},"Emitir recibo selecionado");issueButton.disabled=true;
+    const issueButton=el("button",{type:"button"},"Emitir recibo selecionado (aguardando integração ao histórico)");issueButton.disabled=true;
+    const selectedReceiptRendererReady=false; // Existing receipt history only accepts snapshotVersion 1; SQL issues schema_version 2.
     const close=el("button",{type:"button"},"Fechar");close.onclick=()=>modal.close();
     modal.append(title,message,client,rows,total,el("p",{},"Confira os itens antes de emitir. A emissão registra um documento mensal e não altera pagamentos."),exportButton,issueButton,close);
     document.body.append(modal);modal.addEventListener("close",()=>modal.remove());modal.showModal();
@@ -93,6 +94,7 @@
         }catch(error){alert(error.message||String(error));}finally{exportButton.disabled=!checks.some(x=>x.input.checked);}
       };
       issueButton.onclick=async()=>{
+        if(!selectedReceiptRendererReady){alert("Emissão indisponível: o histórico ainda não suporta o formato do recibo selecionado.");return;}
         issueButton.disabled=true;
         try{
           const {chosen,amount}=await verifySelection();
@@ -104,12 +106,12 @@
           alert("Recibo registrado. Identificador: "+issued.data+". Confira o documento no histórico antes de enviá-lo.");
           modal.close();
         }catch(error){alert("Não foi possível emitir: "+(error.message||String(error)));}
-        finally{issueButton.disabled=!checks.some(x=>x.input.checked);}
+        finally{issueButton.disabled=!selectedReceiptRendererReady||!checks.some(x=>x.input.checked);}
       };
       function addLine(name,amount,enabled,description,line){
         const label=el("label",{style:"display:block;padding:10px;border-bottom:1px solid #ddd"});
         const input=el("input",{type:"checkbox"});input.disabled=!enabled;
-        input.onchange=()=>{sum=checks.filter(x=>x.input.checked).reduce((n,x)=>n+x.amount,0);total.textContent="Total selecionado: "+format(sum);exportButton.disabled=!checks.some(x=>x.input.checked);issueButton.disabled=exportButton.disabled};
+        input.onchange=()=>{sum=checks.filter(x=>x.input.checked).reduce((n,x)=>n+x.amount,0);total.textContent="Total selecionado: "+format(sum);exportButton.disabled=!checks.some(x=>x.input.checked);issueButton.disabled=!selectedReceiptRendererReady||exportButton.disabled};
         label.append(input,document.createTextNode(" "+name+" · "+format(amount)+" — "+description));rows.append(label);checks.push({input,amount,line});
       }
       (pc.data||[]).filter(x=>x.client_id===id).forEach(c=>addLine("Plano · "+vehicleLabel(c.vehicle_id),Number(c.amount||0),c.status==="pending",c.status==="paid"?"Já paga":"Pendente",{kind:"package_charge",id:c.id,amount:Number(c.amount||0),status:c.status,client_id:id,competence_month:c.competence_month,label:"Mensalidade do plano · "+vehicleLabel(c.vehicle_id)}));
