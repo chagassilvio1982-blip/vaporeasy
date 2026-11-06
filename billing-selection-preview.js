@@ -31,7 +31,7 @@
       const clientId=client.value;
       if(!clientId){alert("Selecione um cliente.");return;}
       try{
-        const result=await sb.from("monthly_receipt_snapshots").select("id,snapshot,issued_at").eq("client_id",clientId).eq("competence_month",k.startDate).maybeSingle();
+        const result=await sb.from("monthly_billing_documents").select("id,snapshot,issued_at").eq("client_id",clientId).eq("competence_month",k.startDate).maybeSingle();
         if(result.error)throw result.error;
         if(!result.data){alert("Nenhum documento mensal registrado para este cliente e mês.");return;}
         const snap=result.data.snapshot||{};
@@ -93,11 +93,11 @@
           packageIds.length?sb.from("package_charges").select("id,client_id,competence_month,amount,status").in("id",packageIds):Promise.resolve({data:[],error:null}),
           appointmentIds.length?sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null}),
           appointmentIds.length?sb.from("appointments").select("id,client_id,vehicle_id,service_id,starts_at,final_value,status,deleted_at,recurring_plan_id").in("id",appointmentIds):Promise.resolve({data:[],error:null}),
-          sb.from("monthly_receipt_snapshots").select("id").eq("client_id",id).eq("competence_month",k.startDate).limit(1),
+          sb.from("monthly_billing_documents").select("id").eq("client_id",id).eq("competence_month",k.startDate).limit(1),
           appointmentIds.length?sb.from("package_subscriptions").select("client_id,vehicle_id,service_id,starts_on,superseded_at").eq("client_id",id):Promise.resolve({data:[],error:null})
         ]);
         if(freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error||freshSubscriptions.error)throw freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error||freshSubscriptions.error;
-        if((existingDocument.data||[]).length)throw Error("Já existe documento mensal emitido para este cliente. Confira o histórico antes de gerar outra prévia.");
+        if((existingDocument.data||[]).length)throw Error("Já existe cobrança mensal emitida para este cliente. Confira o documento antes de emitir outra.");
         for(const line of chosen){
           if(line.kind==="package_charge"){
             const latest=(freshCharges.data||[]).find(x=>x.id===line.id);
