@@ -30,6 +30,12 @@ begin
             where client_id=p_client_id and competence_month=p_competence) then
     raise exception 'Monthly receipt already issued';
   end if;
+  if exists(select 1 from jsonb_array_elements(p_lines) x
+            where jsonb_typeof(x) <> 'object'
+               or x->>'kind' not in ('package_charge','appointment_extra')
+               or x->>'id' is null or x->>'amount' is null) then
+    raise exception 'Malformed receipt item';
+  end if;
   if (select count(*) from jsonb_array_elements(p_lines) x)
      <> (select count(distinct (x->>'kind') || ':' || (x->>'id')) from jsonb_array_elements(p_lines) x) then
     raise exception 'Duplicate receipt item';
@@ -40,14 +46,14 @@ begin
     v_id := (v_item->>'id')::uuid;
     if v_kind = 'package_charge' then
       select * into v_charge from public.package_charges where id=v_id for update;
-      if not found or v_charge.client_id<>p_client_id
-         or v_charge.competence_month<>p_competence or v_charge.status<>'pending' then
+      if not found or v_charge.client_id is distinct from p_client_id
+         or v_charge.competence_month is distinct from p_competence or v_charge.status is distinct from 'pending' then
         raise exception 'Package charge not eligible';
       end if;
       v_amount := v_charge.amount;
     elsif v_kind = 'appointment_extra' then
       select * into v_appointment from public.appointments where id=v_id for update;
-      if not found or v_appointment.client_id<>p_client_id
+      if not found or v_appointment.client_id is distinct from p_client_id
          or v_appointment.status<>'completed' or v_appointment.deleted_at is not null
          or (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date < p_competence
          or (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date >= (p_competence + interval '1 month')::date
