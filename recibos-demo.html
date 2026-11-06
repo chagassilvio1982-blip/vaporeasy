@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none';">
+<title>Vaporeasy | Demonstração isolada — recibos</title>
+<link rel="stylesheet" href="./v2-recibos-atalhos.css?v=20261106">
+<link rel="stylesheet" href="./v2-documento-misto-previa.css?v=20261106">
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#071923;color:#e8f8ff;font:15px/1.45 system-ui,-apple-system,'Segoe UI',sans-serif}
+main{max-width:850px;margin:0 auto;padding:18px 15px 75px}
+header.top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #20495e;padding:17px 15px;max-width:850px;margin:auto;gap:10px}
+.logo{font-size:24px;font-weight:950;letter-spacing:-1px;color:#32bdf2}.logo span{color:#fff}
+.flag{background:#18404d;color:#d7fcff;border:1px solid #3a8290;border-radius:22px;font-size:11px;font-weight:900;letter-spacing:.05em;padding:7px 10px}
+.intro{margin:16px 0 23px}
+.intro h1{font-size:27px;letter-spacing:-.04em;line-height:1.15;margin:10px 0}
+.intro p{color:#b6ceda;max-width:580px}
+.warning{margin:0 0 24px;background:#183641;border-left:4px solid #56c8ee;padding:12px 14px;border-radius:8px;font-size:12px;color:#daeff6}
+.panel{background:linear-gradient(165deg,#102f41,#092634);border:1px solid #254a5c;padding:18px;border-radius:18px}
+.panel h2{margin:0 0 4px;font-size:18px}
+.subtitle{color:#9bb8c8;font-size:12px;margin:0 0 19px}
+.grid{display:grid;gap:10px}
+.car{border-radius:13px;background:#0a2535;border:1px solid #2c4d5d;padding:14px}
+.car-head{display:flex;justify-content:space-between;gap:10px}
+.car-head strong{font-size:15px;color:#fff}.car-head span{font-size:12px;font-weight:850;color:#9fe2f4}
+.car p{margin:6px 0 4px;font-size:12px;color:#b5cfdd}
+.car small{display:block;font-size:11px;color:#91b2c2}
+.totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:18px 0}
+.total{background:#0b2635;border:1px solid #315269;border-radius:12px;padding:12px 10px}
+.total small{display:block;color:#a4c0cf;font-size:11px;margin-bottom:7px}
+.total strong{font-size:18px}
+.vp-receipts-search{margin:15px 0 0}
+#vpMixedReceiptOpen{width:100%;min-height:54px;font-size:15px;background:#0983b1;border-color:#30b7e2}
+.benefits{margin-top:20px;display:grid;gap:8px;color:#b7d4de;font-size:12px}
+.benefits div::before{content:'✓';font-weight:900;color:#51d4a6;margin-right:8px}
+.footer{font-size:11px;color:#819eae;margin-top:32px;text-align:center}
+@media(min-width:600px){.grid{grid-template-columns:repeat(3,1fr)}.totals{gap:14px}.intro h1{font-size:34px}}
+@media(max-width:410px){.totals{grid-template-columns:1fr 1fr}.total:last-child{grid-column:1/-1}.flag{font-size:10px}.logo{font-size:21px}}
+</style>
+<script>
+// DADOS LOCAIS SINTÉTICOS — demonstração sem qualquer conexão Supabase.
+const currentFinanceMonthReport={
+  keys:{month:"2026-10"},
+  maps:{
+    cm:new Map([["cliente-demo",{name:"Cliente demonstração"}]]),
+    vm:new Map([
+      ["veiculo-a",{brand:"BMW",model:"X5",plate:"TESTE-01"}],
+      ["veiculo-b",{brand:"Audi",model:"Q5",plate:"TESTE-02"}],
+      ["veiculo-c",{brand:"VW",model:"T-Cross",plate:"TESTE-03"}]
+    ]),
+    sm:new Map([
+      ["plano-premium",{name:"Plano Vaporeasy Premium"}],
+      ["plano-essencial",{name:"Plano Vaporeasy Essencial"}],
+      ["higienizacao",{name:"Higienização interna"}]
+    ])
+  },
+  packageMonthRows:[
+    {id:"cobranca-a",client_id:"cliente-demo",vehicle_id:"veiculo-a",subscription_id:"ass-a",service_id:"plano-premium",status:"paid",amount:250,competence_month:"2026-10-01"},
+    {id:"cobranca-b",client_id:"cliente-demo",vehicle_id:"veiculo-b",subscription_id:"ass-b",service_id:"plano-essencial",status:"paid",amount:300,competence_month:"2026-10-01"}
+  ],
+  serviceApps:[{id:"atendimento-c",client_id:"cliente-demo",vehicle_id:"veiculo-c",service_id:"higienizacao",status:"completed",starts_at:"2026-10-20",final_value:150,addon_value:0,discount_amount:0}],
+  monthApps:[
+    {id:"visita-a",client_id:"cliente-demo",vehicle_id:"veiculo-a",service_id:"plano-premium",recurring_plan_id:"recorrencia-a",starts_at:"2026-10-07"},
+    {id:"visita-b",client_id:"cliente-demo",vehicle_id:"veiculo-b",service_id:"plano-essencial",recurring_plan_id:"recorrencia-b",starts_at:"2026-10-14"},
+    {id:"atendimento-c",client_id:"cliente-demo",vehicle_id:"veiculo-c",service_id:"higienizacao",starts_at:"2026-10-20"}
+  ],
+  payMap:new Map(),
+  subscriptionPlanById:new Map([["ass-a","recorrencia-a"],["ass-b","recorrencia-b"]])
+};
+function financeAllowed(){return true}
+</script>
+</head>
+<body>
+<header class="top">
+  <div class="logo">VAPOR<span>EASY</span></div>
+  <div class="flag">DEMONSTRAÇÃO</div>
+</header>
+<main>
+  <section class="intro">
+    <h1>Um cliente.<br>Três carros.<br>Um documento.</h1>
+    <p>Prévia de recibos e cobranças por veículo para a Vaporeasy V2.</p>
+  </section>
+  <div class="warning">Ambiente de demonstração com dados fictícios. Esta página não usa login, não acessa o banco de dados e não registra pagamentos.</div>
+  <section class="panel">
+    <h2>Cliente demonstração</h2>
+    <p class="subtitle">Competência: outubro de 2026 · 3 veículos cadastrados</p>
+    <div class="grid">
+      <div class="car"><div class="car-head"><strong>BMW X5</strong><span>Plano</span></div><p>Plano Vaporeasy Premium</p><small>Mensalidade paga · R$ 250,00</small></div>
+      <div class="car"><div class="car-head"><strong>Audi Q5</strong><span>Plano</span></div><p>Plano Vaporeasy Essencial</p><small>Mensalidade paga · R$ 300,00</small></div>
+      <div class="car"><div class="car-head"><strong>VW T-Cross</strong><span>Avulso</span></div><p>Higienização interna</p><small>Pagamento pendente · R$ 150,00</small></div>
+    </div>
+    <div class="totals">
+      <div class="total"><small>Total registrado</small><strong>R$ 700,00</strong></div>
+      <div class="total"><small>Recebido</small><strong>R$ 550,00</strong></div>
+      <div class="total"><small>A receber</small><strong>R$ 150,00</strong></div>
+    </div>
+    <input type="hidden" id="fmonth" value="2026-10">
+    <div class="vp-receipts-search"></div>
+    <div class="benefits">
+      <div>Selecione os serviços de cada veículo.</div>
+      <div>Confira os valores recebidos e pendentes.</div>
+      <div>Compartilhe o demonstrativo ou salve como PDF.</div>
+    </div>
+  </section>
+  <p class="footer">Vaporeasy V2 · Demonstração de interface sem dados reais</p>
+</main>
+<script src="./v2-documento-misto-previa.js?v=20261106"></script>
+</body>
+</html>
