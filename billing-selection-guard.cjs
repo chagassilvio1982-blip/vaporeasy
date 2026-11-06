@@ -40,3 +40,4 @@ function validateBillingSelection(lines, context = {}) {
   return Math.round(total * 100) / 100;
 }
 if (typeof module !== "undefined") module.exports = { billingCoverage, validateBillingSelection };
+if (typeof window !== "undefined") window.billingCoverage = billingCoverage;
