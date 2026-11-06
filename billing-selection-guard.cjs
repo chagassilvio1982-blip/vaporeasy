@@ -5,7 +5,12 @@
  * Inputs must come from the same client and competence.
  */
 function billingCoverage(appointment, subscriptions, charges, competence) {
-  const date = String(appointment.starts_at || "").slice(0, 7);
+  const rawDate=String(appointment.starts_at||"");
+  const date = /^\\d{4}-\\d{2}-\\d{2}$/.test(rawDate)
+    ?rawDate.slice(0,7)
+    :rawDate && !Number.isNaN(Date.parse(rawDate))
+      ?new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit"}).format(new Date(rawDate)).slice(0,7)
+      :"";
   if (date !== competence) return { kind: "out_of_period", billable: false };
   const matching = (subscriptions || []).filter(s =>
     s.client_id === appointment.client_id &&
