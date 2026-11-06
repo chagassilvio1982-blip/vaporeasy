@@ -16,7 +16,7 @@ test("server recalculates amounts and records only verified line fields",()=>{
  assert.doesNotMatch(sql,/'lines',p_lines/);
 });
 test("server rejects paid items and plan-linked appointments",()=>{
- assert.match(sql,/v_charge\.status<>'pending'/);
+ assert.match(sql,/v_charge\.status is distinct from 'pending'/);
  assert.match(sql,/status='paid'/);
  assert.match(sql,/public\.package_subscriptions/);
 });
