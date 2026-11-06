@@ -2,6 +2,7 @@ name: V2 Billing Safety Tests
 on:
   pull_request:
     paths:
+      - 'index.html'
       - 'billing-selection-guard.cjs'
       - 'billing-selection-guard.js'
       - 'billing-selection-preview.js'
