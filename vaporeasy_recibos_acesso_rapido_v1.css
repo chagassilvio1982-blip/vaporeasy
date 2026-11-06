@@ -1,0 +1,35 @@
+/* Vaporeasy V2 — atalho direto para recibos */
+#agenda .agenda-topbar{flex-wrap:wrap;gap:12px;align-items:center}
+#vpAgendaReceiptShortcut{margin-left:auto}
+.vp-doc-home-actions{margin:0 0 18px}
+.vp-doc-quick-action{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:48px;padding:11px 17px;border:1px solid rgba(42,202,255,.55);
+  border-radius:13px;background:linear-gradient(145deg,#0a75a8,#0a557c);
+  color:#fff;font:inherit;font-size:13px;font-weight:850;
+  box-shadow:0 5px 16px rgba(4,22,34,.18);cursor:pointer;
+}
+.vp-doc-quick-action:focus-visible{outline:3px solid #7ce2ff;outline-offset:3px}
+.vp-doc-quick-action:active{transform:translateY(1px)}
+.vp-doc-quick-icon{font-size:21px;line-height:1}
+.vp-quick-receipt-center{
+  padding:17px;margin:14px 0 18px;border:1px solid rgba(42,202,255,.25);
+  border-radius:18px;background:linear-gradient(155deg,#0b3044,#071f2d);
+  scroll-margin-top:18px;
+}
+.vp-quick-receipt-heading{display:flex;gap:12px;align-items:center}
+.vp-quick-receipt-heading strong{display:block;color:#eefbff;font-size:18px}
+.vp-quick-receipt-heading p{margin:5px 0 15px;color:#a7becc;font-size:12px;line-height:1.4}
+.vp-quick-receipt-center label{display:block;color:#b6d7e7;font-size:12px;font-weight:800;margin:0 0 7px}
+#vpQuickReceiptsClientSearch{display:block;width:100%;min-height:46px;border-radius:11px;border:1px solid #39758c;background:#092535;color:#fff;padding:0 12px;font:inherit;font-size:16px}
+#vpQuickReceiptsCount{display:block;margin:9px 0 0;color:#b5d4e3;font-size:11px}
+.vp-quick-receipt-note{margin:12px 0 0;color:#9ab3c3;font-size:11px;line-height:1.5}
+#financeTransactionList .vp171-client-group[hidden]{display:none!important}
+body.vp-role-collaborator .vp-doc-quick-action,
+body.vp-role-operator .vp-doc-quick-action{display:none!important}
+@media(max-width:480px){
+ #agenda .agenda-topbar{align-items:flex-start}
+ #vpAgendaReceiptShortcut{flex:0 0 auto;min-height:44px;padding:10px 12px;font-size:12px}
+ #vpHomeReceiptShortcut{width:100%}
+ .vp-quick-receipt-center{padding:14px}
+}
