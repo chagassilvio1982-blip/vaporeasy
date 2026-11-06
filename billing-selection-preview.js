@@ -14,7 +14,9 @@
   function format(value){return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value)}
   function saoPauloDate(iso){
     if(!iso)return "";
-    return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(iso));
+    const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(iso));
+    const part=type=>parts.find(p=>p.type===type)?.value||"";
+    return part("year")+"-"+part("month")+"-"+part("day");
   }
   async function openBillingSelection(){
     if(typeof financeAllowed!=="function"||!financeAllowed())return;
