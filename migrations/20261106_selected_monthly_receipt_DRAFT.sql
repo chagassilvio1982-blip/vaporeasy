@@ -54,7 +54,7 @@ begin
     elsif v_kind = 'appointment_extra' then
       select * into v_appointment from public.appointments where id=v_id for update;
       if not found or v_appointment.client_id is distinct from p_client_id
-         or v_appointment.status<>'completed' or v_appointment.deleted_at is not null
+         or v_appointment.status is distinct from 'completed' or v_appointment.deleted_at is not null
          or (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date < p_competence
          or (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date >= (p_competence + interval '1 month')::date
          or v_appointment.recurring_plan_id is not null
