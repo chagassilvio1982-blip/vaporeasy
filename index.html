@@ -3025,7 +3025,7 @@ async function getMonthlyClientReceiptData(clientId,month){
   const frozen=await getMonthlyReceiptSnapshot(clientId,k.month);
   if(frozen)return frozen;
   const ar=await sb.from("appointments")
-    .select("id,client_id,vehicle_id,service_id,completed_at,starts_at,base_value,addon_value,discount_amount,final_value")
+    .select("id,client_id,vehicle_id,service_id,recurring_plan_id,completed_at,starts_at,base_value,addon_value,discount_amount,final_value")
     .eq("client_id",clientId)
     .eq("status","completed")
     .is("deleted_at",null)
@@ -3035,6 +3035,7 @@ async function getMonthlyClientReceiptData(clientId,month){
   if(ar.error)throw ar.error;
   const apps=ar.data||[];
   if(!apps.length)throw Error("Não há serviços concluídos para este cliente no mês selecionado.");
+  if(apps.some(a=>a.recurring_plan_id))throw Error("Este cliente tem estéticas vinculadas a plano neste mês. O documento por atendimentos poderia cobrar novamente a mensalidade. Gere a cobrança pelo plano na Central Financeira até a conciliação de pacotes e extras ser concluída.");
   const vehicleIds=[...new Set(apps.map(x=>x.vehicle_id).filter(Boolean))],serviceIds=[...new Set(apps.map(x=>x.service_id).filter(Boolean))],appIds=apps.map(x=>x.id);
   const [cr,vr,sr,pr,bs]=await Promise.all([
     sb.from("clients").select("id,name").eq("id",clientId).single(),
@@ -5368,6 +5369,9 @@ async function getReceiptGroupData(ids){
   if(items.some(d=>d.x.client_id!==first.x.client_id))throw Error("O documento conjunto só pode reunir atendimentos do mesmo cliente.");
   const days=[...new Set(items.map(d=>agendaLocalDateKey(d.x.completed_at||d.x.starts_at)))];
   if(new Set(days.map(d=>d.slice(0,7))).size!==1)throw Error("O documento conjunto só pode reunir atendimentos do mesmo mês.");
+  // Fail closed: atendimentos de plano são execução, não mensalidades.
+  // Sem conciliação com package_charges, somá-los criaria cobrança duplicada.
+  if(items.some(d=>d.x?.recurring_plan_id))throw Error("Há atendimento vinculado a plano nesta seleção. Não é seguro somar visitas como novas cobranças. Use a mensalidade do plano na Central Financeira.");
   const allPaid=items.every(d=>d.payment?.status==="paid");
   const nonePaid=items.every(d=>d.payment?.status!=="paid");
   if(!allPaid&&!nonePaid)throw Error("Não é permitido agrupar atendimentos pagos e pendentes no mesmo documento.");
