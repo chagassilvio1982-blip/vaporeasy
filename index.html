@@ -4729,7 +4729,7 @@ async function loadAvailableSlots(preferred=""){
   b.textContent=appointmentSubmitLabel();
   if(r.error){t.innerHTML='<option value="">Não foi possível consultar</option>';help.textContent=fail(r.error);b.disabled=true;return}
   const rows=(r.data||[]).filter(x=>{
-    if(!/^\\d{2}:\\d{2}$/.test(x.local_time)||x.local_time>LAST_APPOINTMENT_START)return false;
+    if(!/^\d{2}:\d{2}$/.test(x.local_time)||x.local_time>LAST_APPOINTMENT_START)return false;
     if(id||vehicleIds.length<2)return true;
     const duration=Number(services.find(s=>s.id===service)?.duration_minutes);
     if(!Number.isFinite(duration)||duration<=0)return false;
