@@ -39,4 +39,19 @@ assert.equal(afterPayment.find(x=>x.key==='package:nov-f').received,780);
 assert.equal(afterPayment.find(x=>x.key==='package:nov-f').pending,0);
 assert.equal(afterPayment.find(x=>x.key==='package:nov-g').pending,820);
 assert.equal(report.serviceApps[0].final_value,400);
-console.log('PASS: 11 verificações de modelo, seleção, antecipação e isolamento');
+
+const duplicatedReport={...report,packageMonthRows:[
+ {id:'cezar-nov-1',client_id:'cezar',vehicle_id:'f',subscription_id:'plano-cezar',service_id:'premium',status:'pending',amount:410,competence_month:'2026-11-01'},
+ {id:'cezar-nov-2',client_id:'cezar',vehicle_id:'f',subscription_id:'plano-cezar',service_id:'premium',status:'pending',amount:410,competence_month:'2026-11-01'}
+],serviceApps:[]};
+const duplicates=build(duplicatedReport,'cezar');
+assert.equal(duplicates.length,2);
+assert.equal(duplicates.filter(x=>x.needsReview).length,1,'segunda mensalidade deve ser sinalizada e bloquear compartilhamento');
+assert.match(duplicates.find(x=>x.needsReview).detail,/ALERTA/);
+const separateMonths={...duplicatedReport,packageMonthRows:[
+ {...duplicatedReport.packageMonthRows[0],id:'cezar-out',competence_month:'2026-10-01',status:'paid'},
+ {...duplicatedReport.packageMonthRows[1],id:'cezar-nov',competence_month:'2026-11-01'}
+]};
+assert.equal(build(separateMonths,'cezar').some(x=>x.needsReview),false,'competências diferentes não são duplicatas');
+
+console.log('PASS: verificações de antecipação, isolamento e detecção de mensalidade duplicada');
