@@ -24,8 +24,8 @@
     const title=el("h3",{},"Selecionar cobrança · "+k.month),message=el("p",{},"Selecione o cliente para conferir mensalidades e serviços concluídos.");
     const client=el("select",{style:"width:100%;padding:10px;margin:8px 0"}),rows=el("div"),total=el("strong",{},"Total selecionado: "+format(0));
     const exportButton=el("button",{type:"button"},"Gerar prévia para conferência");exportButton.disabled=true;
-    const issueButton=el("button",{type:"button"},"Emitir recibo selecionado (aguardando integração ao histórico)");issueButton.disabled=true;
-    const selectedReceiptRendererReady=false; // Keep issuance disabled until the existing receipt history supports this document.
+    const issueButton=el("button",{type:"button"},"Emitir cobrança selecionada (aguardando ativação segura)");issueButton.disabled=true;
+    const selectedReceiptRendererReady=false; // Enable only after the dedicated billing-document migration and end-to-end verification.
     const historyButton=el("button",{type:"button"},"Consultar documento mensal");
     historyButton.onclick=async()=>{
       const clientId=client.value;
@@ -124,16 +124,16 @@
         }catch(error){alert(error.message||String(error));}finally{exportButton.disabled=!checks.some(x=>x.input.checked);}
       };
       issueButton.onclick=async()=>{
-        if(!selectedReceiptRendererReady){alert("Emissão indisponível: o histórico ainda não suporta o formato do recibo selecionado.");return;}
+        if(!selectedReceiptRendererReady){alert("Emissão indisponível: a estrutura de cobranças ainda não foi ativada e validada neste ambiente.");return;}
         issueButton.disabled=true;
         try{
           const {chosen,amount}=await verifySelection();
           const selectedClient=clients.find(x=>x.id===id);
-          if(!window.confirm("Emitir recibo mensal de "+(selectedClient?.name||"cliente")+" no valor de "+format(amount)+"? Esta operação registra um documento e não confirma pagamentos."))return;
+          if(!window.confirm("Emitir cobrança mensal de "+(selectedClient?.name||"cliente")+" no valor de "+format(amount)+"? Esta operação registra um documento e não confirma pagamentos."))return;
           const payload=chosen.map(x=>({kind:x.kind,id:x.id,amount:x.amount}));
           const issued=await sb.rpc("issue_selected_monthly_receipt",{p_client_id:id,p_competence:k.startDate,p_lines:payload});
           if(issued.error)throw issued.error;
-          alert("Recibo registrado. Identificador: "+issued.data+". Confira o documento no histórico antes de enviá-lo.");
+          alert("Cobrança registrada. Identificador: "+issued.data+". Confira o documento no histórico antes de enviá-lo.");
           modal.close();
         }catch(error){alert("Não foi possível emitir: "+(error.message||String(error)));}
         finally{issueButton.disabled=!selectedReceiptRendererReady||!checks.some(x=>x.input.checked);}
