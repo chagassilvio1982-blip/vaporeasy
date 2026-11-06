@@ -4860,7 +4860,7 @@ async function saveAppt(e){
   if(!serviceId)return show("apmsg","Selecione o serviço.","error");
   if(!date)return show("apmsg","Selecione a data.","error");
   if(!time)return show("apmsg","Selecione um horário disponível.","error");
-  if(time>LAST_APPOINTMENT_START&&(!id||time!==spDateTime(currentApps.find(x=>x.id===id)?.starts_at||"").time))return show("apmsg","O último horário permitido para iniciar um atendimento é 16h00.","error");
+  if(time>LAST_APPOINTMENT_START&&!adminScheduleOverrideSelected()&&(!id||time!==spDateTime(currentApps.find(x=>x.id===id)?.starts_at||"").time))return show("apmsg","O último horário permitido para iniciar um atendimento é 16h00.","error");
   if(!id&&date<today())return show("apmsg","Para datas passadas, use Ações da agenda → Registrar serviço realizado. Isso registra o histórico sem criar ou alterar recorrências futuras.","error");
   const s=services.find(x=>x.id===serviceId);
   if(!s)return show("apmsg","Serviço inválido. Feche e abra o agendamento novamente.","error");
