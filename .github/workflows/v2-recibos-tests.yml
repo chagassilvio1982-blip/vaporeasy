@@ -3,9 +3,12 @@ on:
   push:
     branches:
       - feature/v2-recibos-central-prod-base-20261106
+      - feature/v2-refinamento-mobile-20261106
     paths:
-      - 'v2-documento-misto-previa.js'
-      - 'tests/v2-recibos-antecipados.test.cjs'
+      - 'v2-*.js'
+      - 'v2-*.css'
+      - 'tests/v2-recibos*.cjs'
+      - 'index.html'
       - '.github/workflows/v2-recibos-tests.yml'
   workflow_dispatch:
 jobs:
@@ -18,9 +21,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verificar sintaxe
-        run: |
-          node --check v2-documento-misto-previa.js
-          node --check tests/v2-recibos-antecipados.test.cjs
-      - name: Testar modelo sem Supabase
-        run: node tests/v2-recibos-antecipados.test.cjs
+      - name: Modelo, interface e segurança sem Supabase
+        run: node --test tests/v2-recibos*.test.cjs

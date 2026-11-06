@@ -58,7 +58,7 @@ check('outro plano no mesmo carro não mistura visitas',()=>{
   const a=build(more,client);
   assert(a.filter(x=>x.key.startsWith('included_visit:')).length===3);
   assert(a.find(x=>x.key==='included_visit:visit-extra').vehicle==='BMW • X5');
-  assert(a.find(x=>x.key==='package:charge-a').detail.includes('1 serviço(s)'));
+  assert(a.find(x=>x.key==='package:charge-a').detail.includes('1 visita(s)'));
 });
 check('não inventa visitas sem relação confirmada',()=>{
   const changed=withChanges({subscriptionPlanById:new Map()});
@@ -85,7 +85,7 @@ check('pagamento registrado pago é respeitado',()=>{
 check('pagamento diferente do valor de serviço sinalizado',()=>{
   const changed=withChanges({payMap:new Map([['service-a',{status:'paid',amount:140}]])});
   const s=build(changed,client).find(x=>x.key==='service:service-a');
-  assert.equal(s.received,140);assert.equal(s.value,140);assert.equal(s.needsReview,true);
+  assert.equal(s.received,140);assert.equal(s.value,150);assert.equal(s.pending,10);assert.equal(s.needsReview,true);
 });
 check('pagamento sem valor não é presumido',()=>{
   const changed=withChanges({payMap:new Map([['service-a',{status:'paid',amount:null}]])});

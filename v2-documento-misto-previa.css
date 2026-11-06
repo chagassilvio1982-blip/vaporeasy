@@ -51,3 +51,17 @@
 .vp-mixed-chip.review{color:#7d2d26;background:#ffe2de}
 .vp-mixed-detail{color:#607e90!important;line-height:1.4}
 @media(max-width:460px){.vp-mixed-line{gap:8px}.vp-mixed-line-body strong{font-size:12px}.vp-mixed-line-side b{font-size:12px}.vp-mixed-line-side{max-width:105px}.vp-mixed-pick-actions button{font-size:12px}}
+
+/* Refinamento mobile: uma área de rolagem, seleção por carro e ações visíveis. */
+#vpMixedReceiptItems{max-height:none;overflow:visible}
+.vp-mixed-sheet{overscroll-behavior:contain}
+.vp-mixed-vehicle-header label{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;flex:1;min-width:0}
+.vp-mixed-vehicle-header input{width:22px;height:22px;flex:0 0 22px;accent-color:#087ba7}
+.vp-mixed-vehicle-header strong{overflow-wrap:anywhere}
+.vp-mixed-sheet button,.vp-mixed-preview-details summary{min-height:44px}
+.vp-mixed-sheet :focus-visible{outline:3px solid #087ba7;outline-offset:3px}
+.vp-mixed-controls{position:sticky;bottom:-13px;background:#f8fbfd;border-top:1px solid #ccdde6;padding:12px 0 calc(12px + env(safe-area-inset-bottom));z-index:2}
+.vp-mixed-controls span{flex-basis:100%;line-height:1.7}
+.vp-mixed-preview-details summary{padding:12px 0;font-weight:700;cursor:pointer}
+.vp-mixed-visits{color:#24576d!important;font-weight:650}
+@media(max-width:600px){.vp-mixed-paper table,.vp-mixed-paper tbody,.vp-mixed-paper tr,.vp-mixed-paper td{display:block}.vp-mixed-paper thead{display:none}.vp-mixed-paper tr{padding:10px 0;border-bottom:1px solid #ccdde6}.vp-mixed-paper td{border:0;text-align:left!important}.vp-mixed-paper td:nth-child(3)::before{content:'Contratado: '}.vp-mixed-paper td:nth-child(4)::before{content:'Recebido: '}.vp-mixed-paper td:nth-child(5)::before{content:'Saldo: '}.vp-mixed-paper table{font-size:12px}}

@@ -4,10 +4,12 @@
  */
 (function(){
 'use strict';
-var sheetId='vpMixedReceiptSheet',selected=new Set(),data=[],clientId='';
+var sheetId='vpMixedReceiptSheet',selected=new Set(),data=[],clientId='',openedReport=null,returnFocus=null;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function money(n){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0)}
 function amount(n){var x=Number(n);return Number.isFinite(x)?Math.max(0,Math.round(x*100)/100):0}
+function validAmount(n){return n!==null&&n!==undefined&&String(n).trim()!==''&&Number.isFinite(Number(n))&&Number(n)>=0}
+function inMonth(value,month){return !month||!value||String(value).slice(0,7)===month}
 function dateBr(s){if(!s)return '';var m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]+'/'+m[1]:''}
 function fullReport(){try{return typeof currentFinanceMonthReport==='undefined'?null:currentFinanceMonthReport}catch(e){return null}}
 function isAllowed(){try{return typeof financeAllowed==='function'&&financeAllowed()}catch(e){return false}}
@@ -17,22 +19,24 @@ function build(r,cid){
  var visitByPlan=new Map(),emittedVisitIds=new Set(),planBySubscription=r.subscriptionPlanById||new Map();
  var chargeList=Array.isArray(r.packageMonthRows)?r.packageMonthRows:[];
  var svc=Array.isArray(r.serviceApps)?r.serviceApps:[];
+ var month=r.keys?.month||'',seen=new Set();
  var svcIds=new Set(svc.map(function(a){return String(a.id)}));
  (r.monthApps||[]).forEach(function(a){
    // Visitas incluídas devem corresponder ao plano, não apenas ao mesmo veículo.
-   if(a.client_id!==cid||svcIds.has(String(a.id))||!a.recurring_plan_id)return;
+   if(!inMonth(a.starts_at||a.completed_at,month)||a.deleted_at||['cancelled','canceled'].includes(a.status)||a.client_id!==cid||svcIds.has(String(a.id))||!a.recurring_plan_id)return;
    var planKey=String(a.recurring_plan_id),v=visitByPlan.get(planKey)||[];
-   v.push({id:String(a.id),vehicleId:String(a.vehicle_id||''),name:sm.get(a.service_id)?.name||'Serviço do pacote',date:dateBr(a.starts_at||a.completed_at)});
+   v.push({id:String(a.id),vehicleId:String(a.vehicle_id||''),name:sm.get(a.service_id)?.name||'Serviço do pacote',date:dateBr(a.starts_at||a.completed_at),extra:amount(a.addon_value)});
    visitByPlan.set(planKey,v);
  });
  function vehicleName(id){
    var v=vm.get(id);return v?[v.brand,v.model,v.plate].filter(Boolean).join(' • '):'Veículo sem cadastro identificado';
  }
- chargeList.filter(function(c){return c.client_id===cid&&['pending','paid','covered'].includes(c.status)}).forEach(function(c){
+ chargeList.filter(function(c){return inMonth(c.competence_month,month)&&c.client_id===cid&&['pending','paid','covered'].includes(c.status)}).forEach(function(c){
    var covered=c.status==='covered',paid=c.status==='paid',value=covered?0:amount(c.amount);
    var planId=planBySubscription.get(String(c.subscription_id||''));
    var visits=(planId?visitByPlan.get(String(planId))||[]:[]).filter(function(v){return v.vehicleId===String(c.vehicle_id||'')});
-   list.push({key:'package:'+String(c.id),kind:'Pacote',vehicle:vehicleName(c.vehicle_id),
+   var limit=Number(c.visits_per_month),hasLimit=Number.isInteger(limit)&&limit>0;
+   list.push({key:'package:'+String(c.id),vehicleId:String(c.vehicle_id||''),payerId:String(c.payer_id||c.client_id),priceKnown:validAmount(c.amount),needsReview:!c.id||!c.vehicle_id||!validAmount(c.amount),performed:visits.length,remaining:hasLimit?Math.max(0,limit-visits.length):null,kind:'Pacote',vehicle:vehicleName(c.vehicle_id),
       service:sm.get(c.service_id)?.name||'Mensalidade do pacote',
       date:dateBr(c.competence_month||c.created_at),status:covered?'Coberto por ajuste':paid?'Pago':'Pendente',
       value,received:paid?value:0,pending:paid?0:value,
@@ -44,32 +48,35 @@ function build(r,cid){
    visits.forEach(function(v){
      if(!v.id||emittedVisitIds.has(v.id))return;
      emittedVisitIds.add(v.id);
-     list.push({key:'included_visit:'+v.id,kind:'Serviço incluído no pacote',
+     list.push({key:'included_visit:'+v.id,vehicleId:String(c.vehicle_id||''),payerId:String(c.payer_id||c.client_id),needsReview:v.extra>0,kind:'Serviço incluído no pacote',
        vehicle:vehicleName(c.vehicle_id),service:v.name,date:v.date,
        status:'Incluído no pacote',value:0,received:0,pending:0,
-       detail:'Coberto pela mensalidade '+dateBr(c.competence_month||c.created_at)+'. Nenhuma cobrança avulsa.',
+       detail:(v.extra>0?'Adicional registrado no atendimento: '+money(v.extra)+'. Conferir cobrança separada antes de compartilhar. ':'')+'Coberto pela mensalidade '+dateBr(c.competence_month||c.created_at)+'. Nenhuma cobrança avulsa.',
        discount:0,included:true
      });
    });
  });
- svc.filter(function(a){return a.client_id===cid}).forEach(function(a){
+ svc.filter(function(a){return a.client_id===cid&&inMonth(a.starts_at||a.completed_at,month)&&!a.deleted_at&&!['cancelled','canceled'].includes(a.status)}).forEach(function(a){
    var p=r.payMap?.get(a.id),paid=p?.status==='paid',sourceValue=amount(a.final_value);
-   var hasPaidAmount=paid&&p.amount!==null&&p.amount!==undefined&&Number.isFinite(Number(p.amount));
+   var hasPaidAmount=paid&&validAmount(p.amount);
    // Valor pago deve vir da transação registrada, nunca ser inferido do preço do atendimento.
-   var value=hasPaidAmount?amount(p.amount):sourceValue;
-   var inconsistent=hasPaidAmount&&Math.abs(value-sourceValue)>0.009;
+   var value=sourceValue,received=hasPaidAmount?amount(p.amount):0;
+   var inconsistent=hasPaidAmount&&Math.abs(received-sourceValue)>0.009;
    var status=paid?(hasPaidAmount?'Pago':'Pagamento a conferir'):'Pendente';
    var extra=amount(a.addon_value)>0?'Contém adicionais: '+money(a.addon_value):'';
-   var notes=inconsistent?'Valor do atendimento: '+money(sourceValue)+'; pagamento registrado: '+money(value)+'. Conferir divergência.':'';
+   var notes=inconsistent?'Valor do atendimento: '+money(sourceValue)+'; pagamento registrado: '+money(received)+'. Conferir divergência.':'';
    if(paid&&!hasPaidAmount)notes='O atendimento consta como pago, mas o valor recebido não está disponível. Conferir antes de compartilhar.';
-   list.push({key:'service:'+String(a.id),kind:'Avulso / extra',vehicle:vehicleName(a.vehicle_id),
+   if(!validAmount(a.final_value))notes='Preço a confirmar na origem. Não é um serviço gratuito.';
+   list.push({key:'service:'+String(a.id),vehicleId:String(a.vehicle_id||''),payerId:String(a.payer_id||a.client_id),kind:'Avulso / extra',vehicle:vehicleName(a.vehicle_id),
       service:sm.get(a.service_id)?.name||'Serviço não identificado',
       date:dateBr(a.starts_at||a.completed_at),status,
-      value,received:hasPaidAmount?value:0,pending:hasPaidAmount?0:paid?0:value,
+      value,received,pending:Math.max(0,value-received),
       detail:[extra,notes].filter(Boolean).join(' • '),
-      discount:amount(a.discount_amount||0),needsReview:!!notes
+      discount:amount(a.discount_amount||0),priceKnown:validAmount(a.final_value),needsReview:!!notes||!a.id||!a.vehicle_id
    });
  });
+ list=list.filter(function(row){if(seen.has(row.key)){var original=list.find(function(x){return x.key===row.key});original.needsReview=true;original.detail+=' Origem repetida; conferir antes de compartilhar.';return false}seen.add(row.key);return true});
+ list.forEach(function(row){if(row.payerId!==String(cid)){row.needsReview=true;row.detail+=' Responsável financeiro diferente; separar cobrança.'}});
  return list.sort(function(a,b){return a.vehicle.localeCompare(b.vehicle,'pt-BR')||a.kind.localeCompare(b.kind,'pt-BR')||a.date.localeCompare(b.date)});
 }
 window.vpV2BuildConsolidatedPreviewModel=build;
@@ -83,7 +90,7 @@ function snapshot(){
  return data.filter(function(item){return selected.has(item.key)})
 }
 function totals(rows){
- return rows.reduce(function(z,x){z.value+=x.value;z.received+=x.received;z.pending+=x.pending;return z},{value:0,received:0,pending:0})
+ return rows.reduce(function(z,x){z.value=Math.round((z.value+x.value)*100)/100;z.received=Math.round((z.received+x.received)*100)/100;z.pending=Math.round((z.pending+x.pending)*100)/100;return z},{value:0,received:0,pending:0})
 }
 function documentHtml(rows,clientName,month){
  var t=totals(rows),title='DEMONSTRATIVO DE COBRANÇAS E PAGAMENTOS — PRÉVIA';
@@ -112,37 +119,42 @@ function refreshPreview(){
  var p=document.getElementById('vpMixedReceiptPreview');if(!p)return;
  var rows=snapshot(),t=totals(rows),needsReview=rows.some(function(row){return row.needsReview});
  p.innerHTML=rows.length?documentHtml(rows,selectedClientName(),monthLabel()):'<div class="vp-mixed-empty">Selecione ao menos um serviço ou pacote para visualizar o documento.</div>';
- if(needsReview)p.insertAdjacentHTML('afterbegin','<p class="vp-mixed-review-warning" role="alert">Há diferença entre o valor do serviço e o pagamento registrado, ou um pagamento sem valor verificável. Confira os lançamentos. O compartilhamento está bloqueado.</p>');
+ if(needsReview)p.insertAdjacentHTML('afterbegin','<p class="vp-mixed-review-warning" role="alert">Há dados a conferir: preço, pagamento, adicional, origem repetida ou responsável financeiro. Confira as linhas sinalizadas. O compartilhamento está bloqueado.</p>');
  var summary=document.getElementById('vpMixedReceiptSummary');
- if(summary)summary.textContent=rows.length+' item(ns) · '+money(t.received)+' recebidos · '+money(t.pending)+' pendentes';
+ if(summary)summary.textContent=rows.length+' item(ns) · Contratado '+money(t.value)+' · Recebido '+money(t.received)+' · Saldo '+money(t.pending);
+ syncVehicleSelection();
  var print=document.getElementById('vpMixedPrint');if(print)print.disabled=!rows.length||needsReview;
  var share=document.getElementById('vpMixedShare');if(share)share.disabled=!rows.length||needsReview;
+}
+function syncVehicleSelection(){
+ document.querySelectorAll('#vpMixedReceiptItems input[data-vp-vehicle]').forEach(function(input){var items=data.filter(function(x){return x.vehicleId===input.getAttribute('data-vp-vehicle')});var count=items.filter(function(x){return selected.has(x.key)}).length;input.checked=count===items.length;input.indeterminate=count>0&&count<items.length});
 }
 function refreshItems(){
  var body=document.getElementById('vpMixedReceiptItems');if(!body)return;
  data=build(fullReport(),clientId);selected=new Set(data.map(function(x){return x.key}));
  var groups=new Map();
  data.forEach(function(item){
-  var v=groups.get(item.vehicle)||[];
-  v.push(item);groups.set(item.vehicle,v);
+  var v=groups.get(item.vehicleId)||[];
+  v.push(item);groups.set(item.vehicleId,v);
  });
  var controls='<div class="vp-mixed-pick-actions" aria-label="Selecionar serviços do documento">'+
    '<span>Marque os serviços de cada carro</span>'+
    '<button type="button" data-vp-action="all">Todos</button>'+
    '<button type="button" data-vp-action="none">Limpar</button></div>';
  var rows=[...groups.entries()].map(function(entry){
-  var name=entry[0],items=entry[1],groupTotal=items.reduce(function(n,x){return n+x.value},0);
+  var vehicleId=entry[0],items=entry[1],name=items[0].vehicle,groupTotal=items.reduce(function(n,x){return n+x.value},0);
   return '<section class="vp-mixed-vehicle-group" aria-label="Lançamentos de '+esc(name)+'">'+
-    '<div class="vp-mixed-vehicle-header"><strong>'+esc(name)+'</strong><span>'+items.length+' item(ns) · '+money(groupTotal)+'</span></div>'+
+    '<div class="vp-mixed-vehicle-header"><label><input type="checkbox" data-vp-vehicle="'+esc(vehicleId)+'" checked><strong>'+esc(name)+'</strong></label><span>'+items.length+' item(ns) · '+(items.some(function(x){return x.priceKnown===false})?'Preço a confirmar':money(groupTotal))+'</span></div>'+
     items.map(function(x){
       var statusClass=x.needsReview?'review':x.pending>0?'pending':'paid';
       return '<label class="vp-mixed-line"><input type="checkbox" data-vp-mixed-key="'+esc(x.key)+'" checked>'+
       '<span class="vp-mixed-line-body"><strong>'+esc(x.service)+'</strong>'+
       '<small>'+esc(x.kind)+(x.date?' · '+esc(x.date):'')+'</small>'+
+      (x.kind==='Pacote'?'<small class="vp-mixed-visits">Atendimentos: '+x.performed+' realizados · '+(x.remaining===null?'limite a conferir':x.remaining+' restantes')+'</small>':'')+
       (x.detail?'<small class="vp-mixed-detail">'+esc(x.detail)+'</small>':'')+
       (x.discount?'<small>Desconto já aplicado: '+money(x.discount)+'</small>':'')+
       '</span><span class="vp-mixed-line-side"><b>'+money(x.value)+'</b>'+
-      '<small class="vp-mixed-chip '+statusClass+'">'+esc(x.status)+'</small></span></label>';
+      '<small class="vp-mixed-chip '+statusClass+'">'+esc(x.needsReview?'Conferir dados':x.status)+'</small></span></label>';
     }).join('')+'</section>';
  }).join('');
  body.innerHTML=data.length?controls+rows:'<div class="vp-mixed-empty">Este cliente não tem lançamentos nessa competência.</div>';
@@ -164,6 +176,7 @@ function open(){
  if(!r||!r.keys||r.keys.month!==month){if(typeof show==='function')show('msg','Os dados deste mês ainda não terminaram de carregar. Atualize o Financeiro e tente novamente.','error');return}
  var sheet=document.getElementById(sheetId);
  if(!sheet)return;
+ openedReport=r;returnFocus=document.activeElement;
  sheet.hidden=false;sheet.setAttribute('aria-hidden','false');
  setupClients();
  var focus=document.getElementById('vpMixedReceiptClient');if(focus)focus.focus();
@@ -171,6 +184,7 @@ function open(){
 function close(){
  var s=document.getElementById(sheetId);
  if(s){s.hidden=true;s.setAttribute('aria-hidden','true')}
+ if(returnFocus?.focus)returnFocus.focus();openedReport=null;
 }
 function textDoc(){
  var rows=snapshot(),t=totals(rows),lines=['VAPOREASY — Demonstrativo consolidado',selectedClientName()+' · '+monthLabel(),''];
@@ -178,13 +192,19 @@ function textDoc(){
  lines.push('','Lançamentos: '+money(t.value),'Recebido: '+money(t.received),'A receber: '+money(t.pending),'Mensalidades podem ser pagas antecipadamente; pagamento não comprova execução dos serviços. Visitas incluídas em planos não são cobradas novamente.','Prévia não fiscal — consulte os registros originais.');
  return lines.join('\n');
 }
+function exportAllowed(){
+ var r=fullReport();
+ if(!isAllowed()||r!==openedReport||r?.keys?.month!==monthLabel()){close();if(typeof show==='function')show('msg','Os dados ou o acesso mudaram. Abra novamente o documento.','error');return false}return true;
+}
 function share(){
+ if(!exportAllowed())return;
  if(!snapshot().length||snapshot().some(function(row){return row.needsReview}))return;
  var t=textDoc();
  if(navigator.share){navigator.share({title:'Vaporeasy — Demonstrativo',text:t}).catch(function(){});return}
  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(function(){if(typeof show==='function')show('msg','Documento copiado para compartilhar.','ok')}).catch(function(){});
 }
 function printDoc(){
+ if(!exportAllowed())return;
  var rows=snapshot();if(!rows.length||rows.some(function(row){return row.needsReview}))return;
  var markup=documentHtml(rows,selectedClientName(),monthLabel());
  var win=window.open('','_blank');if(!win){if(typeof show==='function')show('msg','O navegador bloqueou a prévia de impressão.','error');return}
@@ -205,8 +225,8 @@ function install(){
  '<label for="vpMixedReceiptClient">Cliente</label><select id="vpMixedReceiptClient"></select>'+
  '<p class="vp-mixed-hint">Marque as linhas a incluir. Valores e situações vêm dos registros existentes; a seleção não altera cobranças.</p>'+
  '<div id="vpMixedReceiptItems"></div>'+
- '<div class="vp-mixed-controls"><span id="vpMixedReceiptSummary"></span><button id="vpMixedShare" type="button" disabled>Compartilhar</button><button id="vpMixedPrint" type="button" disabled>Imprimir / salvar PDF</button></div>'+
- '<div id="vpMixedReceiptPreview"></div></section>';
+ '<div class="vp-mixed-controls"><span id="vpMixedReceiptSummary" role="status" aria-live="polite"></span><button id="vpMixedShare" type="button" disabled>Compartilhar</button><button id="vpMixedPrint" type="button" disabled>Imprimir / salvar PDF</button></div>'+
+ '<details class="vp-mixed-preview-details"><summary>Visualizar documento</summary><div id="vpMixedReceiptPreview"></div></details></section>';
  document.body.appendChild(sheet);
  document.getElementById('vpMixedClose').addEventListener('click',close);
  var monthInput=document.getElementById('fmonth');if(monthInput)monthInput.addEventListener('change',close);
@@ -222,12 +242,14 @@ function install(){
   refreshPreview();
  });
  document.getElementById('vpMixedReceiptItems').addEventListener('change',function(e){
+  var vehicle=e.target?.getAttribute('data-vp-vehicle');
+  if(vehicle!==null&&vehicle!==undefined){data.filter(function(x){return x.vehicleId===vehicle}).forEach(function(x){if(e.target.checked)selected.add(x.key);else selected.delete(x.key)});document.querySelectorAll('#vpMixedReceiptItems input[data-vp-mixed-key]').forEach(function(input){input.checked=selected.has(input.getAttribute('data-vp-mixed-key'))});refreshPreview();return}
   var k=e.target?.getAttribute('data-vp-mixed-key');if(!k)return;
   if(e.target.checked)selected.add(k);else selected.delete(k);refreshPreview()
  });
  document.getElementById('vpMixedPrint').addEventListener('click',printDoc);
  document.getElementById('vpMixedShare').addEventListener('click',share);
- document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!sheet.hidden)close()});
+ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!sheet.hidden)close();if(e.key==='Tab'&&!sheet.hidden&&sheet.querySelectorAll){var nodes=Array.from(sheet.querySelectorAll('button:not(:disabled),select,input,summary'));var first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
 else install();
