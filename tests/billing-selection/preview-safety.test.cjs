@@ -1,0 +1,26 @@
+"use strict";
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const preview=fs.readFileSync("billing-selection-preview.js","utf8");
+const html=fs.readFileSync("index.html","utf8");
+test("preview never writes payment or charges",()=>{
+  assert.doesNotMatch(preview,/\.insert\s*\(|\.update\s*\(|\.upsert\s*\(|\.delete\s*\(|\.rpc\s*\(/);
+});
+test("preview rechecks existing monthly document before export",()=>{
+  assert.match(preview,/freshCharges,freshPayments,freshAppointments,existingDocument,freshSubscriptions/);
+  assert.match(preview,/monthly_receipt_snapshots/);
+  assert.match(preview,/existingDocument\.data/);
+});
+test("preview rechecks paid status and plan associations",()=>{
+  assert.match(preview,/freshPayments\.data/);
+  assert.match(preview,/freshSubscriptions\.data/);
+  assert.match(preview,/Possível vínculo com plano/);
+});
+test("browser scripts are installed after main app initialization",()=>{
+  const main=html.indexOf('boot();');
+  const guard=html.indexOf('src="/billing-selection-guard.js');
+  const previewIndex=html.indexOf('src="/billing-selection-preview.js');
+  assert.ok(main>=0&&guard>main&&previewIndex>guard);
+  assert.match(html,/installBillingSelection\(\)/);
+});
