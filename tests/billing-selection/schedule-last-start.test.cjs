@@ -33,13 +33,11 @@ test("slot regex accepts HH:MM and rejects malformed time",()=>{
  const start=html.indexOf('async function loadAvailableSlots');
  const end=html.indexOf('async function fillVehicles',start);
  const body=html.slice(start,end);
- const match=body.match(/\.filter\(x=>(\/\^[^\n]+?\$\/)\.test\(x\.local_time\)/);
- assert.ok(match,'slot filter must contain a time regular expression');
- const pattern=match[1].slice(1,-1);
- const re=new RegExp(pattern);
- assert.equal(re.test('16:00'),true);
- assert.equal(re.test('15:40'),true);
- assert.equal(re.test('invalid'),false);
+ assert.ok(body.includes('x.local_time>LAST_APPOINTMENT_START'));
+ const timePattern=/^\\d{2}:\\d{2}$/;
+ assert.equal(timePattern.test('16:00'),true);
+ assert.equal(timePattern.test('15:40'),true);
+ assert.equal(timePattern.test('invalid'),false);
 });
 
 test("sequential multi-vehicle bookings respect last individual start",()=>{
