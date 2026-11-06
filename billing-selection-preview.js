@@ -12,6 +12,10 @@
     return node;
   }
   function format(value){return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value)}
+  function saoPauloDate(iso){
+    if(!iso)return "";
+    return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(iso));
+  }
   async function openBillingSelection(){
     if(typeof financeAllowed!=="function"||!financeAllowed())return;
     const k=financeMonthKeys(),modal=el("dialog",{style:"max-width:650px;width:95%;max-height:90vh;overflow:auto;padding:20px"});
@@ -65,7 +69,7 @@
             if(!latest||latest.status!=="pending"||latest.client_id!==id||String(latest.competence_month).slice(0,7)!==k.month||Number(latest.amount)!==line.amount)throw Error("Mensalidade alterada. Atualize a conferência.");
           }else {
             const latest=(freshAppointments.data||[]).find(x=>x.id===line.id);
-            if(!latest||latest.client_id!==id||latest.status!=="completed"||latest.deleted_at||String(latest.starts_at||"").slice(0,7)!==k.month||Number(latest.final_value)!==line.amount||latest.recurring_plan_id)throw Error("Atendimento alterado ou vinculado a plano. Atualize a conferência.");
+            if(!latest||latest.client_id!==id||latest.status!=="completed"||latest.deleted_at||saoPauloDate(latest.starts_at).slice(0,7)!==k.month||Number(latest.final_value)!==line.amount||latest.recurring_plan_id)throw Error("Atendimento alterado ou vinculado a plano. Atualize a conferência.");
             if((freshSubscriptions.data||[]).some(p=>p.client_id===id&&p.vehicle_id===latest.vehicle_id&&p.service_id===latest.service_id&&String(p.starts_on||"").slice(0,7)<=k.month&&(!p.superseded_at||String(p.superseded_at).slice(0,7)>=k.month)))throw Error("Possível vínculo com plano identificado. Atualize a conferência.");
             if((freshPayments.data||[]).some(x=>x.appointment_id===line.id&&x.status==="paid"))throw Error("Um atendimento já foi pago. Atualize a conferência.");
           }
@@ -91,7 +95,7 @@
         const linkedToPlan=Boolean(a.recurring_plan_id)||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id);
         const isPaid=payment?.status==="paid";
         const isAvulso=!linkedToPlan&&coverage.kind==="review_required"&&!isPaid&&Number(a.final_value)>0;
-        addLine("Atendimento "+String(a.starts_at).slice(0,10),Number(a.final_value??0),isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:Number(a.final_value??0),status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,label:"Atendimento "+String(a.starts_at).slice(0,10)});
+        addLine("Atendimento "+saoPauloDate(a.starts_at),Number(a.final_value??0),isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:Number(a.final_value??0),status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,label:"Atendimento "+String(a.starts_at).slice(0,10)});
       });
       total.textContent="Total selecionado: "+format(0);
     };
