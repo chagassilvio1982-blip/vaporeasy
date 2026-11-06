@@ -1,5 +1,22 @@
 -- DRAFT ONLY. Do not apply to production without isolated integration tests.
 -- Atomic server-side issuance of selected monthly items.
+-- Billing documents are not paid receipts; keep separate records.
+create table if not exists public.monthly_billing_documents (
+ id uuid primary key default gen_random_uuid(),
+ client_id uuid not null references public.clients(id),
+ competence_month date not null,
+ snapshot jsonb not null,
+ issued_by uuid not null,
+ issued_at timestamptz not null default now(),
+ unique(client_id,competence_month)
+);
+alter table public.monthly_billing_documents enable row level security;
+revoke all on public.monthly_billing_documents from anon, authenticated;
+grant select on public.monthly_billing_documents to authenticated;
+create policy monthly_billing_documents_select on public.monthly_billing_documents
+ for select to authenticated using (auth.uid() is not null and private.is_active_user()
+ and private.current_app_role() in ('owner','admin'));
+
 create or replace function public.issue_selected_monthly_receipt(
   p_client_id uuid, p_competence date, p_lines jsonb
 ) returns uuid
@@ -26,7 +43,7 @@ begin
     raise exception 'Client not found';
   end if;
   perform pg_advisory_xact_lock(hashtextextended(p_client_id::text || ':' || p_competence::text,0));
-  if exists(select 1 from public.monthly_receipt_snapshots
+  if exists(select 1 from public.monthly_billing_documents
             where client_id=p_client_id and competence_month=p_competence) then
     raise exception 'Monthly receipt already issued';
   end if;
@@ -82,7 +99,7 @@ begin
       'kind',v_kind,'id',v_id,'amount',v_amount
     ));
   end loop;
-  insert into public.monthly_receipt_snapshots(client_id,competence_month,snapshot,issued_by)
+  insert into public.monthly_billing_documents(client_id,competence_month,snapshot,issued_by)
   values(p_client_id,p_competence,jsonb_build_object(
     'schema_version',2,'kind','selected_monthly_receipt',
     'lines',v_verified_lines,'total',v_total,'item_count',v_count
