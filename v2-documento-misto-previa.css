@@ -29,3 +29,5 @@
 .vp-mixed-paper .vp-mixed-warning{border-top:1px solid #dce8ed;padding-top:10px;color:#536b7a}
 .vp-mixed-empty{padding:20px;text-align:center;color:#617986;background:#f1f6f8;border-radius:12px}
 @media(max-width:600px){.vp-mixed-sheet{padding:13px}.vp-mixed-paper{padding:10px}.vp-mixed-paper table{font-size:10px}.vp-mixed-paper th,.vp-mixed-paper td{padding:6px 3px}.vp-mixed-controls button{flex:1}.vp-mixed-totals{display:grid}.vp-mixed-line small{overflow-wrap:anywhere}}
+
+.vp-mixed-review-warning{padding:12px!important;border:1px solid #dfac54!important;background:#fff5db!important;color:#69430b!important;font-weight:850!important;border-radius:10px;font-size:12px!important}
