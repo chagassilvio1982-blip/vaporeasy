@@ -3642,8 +3642,8 @@ async function loadFinance(){
   if(!financeAllowed())return;
   const k=financeMonthKeys();
   try{
-    const sync=await sb.rpc("ensure_current_package_charges");
-    if(sync.error)throw sync.error;
+    // Prévia isolada: não executar o RPC que assegura/cria mensalidades.
+    // A V2 em produção conserva seu comportamento anterior.
     const [ar,paid,ex,pkgMonth,pkgPaid,subs]=await Promise.all([
       sb.from("appointments").select("id,client_id,vehicle_id,service_id,recurring_plan_id,completed_at,starts_at,base_value,addon_value,discount_amount,final_value").eq("status","completed").is("deleted_at",null).gte("starts_at",k.startIso).lt("starts_at",k.nextIso).order("starts_at",{ascending:false}),
       sb.from("appointment_payments").select("*").eq("status","paid").gte("paid_at",k.startIso).lt("paid_at",k.nextIso).order("paid_at",{ascending:false}),
@@ -3666,7 +3666,7 @@ async function loadFinance(){
       serviceIds.length?sb.from("services").select("id,name").in("id",serviceIds):Promise.resolve({data:[],error:null})
     ]);
     if(cr.error)throw cr.error;if(vr.error)throw vr.error;if(sr.error)throw sr.error;
-    const maps=financeEntityMaps({clients:cr.data||[],vehicles:vr.data||[],services:sr.data||[]}),payMap=new Map(monthPayments.map(p=>[p.appointment_id,p])),appMap=new Map(allApps.map(a=>[a.id,a]));
+    const maps=financeEntityMaps({clients:cr.data||[],vehicles:vr.data||[],services:sr.data||[]}),payMap=new Map(monthPayments.map(p=>[p.appointment_id,p])),appMap=new Map(allApps.map(a=>[a.id,a])),subscriptionPlanById=new Map((subs.data||[]).map(s=>[String(s.id),s.recurring_plan_id]));
     const serviceApps=monthApps.filter(a=>!packagePlanIds.has(a.recurring_plan_id)),paidRows=rawPaidRows.filter(p=>{const a=appMap.get(p.appointment_id);return !a||!packagePlanIds.has(a.recurring_plan_id)}),pendingApps=serviceApps.filter(a=>payMap.get(a.id)?.status!=="paid"),pendingPackage=packageMonthRows.filter(c=>c.status==="pending");
     const billedServices=serviceApps.reduce((sum,a)=>sum+Number(a.final_value||0),0),billedPackages=packageMonthRows.reduce((sum,c)=>sum+Number(c.amount||0),0),faturado=billedServices+billedPackages,receivedServices=paidRows.reduce((sum,p)=>sum+Number(p.amount||0),0),receivedPackages=packagePaidRows.reduce((sum,c)=>sum+Number(c.amount||0),0),recebido=receivedServices+receivedPackages,areceber=pendingApps.reduce((sum,a)=>sum+Number(payMap.get(a.id)?.amount??a.final_value??0),0)+pendingPackage.reduce((sum,c)=>sum+Number(c.amount||0),0),despesas=expenseRows.reduce((sum,e)=>sum+Number(e.amount||0),0);
     const serviceGroups=new Map(),paymentGroups=new Map(),expenseGroups=new Map();
@@ -3692,7 +3692,7 @@ async function loadFinance(){
     });
     const descontos=serviceApps.reduce((sum,a)=>sum+Number(a.discount_amount||0),0),uniqueClients=new Set([...serviceApps.map(a=>a.client_id),...packageMonthRows.map(c=>c.client_id)]).size,uniqueVehicles=new Set([...serviceApps.map(a=>a.vehicle_id),...packageMonthRows.map(c=>c.vehicle_id)]).size,billedTransactions=serviceApps.length+packageMonthRows.length,ticket=billedTransactions?faturado/billedTransactions:0,competenceResult=faturado-despesas,cashResult=recebido-despesas,margin=faturado?competenceResult/faturado*100:0;
     currentFinanceMonthReport={
-      keys:k,monthApps,serviceApps,paidRows,expenseRows,monthPayments,pendingApps,packageMonthRows,pendingPackage,packagePaidRows,allApps,maps,payMap,appMap,
+      keys:k,monthApps,serviceApps,paidRows,expenseRows,monthPayments,pendingApps,packageMonthRows,pendingPackage,packagePaidRows,allApps,maps,payMap,appMap,subscriptionPlanById,
       faturado,recebido,areceber,despesas,descontos,cashResult,competenceResult,margin,ticket,
       uniqueClients,uniqueVehicles,
       services:[...serviceGroups.values()].sort((a,b)=>b.total-a.total||b.count-a.count),
@@ -6267,4 +6267,8 @@ boot();
 </script>
 <script src="/main-menu.js?v=20261015-report1"></script>
 <script src="/agenda-quick-search.js?v=20261014-1"></script>
+<link rel="stylesheet" href="./v2-recibos-atalhos.css?v=20261106">
+<script src="./v2-recibos-atalhos.js?v=20261106"></script>
+<link rel="stylesheet" href="./v2-documento-misto-previa.css?v=20261106">
+<script src="./v2-documento-misto-previa.js?v=20261106"></script>
 </body></html>

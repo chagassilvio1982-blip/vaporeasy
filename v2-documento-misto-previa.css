@@ -1,0 +1,53 @@
+/* Vaporeasy V2 — Documento consolidado de pacotes + avulsos */
+.vp-mixed-backdrop{position:fixed;inset:0;z-index:90000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,8,15,.77);padding:8px}
+.vp-mixed-backdrop[hidden]{display:none!important}
+.vp-mixed-sheet{width:min(860px,100%);max-height:94dvh;overflow-y:auto;background:#f8fbfd;color:#163245;border-radius:19px;padding:18px;box-shadow:0 22px 75px rgba(0,0,0,.4);font:14px/1.4 system-ui}
+.vp-mixed-sheet header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:16px}
+.vp-mixed-sheet header strong{display:block;font-size:20px}.vp-mixed-sheet header small{display:block;color:#667d89}
+.vp-mixed-sheet header button{min-width:43px;min-height:43px;border:0;border-radius:10px;font-size:22px;background:#eaf0f3;color:#213b49}
+.vp-mixed-sheet>label{display:block;font-weight:800;font-size:13px;margin:7px 0}
+#vpMixedReceiptClient{width:100%;min-height:46px;border:1px solid #bed4dc;border-radius:11px;background:#fff;color:#163245;padding:8px 12px;font:16px system-ui}
+.vp-mixed-hint{font-size:12px;color:#5c7483;line-height:1.45;margin:12px 0}
+#vpMixedReceiptItems{max-height:260px;overflow:auto;display:grid;gap:7px;margin:12px 0}
+.vp-mixed-line{display:flex;align-items:flex-start;gap:10px;background:#eef5f8;border:1px solid #d9e8ee;padding:10px;border-radius:10px}
+.vp-mixed-line input{width:20px;height:20px;flex:0 0 20px;accent-color:#068fbd}
+.vp-mixed-line span{min-width:0}.vp-mixed-line strong,.vp-mixed-line small{display:block}
+.vp-mixed-line strong{font-size:13px}.vp-mixed-line small{font-size:11px;color:#576e7c;margin-top:3px}
+.vp-mixed-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:12px 0}
+.vp-mixed-controls span{margin-right:auto;font-weight:800;font-size:12px}
+.vp-mixed-controls button{background:#07587b;color:#fff;border:0;border-radius:11px;min-height:41px;padding:9px 12px;font-weight:800}
+.vp-mixed-controls button:disabled{opacity:.45}
+.vp-mixed-paper{border:1px solid #d6e2e8;padding:16px;background:#fff;border-radius:12px;overflow:auto}
+.vp-mixed-paper .vp-mixed-brand{font-weight:900;color:#087ba7;font-size:23px;letter-spacing:1px}
+.vp-mixed-paper .vp-mixed-brand small{display:block;font-size:10px;letter-spacing:0;color:#56727d}
+.vp-mixed-paper h2{margin:18px 0 3px;font-size:17px;color:#1e3b4a}
+.vp-mixed-paper p{font-size:11px;color:#637989;margin:5px 0 12px}
+.vp-mixed-paper table{width:100%;border-collapse:collapse;font-size:11px}
+.vp-mixed-paper th,.vp-mixed-paper td{padding:8px 6px;border-bottom:1px solid #e0eaf0;text-align:left;vertical-align:top}
+.vp-mixed-paper .num{text-align:right;white-space:nowrap}
+.vp-mixed-totals{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;font-size:12px;margin:15px 0}
+.vp-mixed-paper .vp-mixed-warning{border-top:1px solid #dce8ed;padding-top:10px;color:#536b7a}
+.vp-mixed-empty{padding:20px;text-align:center;color:#617986;background:#f1f6f8;border-radius:12px}
+@media(max-width:600px){.vp-mixed-sheet{padding:13px}.vp-mixed-paper{padding:10px}.vp-mixed-paper table{font-size:10px}.vp-mixed-paper th,.vp-mixed-paper td{padding:6px 3px}.vp-mixed-controls button{flex:1}.vp-mixed-totals{display:grid}.vp-mixed-line small{overflow-wrap:anywhere}}
+
+.vp-mixed-review-warning{padding:12px!important;border:1px solid #dfac54!important;background:#fff5db!important;color:#69430b!important;font-weight:850!important;border-radius:10px;font-size:12px!important}
+
+/* Seleção agrupada por veículo — leitura imediata no celular */
+.vp-mixed-pick-actions{display:flex;align-items:center;gap:8px;padding:8px 0 5px;flex-wrap:wrap}
+.vp-mixed-pick-actions span{flex:1;min-width:140px;font-weight:850;font-size:12px;color:#3b5767}
+.vp-mixed-pick-actions button{min-height:37px;padding:8px 12px;border-radius:10px;border:1px solid #9acbdc;background:#e8f6fb;color:#17536b;font-weight:850}
+.vp-mixed-vehicle-group{display:grid;gap:7px;border-radius:13px;border:1px solid #ccdde6;padding:10px;background:#fff}
+.vp-mixed-vehicle-header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px;padding:1px 2px 7px;border-bottom:1px solid #e4edf1}
+.vp-mixed-vehicle-header strong{color:#214457;font-size:14px}
+.vp-mixed-vehicle-header span{color:#64818f;font-size:11px;font-weight:750}
+.vp-mixed-line{background:#f3f8fa;align-items:center;gap:9px}
+.vp-mixed-line-body{flex:1;min-width:0}
+.vp-mixed-line-body strong{font-size:13px;color:#1c3a49;line-height:1.35}
+.vp-mixed-line-side{display:grid;gap:5px;justify-items:end;flex:0 0 auto}
+.vp-mixed-line-side b{color:#1b4357;font-size:13px}
+.vp-mixed-chip{font-size:10px!important;font-weight:850;white-space:nowrap;border-radius:6px;padding:3px 6px}
+.vp-mixed-chip.paid{color:#166541;background:#def5e8}
+.vp-mixed-chip.pending{color:#875314;background:#fff0cd}
+.vp-mixed-chip.review{color:#7d2d26;background:#ffe2de}
+.vp-mixed-detail{color:#607e90!important;line-height:1.4}
+@media(max-width:460px){.vp-mixed-line{gap:8px}.vp-mixed-line-body strong{font-size:12px}.vp-mixed-line-side b{font-size:12px}.vp-mixed-line-side{max-width:105px}.vp-mixed-pick-actions button{font-size:12px}}

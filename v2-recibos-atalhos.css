@@ -1,0 +1,27 @@
+/* Vaporeasy V2 — acesso visual aos recibos, preservando o layout existente */
+.vp-receipts-shortcut{
+ display:inline-flex;align-items:center;justify-content:center;gap:6px;
+ border:1px solid rgba(40,191,245,.48);border-radius:13px;
+ background:linear-gradient(135deg,#0c719e,#07506f);
+ color:#f8fcff;font:inherit;font-weight:850;font-size:13px;
+ min-height:46px;padding:10px 14px;cursor:pointer;
+ box-shadow:0 4px 13px rgba(0,0,0,.15);
+}
+.vp-receipts-shortcut:focus-visible{outline:3px solid #68d9ff;outline-offset:2px}
+.vp-receipts-shortcut:active{transform:translateY(1px)}
+.vp-receipts-shortcut[hidden]{display:none!important}
+#main-primary-nav .vp-receipts-nav{flex:1 1 auto;min-width:90px;min-height:43px}
+#age .agenda-head-actions,#fin .finance-head-actions{flex-wrap:wrap}
+#vpReceiptsAgenda,#vpReceiptsFinance{min-width:112px}
+#finance-month-docs{scroll-margin-top:14px}
+.vp-receipts-search{padding:12px 13px;margin:10px 0;border:1px solid rgba(42,194,250,.21);border-radius:14px;background:#0a2939}
+.vp-receipts-search label{display:block;color:#eafaff;font-size:13px;font-weight:850;margin-bottom:8px}
+#vpReceiptsClientFilter{box-sizing:border-box;width:100%;min-height:45px;border:1px solid rgba(50,151,190,.45);border-radius:10px;background:#081f2c;color:#fff;font-size:16px;padding:9px 13px}
+#vpReceiptsFilterCount{display:block;margin:8px 0;color:#b7d3e0;font-size:11px}
+.vp-receipts-search p{font-size:11px;line-height:1.5;color:#a4bac8;margin:8px 0 0}
+#fmonthdocs>.item[hidden]{display:none!important}
+@media(max-width:450px){
+ #main-primary-nav .vp-receipts-nav{font-size:12px;min-width:76px}
+ #age .agenda-head-actions{gap:7px}
+ #vpReceiptsAgenda{min-width:96px;min-height:42px;padding:9px 10px;font-size:12px}
+}
