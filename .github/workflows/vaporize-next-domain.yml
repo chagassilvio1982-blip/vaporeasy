@@ -1,0 +1,25 @@
+name: Vaporize Next domain checks
+on:
+  push:
+    branches:
+      - 'vaporize-next/isolado-20261029'
+    paths:
+      - 'vaporize-next/**'
+      - '.github/workflows/vaporize-next-domain.yml'
+  pull_request:
+    paths:
+      - 'vaporize-next/**'
+jobs:
+  domain:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vaporize-next
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
