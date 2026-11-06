@@ -17,8 +17,10 @@ test("existing appointment time can be retained during edit",()=>{
 });
 
 test("monthly agenda must not be filtered by slot-local time",()=>{
- const monthly=html.slice(html.indexOf('async function loadAgendaMonth'),html.indexOf('async function loadAgendaMonth')+6000);
- assert.ok(!monthly.includes('x.local_time<=LAST_APPOINTMENT_START'));
+ const start=html.indexOf('const rows=r.data||[];',html.indexOf('agendaListLoadSeq'));
+ assert.ok(start>=0,'monthly agenda must keep all returned rows');
+ assert.ok(html.slice(start,start+150).includes('if(!rows.length)'));
+ assert.ok(!html.slice(start,start+150).includes('LAST_APPOINTMENT_START'));
 });
 test("slot filter occurs inside available-slot loader",()=>{
  const start=html.indexOf('async function loadAvailableSlots');
