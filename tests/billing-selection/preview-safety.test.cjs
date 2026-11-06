@@ -24,3 +24,9 @@ test("browser scripts are installed after main app initialization",()=>{
   assert.ok(main>=0&&guard>main&&previewIndex>guard);
   assert.match(html,/installBillingSelection\(\)/);
 });
+
+test("preview uses São Paulo dates instead of UTC slicing",()=>{
+  assert.match(preview,/timeZone:"America\/Sao_Paulo"/);
+  assert.match(preview,/saoPauloDate\(latest\.starts_at\)/);
+  assert.match(preview,/saoPauloDate\(a\.starts_at\)/);
+});
