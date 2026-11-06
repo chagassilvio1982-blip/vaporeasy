@@ -28,3 +28,11 @@ test("slot filter occurs inside available-slot loader",()=>{
  assert.ok(start>=0&&end>start);
  assert.ok(html.slice(start,end).includes('x.local_time<=LAST_APPOINTMENT_START'));
 });
+
+test("slot regex matches HH:MM rather than a literal backslash",()=>{
+ const start=html.indexOf('async function loadAvailableSlots');
+ const end=html.indexOf('async function fillVehicles',start);
+ const body=html.slice(start,end);
+ assert.ok(body.includes(String.raw`/^\\d{2}:\\d{2}$/`));
+ assert.ok(!body.includes(String.raw`/^\\\\d{2}:\\\\d{2}$/`));
+});
