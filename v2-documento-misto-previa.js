@@ -16,6 +16,7 @@ function build(r,cid){
  var vm=r.maps.vm||new Map(),sm=r.maps.sm||new Map(),list=[];
  var visitByPlan=new Map(),emittedVisitIds=new Set(),planBySubscription=r.subscriptionPlanById||new Map();
  var chargeList=Array.isArray(r.packageMonthRows)?r.packageMonthRows:[];
+ var seenMonthlyCharges=new Set();
  var svc=Array.isArray(r.serviceApps)?r.serviceApps:[];
  var svcIds=new Set(svc.map(function(a){return String(a.id)}));
  (r.monthApps||[]).forEach(function(a){
@@ -29,6 +30,9 @@ function build(r,cid){
    var v=vm.get(id);return v?[v.brand,v.model,v.plate].filter(Boolean).join(' • '):'Veículo sem cadastro identificado';
  }
  chargeList.filter(function(c){return c.client_id===cid&&['pending','paid','covered'].includes(c.status)}).forEach(function(c){
+   var identity=String(c.subscription_id||'')+'|'+String(c.competence_month||'').slice(0,7);
+   var duplicate=!!c.subscription_id&&!!c.competence_month&&seenMonthlyCharges.has(identity);
+   if(c.subscription_id&&c.competence_month)seenMonthlyCharges.add(identity);
    var covered=c.status==='covered',paid=c.status==='paid',value=covered?0:amount(c.amount);
    var planId=planBySubscription.get(String(c.subscription_id||''));
    var visits=(planId?visitByPlan.get(String(planId))||[]:[]).filter(function(v){return v.vehicleId===String(c.vehicle_id||'')});
@@ -36,8 +40,9 @@ function build(r,cid){
       service:sm.get(c.service_id)?.name||'Mensalidade do pacote',
       date:dateBr(c.competence_month||c.created_at),status:covered?'Coberto por ajuste':paid?'Pago':'Pendente',
       value,received:paid?value:0,pending:paid?0:value,
-      detail:visits.length?visits.length+' visita(s) vinculada(s) ao plano nesta competência, sem cobrança avulsa.':'Sem visitas vinculadas nesta competência; cobrança do pacote independente da execução',
-      discount:amount(c.commercial_discount||0),covered
+      detail:(duplicate?'ALERTA: mesmo plano já aparece nesta competência. Conferir duplicidade. ': '')+(visits.length?visits.length+' visita(s) vinculada(s) ao plano nesta competência, sem cobrança avulsa.':'Sem visitas vinculadas nesta competência; cobrança do pacote independente da execução'),
+      discount:amount(c.commercial_discount||0),covered,needsReview:duplicate,
+      duplicateWarning:duplicate?'Possível cobrança duplicada do mesmo plano na competência. Não compartilhar até conciliar os registros.':''
    });
    // Cada serviço efetivamente realizado aparece como seleção independente,
    // mas com valor zero: o preço já foi cobrado pela mensalidade correspondente.
