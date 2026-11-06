@@ -29,10 +29,15 @@ test("slot filter occurs inside available-slot loader",()=>{
  assert.ok(html.slice(start,end).includes('x.local_time<=LAST_APPOINTMENT_START'));
 });
 
-test("slot regex matches HH:MM rather than a literal backslash",()=>{
+test("slot regex accepts HH:MM and rejects malformed time",()=>{
  const start=html.indexOf('async function loadAvailableSlots');
  const end=html.indexOf('async function fillVehicles',start);
  const body=html.slice(start,end);
- assert.ok(body.includes(String.raw`/^\\d{2}:\\d{2}$/`));
- assert.ok(!body.includes(String.raw`/^\\\\d{2}:\\\\d{2}$/`));
+ const match=body.match(/\.filter\(x=>(\/\^[^\n]+?\$\/)\.test\(x\.local_time\)/);
+ assert.ok(match,'slot filter must contain a time regular expression');
+ const pattern=match[1].slice(1,-1);
+ const re=new RegExp(pattern);
+ assert.equal(re.test('16:00'),true);
+ assert.equal(re.test('15:40'),true);
+ assert.equal(re.test('invalid'),false);
 });
