@@ -13,6 +13,7 @@ create table if not exists public.monthly_billing_documents (
 alter table public.monthly_billing_documents enable row level security;
 revoke all on public.monthly_billing_documents from anon, authenticated;
 grant select on public.monthly_billing_documents to authenticated;
+drop policy if exists monthly_billing_documents_select on public.monthly_billing_documents;
 create policy monthly_billing_documents_select on public.monthly_billing_documents
  for select to authenticated using (auth.uid() is not null and private.is_active_user()
  and private.current_app_role() in ('owner','admin'));
