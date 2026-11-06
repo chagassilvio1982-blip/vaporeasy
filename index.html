@@ -3451,6 +3451,13 @@ async function getPackageChargeGroupShareData(ids){
   const charges=cr.data||[];
   if(charges.length!==chargeIds.length)throw Error("Uma das mensalidades não foi encontrada.");
   const first=charges[0];
+  const chargeKeys=new Set();
+  for(const c of charges){
+    if(!c.subscription_id||!c.competence_month)throw Error("Mensalidade sem identificação do contrato ou competência. Conferir antes de cobrar.");
+    const key=String(c.subscription_id)+'|'+String(c.competence_month).slice(0,7);
+    if(chargeKeys.has(key))throw Error("Cobrança duplicada: o mesmo plano aparece mais de uma vez neste mês. Envio bloqueado até conciliação.");
+    chargeKeys.add(key);
+  }
   if(!charges.every(c=>c.client_id===first.client_id&&c.competence_month===first.competence_month))throw Error("As mensalidades precisam pertencer ao mesmo cliente e mês.");
   const statuses=[...new Set(charges.map(c=>c.status))];
   if(statuses.length!==1||!["pending","paid"].includes(statuses[0]))throw Error("As mensalidades agrupadas precisam estar todas pendentes ou todas pagas.");
