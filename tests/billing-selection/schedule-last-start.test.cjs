@@ -34,7 +34,7 @@ test("slot regex accepts HH:MM and rejects malformed time",()=>{
  const end=html.indexOf('async function fillVehicles',start);
  const body=html.slice(start,end);
  assert.ok(body.includes('x.local_time>LAST_APPOINTMENT_START'));
- const timePattern=/^\\d{2}:\\d{2}$/;
+ const timePattern=/^\d{2}:\d{2}$/;
  assert.equal(timePattern.test('16:00'),true);
  assert.equal(timePattern.test('15:40'),true);
  assert.equal(timePattern.test('invalid'),false);
