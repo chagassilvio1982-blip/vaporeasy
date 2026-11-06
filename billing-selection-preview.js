@@ -43,14 +43,31 @@
     client.onchange=()=>{
       rows.replaceChildren();const id=client.value;let sum=0;const checks=[];
       exportButton.disabled=true;
-      exportButton.onclick=()=>{
+      exportButton.onclick=async()=>{
+        exportButton.disabled=true;
+        try{
         const chosen=checks.filter(x=>x.input.checked).map(x=>x.line);
+        if(!chosen.length)throw Error("Selecione pelo menos um item.");
+        const packageIds=chosen.filter(x=>x.kind==="package_charge").map(x=>x.id);
+        const appointmentIds=chosen.filter(x=>x.kind==="appointment_extra").map(x=>x.id);
+        const [freshCharges,freshPayments]=await Promise.all([
+          packageIds.length?sb.from("package_charges").select("id,client_id,competence_month,amount,status").in("id",packageIds):Promise.resolve({data:[],error:null}),
+          appointmentIds.length?sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null})
+        ]);
+        if(freshCharges.error||freshPayments.error)throw freshCharges.error||freshPayments.error;
+        for(const line of chosen){
+          if(line.kind==="package_charge"){
+            const latest=(freshCharges.data||[]).find(x=>x.id===line.id);
+            if(!latest||latest.status!=="pending"||latest.client_id!==id||String(latest.competence_month).slice(0,7)!==k.month||Number(latest.amount)!==line.amount)throw Error("Mensalidade alterada. Atualize a conferência.");
+          }else if((freshPayments.data||[]).some(x=>x.appointment_id===line.id&&x.status==="paid"))throw Error("Um atendimento já foi pago. Atualize a conferência.");
+        }
         const amount=validateBillingSelection(chosen,{client_id:id,competence:k.month});
         const selectedClient=clients.find(x=>x.id===id);
         const report=["VAPOREASY — PRÉVIA DE COBRANÇA (NÃO EMITIDA)","Cliente: "+(selectedClient?.name||""),"Competência: "+k.month,"",...chosen.map(x=>x.label+" | "+format(x.amount)),"","TOTAL: "+format(amount),"DOCUMENTO DE CONFERÊNCIA — NÃO É RECIBO OU COBRANÇA"];
         const blob=new Blob([report.join("\n")],{type:"text/plain;charset=utf-8"});
         const url=URL.createObjectURL(blob),link=el("a",{href:url,download:"vaporeasy-previa-"+k.month+".txt"});
         document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+        }catch(error){alert(error.message||String(error));}finally{exportButton.disabled=!checks.some(x=>x.input.checked);}
       };
       function addLine(name,amount,enabled,description,line){
         const label=el("label",{style:"display:block;padding:10px;border-bottom:1px solid #ddd"});
@@ -65,7 +82,7 @@
         const linkedToPlan=Boolean(a.recurring_plan_id)||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id);
         const isPaid=payment?.status==="paid";
         const isAvulso=!linkedToPlan&&coverage.kind==="review_required"&&!isPaid&&Number(a.final_value)>0;
-        addLine("Atendimento "+String(a.starts_at).slice(0,10),Number(payment?.amount??a.final_value??0),isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:Number(payment?.amount??a.final_value??0),status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,label:"Atendimento "+String(a.starts_at).slice(0,10)});
+        addLine("Atendimento "+String(a.starts_at).slice(0,10),Number(a.final_value??0),isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:Number(a.final_value??0),status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,label:"Atendimento "+String(a.starts_at).slice(0,10)});
       });
       total.textContent="Total selecionado: "+format(0);
     };
