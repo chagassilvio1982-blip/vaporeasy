@@ -9,7 +9,7 @@ test("receipt selection never directly writes payment or charges",()=>{
 });
 test("preview rechecks existing monthly document before export",()=>{
   assert.match(preview,/freshCharges,freshPayments,freshAppointments,existingDocument,freshSubscriptions/);
-  assert.match(preview,/monthly_receipt_snapshots/);
+  assert.match(preview,/monthly_billing_documents/);
   assert.match(preview,/existingDocument\.data/);
 });
 test("preview rechecks paid status and plan associations",()=>{
