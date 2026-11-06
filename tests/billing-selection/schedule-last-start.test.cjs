@@ -29,15 +29,17 @@ test("slot filter occurs inside available-slot loader",()=>{
  assert.ok(html.slice(start,end).includes('x.local_time>LAST_APPOINTMENT_START'));
 });
 
-test("slot regex accepts HH:MM and rejects malformed time",()=>{
+test("actual slot regex accepts HH:MM and rejects malformed time",()=>{
  const start=html.indexOf('async function loadAvailableSlots');
  const end=html.indexOf('async function fillVehicles',start);
  const body=html.slice(start,end);
- assert.ok(body.includes('x.local_time>LAST_APPOINTMENT_START'));
- const timePattern=/^\d{2}:\d{2}$/;
- assert.equal(timePattern.test('16:00'),true);
- assert.equal(timePattern.test('15:40'),true);
- assert.equal(timePattern.test('invalid'),false);
+ const match=body.match(/if\(!((?:\/\^)[^\n]+?\$\/)\.test\(x\.local_time\)/);
+ assert.ok(match,'the actual source must contain a slot regex');
+ const literal=match[1];
+ const pattern=new RegExp(literal.slice(2,-2));
+ assert.equal(pattern.test('16:00'),true);
+ assert.equal(pattern.test('15:40'),true);
+ assert.equal(pattern.test('invalid'),false);
 });
 
 test("sequential multi-vehicle bookings respect last individual start",()=>{
