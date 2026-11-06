@@ -14,7 +14,7 @@ function isAllowed(){try{return typeof financeAllowed==='function'&&financeAllow
 function build(r,cid){
  if(!r||!r.maps||!cid)return [];
  var vm=r.maps.vm||new Map(),sm=r.maps.sm||new Map(),list=[];
- var visitByPlan=new Map(),planBySubscription=r.subscriptionPlanById||new Map();
+ var visitByPlan=new Map(),emittedVisitIds=new Set(),planBySubscription=r.subscriptionPlanById||new Map();
  var chargeList=Array.isArray(r.packageMonthRows)?r.packageMonthRows:[];
  var svc=Array.isArray(r.serviceApps)?r.serviceApps:[];
  var svcIds=new Set(svc.map(function(a){return String(a.id)}));
@@ -22,7 +22,7 @@ function build(r,cid){
    // Visitas incluídas devem corresponder ao plano, não apenas ao mesmo veículo.
    if(a.client_id!==cid||svcIds.has(String(a.id))||!a.recurring_plan_id)return;
    var planKey=String(a.recurring_plan_id),v=visitByPlan.get(planKey)||[];
-   v.push({name:sm.get(a.service_id)?.name||'Serviço do pacote',date:dateBr(a.starts_at||a.completed_at)});
+   v.push({id:String(a.id),vehicleId:String(a.vehicle_id||''),name:sm.get(a.service_id)?.name||'Serviço do pacote',date:dateBr(a.starts_at||a.completed_at)});
    visitByPlan.set(planKey,v);
  });
  function vehicleName(id){
@@ -31,13 +31,25 @@ function build(r,cid){
  chargeList.filter(function(c){return c.client_id===cid&&['pending','paid','covered'].includes(c.status)}).forEach(function(c){
    var covered=c.status==='covered',paid=c.status==='paid',value=covered?0:amount(c.amount);
    var planId=planBySubscription.get(String(c.subscription_id||''));
-   var visits=planId?visitByPlan.get(String(planId))||[]:[];
+   var visits=(planId?visitByPlan.get(String(planId))||[]:[]).filter(function(v){return v.vehicleId===String(c.vehicle_id||'')});
    list.push({key:'package:'+String(c.id),kind:'Pacote',vehicle:vehicleName(c.vehicle_id),
       service:sm.get(c.service_id)?.name||'Mensalidade do pacote',
       date:dateBr(c.competence_month||c.created_at),status:covered?'Coberto por ajuste':paid?'Pago':'Pendente',
       value,received:paid?value:0,pending:paid?0:value,
-      detail:visits.length?visits.map(function(v){return v.name+(v.date?' ('+v.date+')':'')}).join('; '):'Sem visitas vinculadas a este plano na competência',
+      detail:visits.length?visits.length+' serviço(s) realizado(s) incluído(s) nesta mensalidade, sem cobrança avulsa.':'Sem visitas vinculadas a este plano na competência',
       discount:amount(c.commercial_discount||0),covered
+   });
+   // Cada serviço efetivamente realizado aparece como seleção independente,
+   // mas com valor zero: o preço já foi cobrado pela mensalidade correspondente.
+   visits.forEach(function(v){
+     if(!v.id||emittedVisitIds.has(v.id))return;
+     emittedVisitIds.add(v.id);
+     list.push({key:'included_visit:'+v.id,kind:'Serviço incluído no pacote',
+       vehicle:vehicleName(c.vehicle_id),service:v.name,date:v.date,
+       status:'Incluído no pacote',value:0,received:0,pending:0,
+       detail:'Coberto pela mensalidade '+dateBr(c.competence_month||c.created_at)+'. Nenhuma cobrança avulsa.',
+       discount:0,included:true
+     });
    });
  });
  svc.filter(function(a){return a.client_id===cid}).forEach(function(a){
