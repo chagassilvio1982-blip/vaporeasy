@@ -55,3 +55,9 @@ test("receipt issuance requires user confirmation and server validation",()=>{
  assert.match(preview,/const \{chosen,amount\}=await verifySelection\(\)/);
  assert.match(preview,/p_lines:payload/);
 });
+
+test("selected monthly document shows vehicle names and real newlines",()=>{
+ assert.match(preview,/labels\.get\(line\.kind\+":"\+line\.id\)/);
+ assert.match(preview,/\.join\("\\n"\)/);
+ assert.match(preview,/selectedReceiptRendererReady=false/);
+});
