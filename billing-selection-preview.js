@@ -50,13 +50,14 @@
         if(!chosen.length)throw Error("Selecione pelo menos um item.");
         const packageIds=chosen.filter(x=>x.kind==="package_charge").map(x=>x.id);
         const appointmentIds=chosen.filter(x=>x.kind==="appointment_extra").map(x=>x.id);
-        const [freshCharges,freshPayments,freshAppointments,existingDocument]=await Promise.all([
+        const [freshCharges,freshPayments,freshAppointments,existingDocument,freshSubscriptions]=await Promise.all([
           packageIds.length?sb.from("package_charges").select("id,client_id,competence_month,amount,status").in("id",packageIds):Promise.resolve({data:[],error:null}),
           appointmentIds.length?sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null}),
-          appointmentIds.length?sb.from("appointments").select("id,client_id,starts_at,final_value,status,deleted_at,recurring_plan_id").in("id",appointmentIds):Promise.resolve({data:[],error:null}),
-          sb.from("monthly_receipt_snapshots").select("id").eq("client_id",id).eq("competence_month",k.startDate).limit(1)
+          appointmentIds.length?sb.from("appointments").select("id,client_id,vehicle_id,service_id,starts_at,final_value,status,deleted_at,recurring_plan_id").in("id",appointmentIds):Promise.resolve({data:[],error:null}),
+          sb.from("monthly_receipt_snapshots").select("id").eq("client_id",id).eq("competence_month",k.startDate).limit(1),
+          appointmentIds.length?sb.from("package_subscriptions").select("client_id,vehicle_id,service_id,starts_on,superseded_at").eq("client_id",id):Promise.resolve({data:[],error:null})
         ]);
-        if(freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error)throw freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error;
+        if(freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error||freshSubscriptions.error)throw freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error||freshSubscriptions.error;
         if((existingDocument.data||[]).length)throw Error("Já existe documento mensal emitido para este cliente. Confira o histórico antes de gerar outra prévia.");
         for(const line of chosen){
           if(line.kind==="package_charge"){
@@ -65,6 +66,7 @@
           }else {
             const latest=(freshAppointments.data||[]).find(x=>x.id===line.id);
             if(!latest||latest.client_id!==id||latest.status!=="completed"||latest.deleted_at||String(latest.starts_at||"").slice(0,7)!==k.month||Number(latest.final_value)!==line.amount||latest.recurring_plan_id)throw Error("Atendimento alterado ou vinculado a plano. Atualize a conferência.");
+            if((freshSubscriptions.data||[]).some(p=>p.client_id===id&&p.vehicle_id===latest.vehicle_id&&p.service_id===latest.service_id&&String(p.starts_on||"").slice(0,7)<=k.month&&(!p.superseded_at||String(p.superseded_at).slice(0,7)>=k.month)))throw Error("Possível vínculo com plano identificado. Atualize a conferência.");
             if((freshPayments.data||[]).some(x=>x.appointment_id===line.id&&x.status==="paid"))throw Error("Um atendimento já foi pago. Atualize a conferência.");
           }
         }
