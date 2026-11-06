@@ -40,14 +40,15 @@ const base={
 };
 function withChanges(fields){return Object.assign({},base,fields)}
 const rows=build(base,client);
-check('3 lançamentos para 3 veículos',()=>assert.equal(rows.length,3));
+check('5 itens selecionáveis: 2 pacotes, 2 visitas incluídas e 1 avulso',()=>assert.equal(rows.length,5));
 check('2 pacotes + 1 avulso',()=>assert.equal(rows.filter(x=>x.kind==='Pacote').length,2));
 check('soma 700',()=>assert.equal(moneySum(rows,'value'),700));
+check('seleção apenas das visitas tem valor zero',()=>assert.equal(moneySum(rows.filter(x=>x.included),'value'),0));
 check('recebidos 550',()=>assert.equal(moneySum(rows,'received'),550));
 check('a receber 150',()=>assert.equal(moneySum(rows,'pending'),150));
-check('visitas incluídas não geram cobrança',()=>assert(!rows.some(x=>x.key==='service:visit-a'||x.key==='service:visit-b')));
-check('visita vinculada ao plano de fato',()=>assert(rows.find(x=>x.key==='package:charge-a').detail.includes('05/10/2026')));
-check('identificador por origem e não nome',()=>assert(rows.some(x=>x.key==='service:service-a')&&rows.some(x=>x.key==='package:charge-a')));
+check('visitas incluídas não geram cobrança',()=>assert(rows.filter(x=>x.kind==='Serviço incluído no pacote').length===2&&rows.filter(x=>x.kind==='Serviço incluído no pacote').every(x=>x.value===0&&x.received===0&&x.pending===0)));
+check('visita vinculada ao plano de fato',()=>assert(rows.some(x=>x.key==='included_visit:visit-a'&&x.date==='05/10/2026')));
+check('identificador por origem e não nome',()=>assert(rows.some(x=>x.key==='service:service-a')&&rows.some(x=>x.key==='package:charge-a')&&rows.some(x=>x.key==='included_visit:visit-a')));
 check('outro plano no mesmo carro não mistura visitas',()=>{
   const more=withChanges({
     packageMonthRows:base.packageMonthRows.concat([{id:'charge-extra',client_id:client,vehicle_id:vehicle,service_id:'plan-b',subscription_id:'sub-extra',status:'pending',amount:100}]),
@@ -55,8 +56,9 @@ check('outro plano no mesmo carro não mistura visitas',()=>{
     subscriptionPlanById:new Map([...base.subscriptionPlanById,['sub-extra','plan-id-extra']])
   });
   const a=build(more,client);
-  assert(!a.find(x=>x.key==='package:charge-a').detail.includes('22/10/2026'));
-  assert(a.find(x=>x.key==='package:charge-extra').detail.includes('22/10/2026'));
+  assert(a.filter(x=>x.key.startsWith('included_visit:')).length===3);
+  assert(a.find(x=>x.key==='included_visit:visit-extra').vehicle==='BMW • X5');
+  assert(a.find(x=>x.key==='package:charge-a').detail.includes('1 serviço(s)'));
 });
 check('não inventa visitas sem relação confirmada',()=>{
   const changed=withChanges({subscriptionPlanById:new Map()});
@@ -72,7 +74,7 @@ check('exclui mensalidade cancelada',()=>{
 });
 check('outro cliente isolado',()=>{
   const changed=withChanges({serviceApps:base.serviceApps.concat([{id:'alien',client_id:other,vehicle_id:vehicle,service_id:'clean',final_value:900}])});
-  assert.equal(build(changed,client).length,3);
+  assert.equal(build(changed,client).length,5);
   assert.equal(build(changed,other).length,1);
 });
 check('pagamento registrado pago é respeitado',()=>{
