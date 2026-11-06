@@ -20,15 +20,17 @@
     const close=el("button",{type:"button"},"Fechar");close.onclick=()=>modal.close();
     modal.append(title,message,client,rows,total,el("p",{},"Prévia para conferência. Nenhuma cobrança será emitida por esta tela."),close);
     document.body.append(modal);modal.addEventListener("close",()=>modal.remove());modal.showModal();
-    const [cr,ar,pc,subs]=await Promise.all([
+    const [cr,ar,pc,subs,payments]=await Promise.all([
       sb.from("clients").select("id,name").order("name"),
       sb.from("appointments").select("id,client_id,vehicle_id,service_id,recurring_plan_id,starts_at,final_value").eq("status","completed").is("deleted_at",null).gte("starts_at",k.startIso).lt("starts_at",k.nextIso),
       sb.from("package_charges").select("id,client_id,vehicle_id,subscription_id,competence_month,amount,status").eq("competence_month",k.startDate).neq("status","cancelled"),
-      sb.from("package_subscriptions").select("id,client_id,vehicle_id,service_id,recurring_plan_id,starts_on,superseded_at")
+      sb.from("package_subscriptions").select("id,client_id,vehicle_id,service_id,recurring_plan_id,starts_on,superseded_at"),
+      sb.from("appointment_payments").select("appointment_id,status,amount")
     ]);
-    for(const response of [cr,ar,pc,subs])if(response.error)throw response.error;
+    for(const response of [cr,ar,pc,subs,payments])if(response.error)throw response.error;
     const ids=new Set([...(ar.data||[]).map(x=>x.client_id),...(pc.data||[]).map(x=>x.client_id)]);
     const clients=(cr.data||[]).filter(x=>ids.has(x.id));
+    const paymentMap=new Map((payments.data||[]).map(p=>[p.appointment_id,p]));
     client.append(el("option",{value:""},"Escolha um cliente"));
     clients.forEach(c=>client.append(el("option",{value:c.id},c.name)));
     client.onchange=()=>{
@@ -42,7 +44,11 @@
       (pc.data||[]).filter(x=>x.client_id===id).forEach(c=>addLine("Mensalidade do plano",Number(c.amount||0),c.status==="pending",c.status==="paid"?"Já paga":"Pendente"));
       (ar.data||[]).filter(x=>x.client_id===id).forEach(a=>{
         const coverage=billingCoverage(a,subs.data||[],pc.data||[],k.month);
-        addLine("Atendimento "+String(a.starts_at).slice(0,10),Number(a.final_value||0),false,coverage.kind==="included_in_plan"?"Incluído no plano":"Requer conferência individual antes de cobrar");
+        const payment=paymentMap.get(a.id);
+        const linkedToPlan=Boolean(a.recurring_plan_id)||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id);
+        const isPaid=payment?.status==="paid";
+        const isAvulso=!linkedToPlan&&coverage.kind==="review_required"&&!isPaid;
+        addLine("Atendimento "+String(a.starts_at).slice(0,10),Number(payment?.amount??a.final_value??0),isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura");
       });
       total.textContent="Total selecionado: "+format(0);
     };
