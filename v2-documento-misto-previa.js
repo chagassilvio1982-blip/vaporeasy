@@ -98,12 +98,13 @@ function monthLabel(){
 }
 function refreshPreview(){
  var p=document.getElementById('vpMixedReceiptPreview');if(!p)return;
- var rows=snapshot(),t=totals(rows);
+ var rows=snapshot(),t=totals(rows),needsReview=rows.some(function(row){return row.needsReview});
  p.innerHTML=rows.length?documentHtml(rows,selectedClientName(),monthLabel()):'<div class="vp-mixed-empty">Selecione ao menos um serviço ou pacote para visualizar o documento.</div>';
+ if(needsReview)p.insertAdjacentHTML('afterbegin','<p class="vp-mixed-review-warning" role="alert">Há diferença entre o valor do serviço e o pagamento registrado, ou um pagamento sem valor verificável. Confira os lançamentos. O compartilhamento está bloqueado.</p>');
  var summary=document.getElementById('vpMixedReceiptSummary');
  if(summary)summary.textContent=rows.length+' item(ns) · '+money(t.received)+' recebidos · '+money(t.pending)+' pendentes';
- var print=document.getElementById('vpMixedPrint');if(print)print.disabled=!rows.length;
- var share=document.getElementById('vpMixedShare');if(share)share.disabled=!rows.length;
+ var print=document.getElementById('vpMixedPrint');if(print)print.disabled=!rows.length||needsReview;
+ var share=document.getElementById('vpMixedShare');if(share)share.disabled=!rows.length||needsReview;
 }
 function refreshItems(){
  var body=document.getElementById('vpMixedReceiptItems');if(!body)return;
@@ -147,12 +148,13 @@ function textDoc(){
  return lines.join('\n');
 }
 function share(){
+ if(!snapshot().length||snapshot().some(function(row){return row.needsReview}))return;
  var t=textDoc();
  if(navigator.share){navigator.share({title:'Vaporeasy — Demonstrativo',text:t}).catch(function(){});return}
  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(function(){if(typeof show==='function')show('msg','Documento copiado para compartilhar.','ok')}).catch(function(){});
 }
 function printDoc(){
- var rows=snapshot();if(!rows.length)return;
+ var rows=snapshot();if(!rows.length||rows.some(function(row){return row.needsReview}))return;
  var markup=documentHtml(rows,selectedClientName(),monthLabel());
  var win=window.open('','_blank');if(!win){if(typeof show==='function')show('msg','O navegador bloqueou a prévia de impressão.','error');return}
  win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Vaporeasy — demonstrativo</title><style>'+
