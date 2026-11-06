@@ -31,3 +31,23 @@
 @media(max-width:600px){.vp-mixed-sheet{padding:13px}.vp-mixed-paper{padding:10px}.vp-mixed-paper table{font-size:10px}.vp-mixed-paper th,.vp-mixed-paper td{padding:6px 3px}.vp-mixed-controls button{flex:1}.vp-mixed-totals{display:grid}.vp-mixed-line small{overflow-wrap:anywhere}}
 
 .vp-mixed-review-warning{padding:12px!important;border:1px solid #dfac54!important;background:#fff5db!important;color:#69430b!important;font-weight:850!important;border-radius:10px;font-size:12px!important}
+
+/* Seleção agrupada por veículo — leitura imediata no celular */
+.vp-mixed-pick-actions{display:flex;align-items:center;gap:8px;padding:8px 0 5px;flex-wrap:wrap}
+.vp-mixed-pick-actions span{flex:1;min-width:140px;font-weight:850;font-size:12px;color:#3b5767}
+.vp-mixed-pick-actions button{min-height:37px;padding:8px 12px;border-radius:10px;border:1px solid #9acbdc;background:#e8f6fb;color:#17536b;font-weight:850}
+.vp-mixed-vehicle-group{display:grid;gap:7px;border-radius:13px;border:1px solid #ccdde6;padding:10px;background:#fff}
+.vp-mixed-vehicle-header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px;padding:1px 2px 7px;border-bottom:1px solid #e4edf1}
+.vp-mixed-vehicle-header strong{color:#214457;font-size:14px}
+.vp-mixed-vehicle-header span{color:#64818f;font-size:11px;font-weight:750}
+.vp-mixed-line{background:#f3f8fa;align-items:center;gap:9px}
+.vp-mixed-line-body{flex:1;min-width:0}
+.vp-mixed-line-body strong{font-size:13px;color:#1c3a49;line-height:1.35}
+.vp-mixed-line-side{display:grid;gap:5px;justify-items:end;flex:0 0 auto}
+.vp-mixed-line-side b{color:#1b4357;font-size:13px}
+.vp-mixed-chip{font-size:10px!important;font-weight:850;white-space:nowrap;border-radius:6px;padding:3px 6px}
+.vp-mixed-chip.paid{color:#166541;background:#def5e8}
+.vp-mixed-chip.pending{color:#875314;background:#fff0cd}
+.vp-mixed-chip.review{color:#7d2d26;background:#ffe2de}
+.vp-mixed-detail{color:#607e90!important;line-height:1.4}
+@media(max-width:460px){.vp-mixed-line{gap:8px}.vp-mixed-line-body strong{font-size:12px}.vp-mixed-line-side b{font-size:12px}.vp-mixed-line-side{max-width:105px}.vp-mixed-pick-actions button{font-size:12px}}
