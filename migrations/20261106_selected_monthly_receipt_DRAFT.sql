@@ -8,6 +8,7 @@ as $$
 declare
   v_item jsonb; v_id uuid; v_kind text; v_amount numeric;
   v_total numeric := 0; v_count int := 0; v_doc uuid;
+  v_verified_lines jsonb := '[]'::jsonb;
   v_charge public.package_charges%rowtype;
   v_appointment public.appointments%rowtype;
 begin
@@ -20,6 +21,9 @@ begin
      or jsonb_typeof(p_lines) is distinct from 'array'
      or jsonb_array_length(p_lines) not between 1 and 100 then
     raise exception 'Invalid receipt request';
+  end if;
+  if not exists(select 1 from public.clients where id=p_client_id) then
+    raise exception 'Client not found';
   end if;
   perform pg_advisory_xact_lock(hashtextextended(p_client_id::text || ':' || p_competence::text,0));
   if exists(select 1 from public.monthly_receipt_snapshots
@@ -45,16 +49,16 @@ begin
       select * into v_appointment from public.appointments where id=v_id for update;
       if not found or v_appointment.client_id<>p_client_id
          or v_appointment.status<>'completed' or v_appointment.deleted_at is not null
-         or v_appointment.starts_at < p_competence::timestamptz
-         or v_appointment.starts_at >= (p_competence + interval '1 month')::timestamptz
+         or (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date < p_competence
+         or (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date >= (p_competence + interval '1 month')::date
          or v_appointment.recurring_plan_id is not null
          or exists(select 1 from public.appointment_payments
                    where appointment_id=v_id and status='paid')
          or exists(select 1 from public.package_subscriptions s
                    where s.client_id=p_client_id and s.vehicle_id=v_appointment.vehicle_id
                      and s.service_id=v_appointment.service_id
-                     and s.starts_on <= v_appointment.starts_at::date
-                     and (s.superseded_at is null or s.superseded_at::date >= v_appointment.starts_at::date))
+                     and s.starts_on <= (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date
+                     and (s.superseded_at is null or (s.superseded_at at time zone 'America/Sao_Paulo')::date >= (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date))
       then
         raise exception 'Appointment not eligible';
       end if;
@@ -68,11 +72,14 @@ begin
       raise exception 'Amount mismatch';
     end if;
     v_total := v_total + v_amount;
+    v_verified_lines := v_verified_lines || jsonb_build_array(jsonb_build_object(
+      'kind',v_kind,'id',v_id,'amount',v_amount
+    ));
   end loop;
   insert into public.monthly_receipt_snapshots(client_id,competence_month,snapshot,issued_by)
   values(p_client_id,p_competence,jsonb_build_object(
     'schema_version',2,'kind','selected_monthly_receipt',
-    'lines',p_lines,'total',v_total,'item_count',v_count
+    'lines',v_verified_lines,'total',v_total,'item_count',v_count
   ),auth.uid()) returning id into v_doc;
   return v_doc;
 end;
