@@ -1,0 +1,31 @@
+name: V2 auditoria - guardas financeiras
+on:
+  push:
+    branches:
+      - fix/v2-auditoria-financeira-20261106
+    paths:
+      - 'index.html'
+      - 'v2-documento-misto-previa.js'
+      - 'tests/v2-auditoria-guardas.test.cjs'
+      - 'tests/v2-recibos-antecipados.test.cjs'
+      - '.github/workflows/v2-auditoria-guardas.yml'
+  workflow_dispatch:
+jobs:
+  financial-guards:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Checar sintaxe
+        run: |
+          node --check v2-documento-misto-previa.js
+          node --check tests/v2-auditoria-guardas.test.cjs
+          node --check tests/v2-recibos-antecipados.test.cjs
+      - name: Testes isolados
+        run: |
+          node tests/v2-auditoria-guardas.test.cjs
+          node tests/v2-recibos-antecipados.test.cjs
