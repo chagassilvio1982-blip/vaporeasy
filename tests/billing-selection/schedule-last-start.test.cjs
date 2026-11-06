@@ -36,7 +36,7 @@ test("actual slot regex accepts HH:MM and rejects malformed time",()=>{
  const match=body.match(/if\(!((?:\/\^)[^\n]+?\$\/)\.test\(x\.local_time\)/);
  assert.ok(match,'the actual source must contain a slot regex');
  const literal=match[1];
- const pattern=new RegExp(literal.slice(2,-2));
+ const pattern=new RegExp(literal.slice(1,-1));
  assert.equal(pattern.test('16:00'),true);
  assert.equal(pattern.test('15:40'),true);
  assert.equal(pattern.test('invalid'),false);
