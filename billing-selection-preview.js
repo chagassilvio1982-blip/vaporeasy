@@ -39,7 +39,11 @@
           alert("Documento existente no histórico tradicional. Consulte a área de recibos.");return;
         }
         const chosenClient=(cr.data||[]).find(c=>c.id===clientId);
-        const content=["VAPOREASY — DOCUMENTO MENSAL","Cliente: "+(chosenClient?.name||""),"Competência: "+k.month,"Emitido em: "+(result.data.issued_at||""),"Documento: "+result.data.id,"",...(snap.lines||[]).map(line=>(line.kind==="package_charge"?"Mensalidade":"Atendimento avulso")+" · "+line.id+" · "+format(Number(line.amount||0))),"","TOTAL: "+format(Number(snap.total||0)),"Documento de cobrança. Não comprova pagamento."].join("\\n");
+        const labels=new Map([
+          ...(pc.data||[]).filter(x=>x.client_id===clientId).map(x=>["package_charge:"+x.id,"Mensalidade · "+vehicleLabel(x.vehicle_id)]),
+          ...(ar.data||[]).filter(x=>x.client_id===clientId).map(x=>["appointment_extra:"+x.id,"Atendimento "+saoPauloDate(x.starts_at)+" · "+vehicleLabel(x.vehicle_id)])
+        ]);
+        const content=["VAPOREASY — DOCUMENTO MENSAL","Cliente: "+(chosenClient?.name||""),"Competência: "+k.month,"Emitido em: "+(result.data.issued_at||""),"Documento: "+result.data.id,"",...(snap.lines||[]).map(line=>(labels.get(line.kind+":"+line.id)||(line.kind==="package_charge"?"Mensalidade":"Atendimento avulso")+" · "+line.id)+" · "+format(Number(line.amount||0))),"","TOTAL: "+format(Number(snap.total||0)),"Documento de cobrança. Não comprova pagamento."].join("\n");
         const output=el("pre",{style:"white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#f6f7f8;color:#111"},content);
         const view=el("dialog",{style:"width:95%;max-width:650px;max-height:85vh;overflow:auto"});
         const download=el("button",{type:"button"},"Salvar documento");
