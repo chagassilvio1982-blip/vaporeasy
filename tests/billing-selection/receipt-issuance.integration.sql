@@ -14,6 +14,8 @@ create table public.package_subscriptions(client_id uuid,vehicle_id uuid,service
 
 create table public.monthly_receipt_snapshots(id uuid primary key default gen_random_uuid(),client_id uuid,competence_month date,snapshot jsonb,issued_by uuid,issued_at timestamptz default now(),unique(client_id,competence_month));
 \i migrations/20261106_selected_monthly_receipt_DRAFT.sql
+-- Applying the migration again must not fail or discard existing billing documents.
+\i migrations/20261106_selected_monthly_receipt_DRAFT.sql
 insert into public.clients values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
 insert into public.package_charges values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','2026-11-01','pending',390);
 insert into public.appointments values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','dddddddd-dddd-4ddd-8ddd-dddddddddddd','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','2026-11-05 10:00-03','completed',null,null,150);
