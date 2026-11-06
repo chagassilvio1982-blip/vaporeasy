@@ -50,16 +50,23 @@
         if(!chosen.length)throw Error("Selecione pelo menos um item.");
         const packageIds=chosen.filter(x=>x.kind==="package_charge").map(x=>x.id);
         const appointmentIds=chosen.filter(x=>x.kind==="appointment_extra").map(x=>x.id);
-        const [freshCharges,freshPayments]=await Promise.all([
+        const [freshCharges,freshPayments,freshAppointments,existingDocument]=await Promise.all([
           packageIds.length?sb.from("package_charges").select("id,client_id,competence_month,amount,status").in("id",packageIds):Promise.resolve({data:[],error:null}),
-          appointmentIds.length?sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null})
+          appointmentIds.length?sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null}),
+          appointmentIds.length?sb.from("appointments").select("id,client_id,starts_at,final_value,status,deleted_at,recurring_plan_id").in("id",appointmentIds):Promise.resolve({data:[],error:null}),
+          sb.from("monthly_receipt_snapshots").select("id").eq("client_id",id).eq("competence_month",k.startDate).limit(1)
         ]);
-        if(freshCharges.error||freshPayments.error)throw freshCharges.error||freshPayments.error;
+        if(freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error)throw freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error;
+        if((existingDocument.data||[]).length)throw Error("Já existe documento mensal emitido para este cliente. Confira o histórico antes de gerar outra prévia.");
         for(const line of chosen){
           if(line.kind==="package_charge"){
             const latest=(freshCharges.data||[]).find(x=>x.id===line.id);
             if(!latest||latest.status!=="pending"||latest.client_id!==id||String(latest.competence_month).slice(0,7)!==k.month||Number(latest.amount)!==line.amount)throw Error("Mensalidade alterada. Atualize a conferência.");
-          }else if((freshPayments.data||[]).some(x=>x.appointment_id===line.id&&x.status==="paid"))throw Error("Um atendimento já foi pago. Atualize a conferência.");
+          }else {
+            const latest=(freshAppointments.data||[]).find(x=>x.id===line.id);
+            if(!latest||latest.client_id!==id||latest.status!=="completed"||latest.deleted_at||String(latest.starts_at||"").slice(0,7)!==k.month||Number(latest.final_value)!==line.amount||latest.recurring_plan_id)throw Error("Atendimento alterado ou vinculado a plano. Atualize a conferência.");
+            if((freshPayments.data||[]).some(x=>x.appointment_id===line.id&&x.status==="paid"))throw Error("Um atendimento já foi pago. Atualize a conferência.");
+          }
         }
         const amount=validateBillingSelection(chosen,{client_id:id,competence:k.month});
         const selectedClient=clients.find(x=>x.id===id);
