@@ -30,3 +30,10 @@ test("preview uses São Paulo dates instead of UTC slicing",()=>{
   assert.match(preview,/saoPauloDate\(latest\.starts_at\)/);
   assert.match(preview,/saoPauloDate\(a\.starts_at\)/);
 });
+
+test("each charge and appointment displays its vehicle",()=>{
+ assert.match(preview,/sb\.from\("vehicles"\)\.select\("id,client_id,brand,model,plate"\)/);
+ assert.match(preview,/Plano · "\+vehicleLabel\(c\.vehicle_id\)/);
+ assert.match(preview,/Atendimento "\+saoPauloDate\(a\.starts_at\)\+" · "\+vehicleLabel\(a\.vehicle_id\)/);
+ assert.match(preview,/label:"Mensalidade do plano · "\+vehicleLabel\(c\.vehicle_id\)/);
+});
