@@ -14,38 +14,48 @@ function isAllowed(){try{return typeof financeAllowed==='function'&&financeAllow
 function build(r,cid){
  if(!r||!r.maps||!cid)return [];
  var vm=r.maps.vm||new Map(),sm=r.maps.sm||new Map(),list=[];
- var visitByVehicle=new Map();
+ var visitByPlan=new Map(),planBySubscription=r.subscriptionPlanById||new Map();
  var chargeList=Array.isArray(r.packageMonthRows)?r.packageMonthRows:[];
  var svc=Array.isArray(r.serviceApps)?r.serviceApps:[];
  var svcIds=new Set(svc.map(function(a){return String(a.id)}));
  (r.monthApps||[]).forEach(function(a){
-   if(a.client_id!==cid||svcIds.has(String(a.id))||!a.vehicle_id)return;
-   var v=visitByVehicle.get(a.vehicle_id)||[];
+   // Visitas incluídas devem corresponder ao plano, não apenas ao mesmo veículo.
+   if(a.client_id!==cid||svcIds.has(String(a.id))||!a.recurring_plan_id)return;
+   var planKey=String(a.recurring_plan_id),v=visitByPlan.get(planKey)||[];
    v.push({name:sm.get(a.service_id)?.name||'Serviço do pacote',date:dateBr(a.starts_at||a.completed_at)});
-   visitByVehicle.set(a.vehicle_id,v);
+   visitByPlan.set(planKey,v);
  });
  function vehicleName(id){
    var v=vm.get(id);return v?[v.brand,v.model,v.plate].filter(Boolean).join(' • '):'Veículo sem cadastro identificado';
  }
- chargeList.filter(function(c){return c.client_id===cid&&c.status!=='cancelled'}).forEach(function(c){
+ chargeList.filter(function(c){return c.client_id===cid&&['pending','paid','covered'].includes(c.status)}).forEach(function(c){
    var covered=c.status==='covered',paid=c.status==='paid',value=covered?0:amount(c.amount);
-   var visits=visitByVehicle.get(c.vehicle_id)||[];
+   var planId=planBySubscription.get(String(c.subscription_id||''));
+   var visits=planId?visitByPlan.get(String(planId))||[]:[];
    list.push({key:'package:'+String(c.id),kind:'Pacote',vehicle:vehicleName(c.vehicle_id),
       service:sm.get(c.service_id)?.name||'Mensalidade do pacote',
       date:dateBr(c.competence_month||c.created_at),status:covered?'Coberto por ajuste':paid?'Pago':'Pendente',
       value,received:paid?value:0,pending:paid?0:value,
-      detail:visits.length?visits.map(function(v){return v.name+(v.date?' ('+v.date+')':'')}).join('; '):'Sem visitas de pacote identificadas nesta competência',
+      detail:visits.length?visits.map(function(v){return v.name+(v.date?' ('+v.date+')':'')}).join('; '):'Sem visitas vinculadas a este plano na competência',
       discount:amount(c.commercial_discount||0),covered
    });
  });
  svc.filter(function(a){return a.client_id===cid}).forEach(function(a){
-   var p=r.payMap?.get(a.id),paid=p?.status==='paid',value=amount(a.final_value);
+   var p=r.payMap?.get(a.id),paid=p?.status==='paid',sourceValue=amount(a.final_value);
+   var hasPaidAmount=paid&&p.amount!==null&&p.amount!==undefined&&Number.isFinite(Number(p.amount));
+   // Valor pago deve vir da transação registrada, nunca ser inferido do preço do atendimento.
+   var value=hasPaidAmount?amount(p.amount):sourceValue;
+   var inconsistent=hasPaidAmount&&Math.abs(value-sourceValue)>0.009;
+   var status=paid?(hasPaidAmount?'Pago':'Pagamento a conferir'):'Pendente';
+   var extra=amount(a.addon_value)>0?'Contém adicionais: '+money(a.addon_value):'';
+   var notes=inconsistent?'Valor do atendimento: '+money(sourceValue)+'; pagamento registrado: '+money(value)+'. Conferir divergência.':'';
+   if(paid&&!hasPaidAmount)notes='O atendimento consta como pago, mas o valor recebido não está disponível. Conferir antes de compartilhar.';
    list.push({key:'service:'+String(a.id),kind:'Avulso / extra',vehicle:vehicleName(a.vehicle_id),
       service:sm.get(a.service_id)?.name||'Serviço não identificado',
-      date:dateBr(a.starts_at||a.completed_at),status:paid?'Pago':'Pendente',
-      value,received:paid?amount(p.amount??value):0,pending:paid?0:value,
-      detail:amount(a.addon_value)>0?'Contém adicionais: '+money(a.addon_value):'',
-      discount:amount(a.discount_amount||0)
+      date:dateBr(a.starts_at||a.completed_at),status,
+      value,received:hasPaidAmount?value:0,pending:hasPaidAmount?0:paid?0:value,
+      detail:[extra,notes].filter(Boolean).join(' • '),
+      discount:amount(a.discount_amount||0),needsReview:!!notes
    });
  });
  return list.sort(function(a,b){return a.vehicle.localeCompare(b.vehicle,'pt-BR')||a.kind.localeCompare(b.kind,'pt-BR')||a.date.localeCompare(b.date)});
@@ -64,7 +74,7 @@ function totals(rows){
  return rows.reduce(function(z,x){z.value+=x.value;z.received+=x.received;z.pending+=x.pending;return z},{value:0,received:0,pending:0})
 }
 function documentHtml(rows,clientName,month){
- var t=totals(rows),allPaid=rows.length>0&&rows.every(function(x){return x.pending===0}),title=allPaid?'COMPROVANTE CONSOLIDADO':'DEMONSTRATIVO CONSOLIDADO';
+ var t=totals(rows),title='DEMONSTRATIVO CONSOLIDADO — PRÉVIA';
  var body=rows.map(function(row){
     return '<tr><td><b>'+esc(row.vehicle)+'</b><br><small>'+esc(row.kind)+' · '+esc(row.service)+' · '+esc(row.date)+'</small>'+
       (row.detail?'<br><small>'+esc(row.detail)+'</small>':'')+'</td>'+
@@ -118,7 +128,8 @@ function setupClients(){
 function open(){
  if(!isAllowed())return;
  var r=fullReport();
- if(!r){if(typeof show==='function')show('msg','Carregue o Financeiro e escolha o mês para montar o documento.','error');return}
+ var month=document.getElementById('fmonth')?.value||'';
+ if(!r||!r.keys||r.keys.month!==month){if(typeof show==='function')show('msg','Os dados deste mês ainda não terminaram de carregar. Atualize o Financeiro e tente novamente.','error');return}
  var sheet=document.getElementById(sheetId);
  if(!sheet)return;
  sheet.hidden=false;sheet.setAttribute('aria-hidden','false');
@@ -165,6 +176,7 @@ function install(){
  '<div id="vpMixedReceiptPreview"></div></section>';
  document.body.appendChild(sheet);
  document.getElementById('vpMixedClose').addEventListener('click',close);
+ var monthInput=document.getElementById('fmonth');if(monthInput)monthInput.addEventListener('change',close);
  sheet.addEventListener('click',function(e){if(e.target===sheet)close()});
  document.getElementById('vpMixedReceiptClient').addEventListener('change',function(e){clientId=e.target.value;refreshItems()});
  document.getElementById('vpMixedReceiptItems').addEventListener('change',function(e){
