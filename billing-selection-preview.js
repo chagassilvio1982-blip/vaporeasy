@@ -24,8 +24,9 @@
     const title=el("h3",{},"Selecionar cobrança · "+k.month),message=el("p",{},"Selecione o cliente para conferir mensalidades e serviços concluídos.");
     const client=el("select",{style:"width:100%;padding:10px;margin:8px 0"}),rows=el("div"),total=el("strong",{},"Total selecionado: "+format(0));
     const exportButton=el("button",{type:"button"},"Gerar prévia para conferência");exportButton.disabled=true;
+    const issueButton=el("button",{type:"button"},"Emitir recibo selecionado");issueButton.disabled=true;
     const close=el("button",{type:"button"},"Fechar");close.onclick=()=>modal.close();
-    modal.append(title,message,client,rows,total,el("p",{},"Prévia para conferência. Nenhuma cobrança será emitida por esta tela."),exportButton,close);
+    modal.append(title,message,client,rows,total,el("p",{},"Confira os itens antes de emitir. A emissão registra um documento mensal e não altera pagamentos."),exportButton,issueButton,close);
     document.body.append(modal);modal.addEventListener("close",()=>modal.remove());modal.showModal();
     const [cr,ar,pc,subs,vr]=await Promise.all([
       sb.from("clients").select("id,name").order("name"),
@@ -51,10 +52,8 @@
     clients.forEach(c=>client.append(el("option",{value:c.id},c.name)));
     client.onchange=()=>{
       rows.replaceChildren();const id=client.value;let sum=0;const checks=[];
-      exportButton.disabled=true;
-      exportButton.onclick=async()=>{
-        exportButton.disabled=true;
-        try{
+      exportButton.disabled=true;issueButton.disabled=true;
+      async function verifySelection(){
         const chosen=checks.filter(x=>x.input.checked).map(x=>x.line);
         if(!chosen.length)throw Error("Selecione pelo menos um item.");
         const packageIds=chosen.filter(x=>x.kind==="package_charge").map(x=>x.id);
@@ -80,6 +79,12 @@
           }
         }
         const amount=validateBillingSelection(chosen,{client_id:id,competence:k.month});
+        return {chosen,amount};
+      }
+      exportButton.onclick=async()=>{
+        exportButton.disabled=true;
+        try{
+        const {chosen,amount}=await verifySelection();
         const selectedClient=clients.find(x=>x.id===id);
         const report=["VAPOREASY — PRÉVIA DE COBRANÇA (NÃO EMITIDA)","Cliente: "+(selectedClient?.name||""),"Competência: "+k.month,"",...chosen.map(x=>x.label+" | "+format(x.amount)),"","TOTAL: "+format(amount),"DOCUMENTO DE CONFERÊNCIA — NÃO É RECIBO OU COBRANÇA"];
         const blob=new Blob([report.join("\n")],{type:"text/plain;charset=utf-8"});
@@ -87,10 +92,24 @@
         document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
         }catch(error){alert(error.message||String(error));}finally{exportButton.disabled=!checks.some(x=>x.input.checked);}
       };
+      issueButton.onclick=async()=>{
+        issueButton.disabled=true;
+        try{
+          const {chosen,amount}=await verifySelection();
+          const selectedClient=clients.find(x=>x.id===id);
+          if(!window.confirm("Emitir recibo mensal de "+(selectedClient?.name||"cliente")+" no valor de "+format(amount)+"? Esta operação registra um documento e não confirma pagamentos."))return;
+          const payload=chosen.map(x=>({kind:x.kind,id:x.id,amount:x.amount}));
+          const issued=await sb.rpc("issue_selected_monthly_receipt",{p_client_id:id,p_competence:k.startDate,p_lines:payload});
+          if(issued.error)throw issued.error;
+          alert("Recibo registrado. Identificador: "+issued.data+". Confira o documento no histórico antes de enviá-lo.");
+          modal.close();
+        }catch(error){alert("Não foi possível emitir: "+(error.message||String(error)));}
+        finally{issueButton.disabled=!checks.some(x=>x.input.checked);}
+      };
       function addLine(name,amount,enabled,description,line){
         const label=el("label",{style:"display:block;padding:10px;border-bottom:1px solid #ddd"});
         const input=el("input",{type:"checkbox"});input.disabled=!enabled;
-        input.onchange=()=>{sum=checks.filter(x=>x.input.checked).reduce((n,x)=>n+x.amount,0);total.textContent="Total selecionado: "+format(sum);exportButton.disabled=!checks.some(x=>x.input.checked)};
+        input.onchange=()=>{sum=checks.filter(x=>x.input.checked).reduce((n,x)=>n+x.amount,0);total.textContent="Total selecionado: "+format(sum);exportButton.disabled=!checks.some(x=>x.input.checked);issueButton.disabled=exportButton.disabled};
         label.append(input,document.createTextNode(" "+name+" · "+format(amount)+" — "+description));rows.append(label);checks.push({input,amount,line});
       }
       (pc.data||[]).filter(x=>x.client_id===id).forEach(c=>addLine("Plano · "+vehicleLabel(c.vehicle_id),Number(c.amount||0),c.status==="pending",c.status==="paid"?"Já paga":"Pendente",{kind:"package_charge",id:c.id,amount:Number(c.amount||0),status:c.status,client_id:id,competence_month:c.competence_month,label:"Mensalidade do plano · "+vehicleLabel(c.vehicle_id)}));
