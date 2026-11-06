@@ -40,38 +40,40 @@ header.top{display:flex;align-items:center;justify-content:space-between;border-
 .footer{font-size:11px;color:#819eae;margin-top:32px;text-align:center}
 @media(min-width:600px){.grid{grid-template-columns:repeat(3,1fr)}.totals{gap:14px}.intro h1{font-size:34px}}
 @media(max-width:410px){.totals{grid-template-columns:1fr 1fr}.total:last-child{grid-column:1/-1}.flag{font-size:10px}.logo{font-size:21px}}
+button,select,input{font:inherit;min-height:46px;border-radius:10px;padding:10px;border:1px solid #427187}select,input{width:100%;background:#f8fbfd;color:#163245;margin:8px 0 18px}button{background:#0a7ba4;color:white;cursor:pointer;margin-top:12px}#demoNotice{font-size:13px;color:#bde5f2}#extraForm{padding:18px 0}#extraForm[hidden]{display:none}label{display:block;font-size:13px;margin-top:16px}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #56c8ee;outline-offset:3px}
 </style>
 <script>
-// DADOS LOCAIS SINTÉTICOS — demonstração sem qualquer conexão Supabase.
-const currentFinanceMonthReport={
-  keys:{month:"2026-10"},
-  maps:{
-    cm:new Map([["cliente-demo",{name:"Cliente demonstração"}]]),
-    vm:new Map([
-      ["veiculo-a",{brand:"BMW",model:"X5",plate:"TESTE-01"}],
-      ["veiculo-b",{brand:"Audi",model:"Q5",plate:"TESTE-02"}],
-      ["veiculo-c",{brand:"VW",model:"T-Cross",plate:"TESTE-03"}]
-    ]),
-    sm:new Map([
-      ["plano-premium",{name:"Plano Vaporeasy Premium"}],
-      ["plano-essencial",{name:"Plano Vaporeasy Essencial"}],
-      ["higienizacao",{name:"Higienização interna"}]
-    ])
-  },
-  packageMonthRows:[
-    {id:"cobranca-a",client_id:"cliente-demo",vehicle_id:"veiculo-a",subscription_id:"ass-a",service_id:"plano-premium",status:"paid",amount:250,competence_month:"2026-10-01"},
-    {id:"cobranca-b",client_id:"cliente-demo",vehicle_id:"veiculo-b",subscription_id:"ass-b",service_id:"plano-essencial",status:"paid",amount:300,competence_month:"2026-10-01"}
-  ],
-  serviceApps:[{id:"atendimento-c",client_id:"cliente-demo",vehicle_id:"veiculo-c",service_id:"higienizacao",status:"completed",starts_at:"2026-10-20",final_value:150,addon_value:0,discount_amount:0}],
-  monthApps:[
-    {id:"visita-a",client_id:"cliente-demo",vehicle_id:"veiculo-a",service_id:"plano-premium",recurring_plan_id:"recorrencia-a",starts_at:"2026-10-07"},
-    {id:"visita-b",client_id:"cliente-demo",vehicle_id:"veiculo-b",service_id:"plano-essencial",recurring_plan_id:"recorrencia-b",starts_at:"2026-10-14"},
-    {id:"atendimento-c",client_id:"cliente-demo",vehicle_id:"veiculo-c",service_id:"higienizacao",starts_at:"2026-10-20"}
-  ],
-  payMap:new Map(),
-  subscriptionPlanById:new Map([["ass-a","recorrencia-a"],["ass-b","recorrencia-b"]])
-};
+let currentFinanceMonthReport;
 function financeAllowed(){return true}
+function show(id,message){document.getElementById('demoNotice').textContent=message}
+function scenario(mode){
+ const cid='cliente-demo';
+ currentFinanceMonthReport={keys:{month:'2026-11'},maps:{cm:new Map([[cid,{name:'Cliente demonstração'}]]),vm:new Map([['a',{brand:'Ferrari',model:'296 GTS'}],['b',{brand:'Mercedes-Benz',model:'G63'}],['c',{brand:'Porsche',model:'Cayman'}]]),sm:new Map([['essential',{name:'Plano Essencial'}],['polish',{name:'Polimento técnico'}],['ozone',{name:'Higienização com ozônio'}]])},packageMonthRows:[{id:'nov-a',client_id:cid,vehicle_id:'a',subscription_id:'sa',service_id:'essential',competence_month:'2026-11-01',status:mode==='advance'?'paid':'pending',amount:mode==='advance'?250:780,visits_per_month:2},{id:'nov-b',client_id:cid,vehicle_id:'b',subscription_id:'sb',service_id:'essential',competence_month:'2026-11-01',status:mode==='advance'?'paid':'pending',amount:mode==='advance'?250:820,visits_per_month:2}],monthApps:[],serviceApps:[],payMap:new Map(),subscriptionPlanById:new Map([['sa','pa'],['sb','pb']])};
+ if(mode==='separate')currentFinanceMonthReport.serviceApps.push({id:'porsche',client_id:cid,payer_id:'outro-pagador',vehicle_id:'c',service_id:'polish',starts_at:'2026-11-06',final_value:null});
+ if(mode==='advance'){
+ currentFinanceMonthReport.maps.vm=new Map([['a',{brand:'BMW',model:'X5'}],['b',{brand:'Audi',model:'Q5'}]]);
+ currentFinanceMonthReport.monthApps=[{id:'visit-a',client_id:cid,vehicle_id:'a',recurring_plan_id:'pa',service_id:'essential',starts_at:'2026-11-04'}];
+ }
+ document.getElementById('demoNotice').textContent='Simulação carregada. Nenhum registro real é consultado ou alterado.';
+ renderDemo();
+}
+function renderDemo(){
+ const r=currentFinanceMonthReport,format=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n);
+ const rows=window.vpV2BuildConsolidatedPreviewModel(r,'cliente-demo');
+ document.getElementById('demoCars').innerHTML=[...r.maps.vm].map(([id,v])=>{
+ const items=rows.filter(x=>x.vehicleId===id),charge=items.find(x=>x.kind==='Pacote');
+ return '<article class="car"><div class="car-head"><strong>'+v.brand+' '+v.model+'</strong><span>'+(charge?'Plano':'Separado')+'</span></div><p>'+(charge?'Plano Essencial · '+format(charge.value):'Polimento · preço a confirmar')+'</p><small>'+(charge?charge.status+' · '+charge.performed+' realizados · '+charge.remaining+' restantes':'Confirmar responsável financeiro')+'</small>'+(charge?'<button type="button" data-extra="'+id+'">+ Simular serviço extra</button>':'')+'</article>';
+ }).join('');
+ const sum=k=>rows.reduce((n,x)=>n+x[k],0);
+ document.getElementById('demoTotals').innerHTML=['Contratado','Recebido','Saldo pendente'].map((label,i)=>'<div class="total"><small>'+label+'</small><strong>'+format(sum(['value','received','pending'][i]))+'</strong></div>').join('');
+ document.querySelectorAll('[data-extra]').forEach(b=>b.onclick=()=>{document.getElementById('extraVehicle').value=b.dataset.extra;document.getElementById('extraForm').hidden=false;document.getElementById('extraService').focus()});
+}
+function addDemoExtra(e){e.preventDefault();const r=currentFinanceMonthReport,vehicle=document.getElementById('extraVehicle').value,service=document.getElementById('extraService').value,price=Number(document.getElementById('extraPrice').value);if(!Number.isFinite(price)||price<=0)return;
+ const id='demo-extra-'+vehicle+'-'+service;
+ if(r.serviceApps.some(x=>x.id===id)){show('', 'Este extra já foi adicionado na simulação.');return}
+ r.serviceApps.push({id,client_id:'cliente-demo',vehicle_id:vehicle,service_id:service,starts_at:'2026-11-06',final_value:price});
+ document.getElementById('extraForm').hidden=true;renderDemo();show('', 'Extra simulado. O pacote mantém seu pagamento original. Abra o documento para conferir.');}
+window.addEventListener('DOMContentLoaded',()=>{scenario('separate');document.getElementById('scenario').onchange=e=>scenario(e.target.value);document.getElementById('extraForm').onsubmit=addDemoExtra;document.getElementById('extraCancel').onclick=()=>document.getElementById('extraForm').hidden=true});
 </script>
 </head>
 <body>
@@ -81,24 +83,26 @@ function financeAllowed(){return true}
 </header>
 <main>
   <section class="intro">
-    <h1>Um cliente.<br>Três carros.<br>Um documento.</h1>
+    <h1>Cobranças claras.<br>Por cliente e veículo.</h1>
     <p>Prévia de recibos e cobranças por veículo para a Vaporeasy V2.</p>
   </section>
   <div class="warning">Ambiente de demonstração com dados fictícios. Esta página não usa login, não acessa o banco de dados e não registra pagamentos.</div>
   <section class="panel">
     <h2>Cliente demonstração</h2>
-    <p class="subtitle">Competência: outubro de 2026 · 3 veículos cadastrados</p>
-    <div class="grid">
-      <div class="car"><div class="car-head"><strong>BMW X5</strong><span>Plano</span></div><p>Plano Vaporeasy Premium</p><small>Mensalidade paga · R$ 250,00</small></div>
-      <div class="car"><div class="car-head"><strong>Audi Q5</strong><span>Plano</span></div><p>Plano Vaporeasy Essencial</p><small>Mensalidade paga · R$ 300,00</small></div>
-      <div class="car"><div class="car-head"><strong>VW T-Cross</strong><span>Avulso</span></div><p>Higienização interna</p><small>Pagamento pendente · R$ 150,00</small></div>
-    </div>
-    <div class="totals">
-      <div class="total"><small>Total registrado</small><strong>R$ 700,00</strong></div>
-      <div class="total"><small>Recebido</small><strong>R$ 550,00</strong></div>
-      <div class="total"><small>A receber</small><strong>R$ 150,00</strong></div>
-    </div>
-    <input type="hidden" id="fmonth" value="2026-10">
+    <p class="subtitle">Competência: novembro de 2026 · dados fictícios</p>
+    <label for="scenario">Escolha um cenário de teste</label>
+    <select id="scenario"><option value="separate">Ferrari + G63 · Porsche separada</option><option value="advance">Pacotes pagos · adicionar extras</option></select>
+    <div id="demoCars" class="grid"></div>
+    <form id="extraForm" hidden>
+      <h3>Simular extra no veículo</h3><p>Valores fictícios para avaliar o fluxo. Não cria cobrança.</p>
+      <input id="extraVehicle" type="hidden">
+      <label for="extraService">Serviço</label><select id="extraService"><option value="polish">Polimento técnico</option><option value="ozone">Higienização com ozônio</option></select>
+      <label for="extraPrice">Valor da simulação (R$)</label><input id="extraPrice" type="number" min="0.01" step="0.01" value="100" required>
+      <button type="submit">Adicionar à simulação</button><button type="button" id="extraCancel">Cancelar</button>
+    </form>
+    <p id="demoNotice" role="status" aria-live="polite"></p>
+    <div id="demoTotals" class="totals"></div>
+    <input type="hidden" id="fmonth" value="2026-11">
     <div class="vp-receipts-search"></div>
     <div class="benefits">
       <div>Selecione os serviços de cada veículo.</div>
