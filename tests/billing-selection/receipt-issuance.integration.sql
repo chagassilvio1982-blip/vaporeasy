@@ -1,5 +1,6 @@
 -- Disposable PostgreSQL only. Stub auth and application schema for receipt integration.
 create role authenticated;
+create role anon;
 create schema if not exists auth;
 create schema if not exists private;
 create function auth.uid() returns uuid language sql stable as $$ select '11111111-1111-4111-8111-111111111111'::uuid $$;
