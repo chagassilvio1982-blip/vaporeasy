@@ -48,3 +48,27 @@ jobs:
         env:
           PGPASSWORD: ci_only
         run: psql -h localhost -U postgres -d schedule_ci -v ON_ERROR_STOP=1 -f tests/billing-selection/schedule-last-start.integration.sql
+
+  receipt-db-integration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: receipt_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify atomic receipt issuance
+        env:
+          PGPASSWORD: ci_only
+        run: psql -h localhost -U postgres -d receipt_ci -v ON_ERROR_STOP=1 -f tests/billing-selection/receipt-issuance.integration.sql
