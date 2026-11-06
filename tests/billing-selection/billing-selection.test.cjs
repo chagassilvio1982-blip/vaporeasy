@@ -19,3 +19,10 @@ test("included service cannot be billed again",()=>assert.throws(()=>validateBil
 test("invalid values are rejected",()=>{for(const amount of [-1,NaN,Infinity])assert.throws(()=>validateBillingSelection([{kind:"appointment_extra",id:"a1",amount,coverage_verified:true}]),/inválido/);});
 test("unverified extra is blocked",()=>assert.throws(()=>validateBillingSelection([{kind:"appointment_extra",id:"e1",amount:150}]),/não verificada/));
 test("client and month mismatch blocked",()=>{const ctx={client_id:"c1",competence:"2026-11"};assert.throws(()=>validateBillingSelection([{kind:"package_charge",id:"p1",amount:780,client_id:"c2",competence_month:"2026-11-01"}],ctx),/Cliente divergente/);assert.throws(()=>validateBillingSelection([{kind:"package_charge",id:"p1",amount:780,client_id:"c1",competence_month:"2026-10-01"}],ctx),/Competência divergente/);});
+
+test("competence uses Sao Paulo local month at UTC rollover",()=>{
+ const nearMidnight={...ap,starts_at:"2026-11-01T01:30:00Z"};
+ const octoberCharge={...charge,competence_month:"2026-10-01"};
+ assert.equal(billingCoverage(nearMidnight,[sub],[octoberCharge],"2026-10").kind,"included_in_plan");
+ assert.equal(billingCoverage(nearMidnight,[sub],[charge],"2026-11").kind,"out_of_period");
+});
