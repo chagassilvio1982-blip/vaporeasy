@@ -109,4 +109,5 @@ begin
 end;
 $$;
 revoke all on function public.issue_selected_monthly_receipt(uuid,date,jsonb) from public;
+revoke execute on function public.issue_selected_monthly_receipt(uuid,date,jsonb) from anon;
 grant execute on function public.issue_selected_monthly_receipt(uuid,date,jsonb) to authenticated;
