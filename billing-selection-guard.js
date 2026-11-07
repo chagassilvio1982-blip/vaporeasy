@@ -12,8 +12,9 @@ function billingCoverage(appointment, subscriptions, charges, competence) {
       ?(()=>{const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit"}).formatToParts(new Date(rawDate));return parts.find(p=>p.type==="year").value+"-"+parts.find(p=>p.type==="month").value})()
       :"";
   if (date !== competence) return { kind: "out_of_period", billable: false };
-  const appointmentDay = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(rawDate) ? rawDate.slice(0,10) : /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : rawDate && !Number.isNaN(Date.parse(rawDate)) ? new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(rawDate)) : "";
-  const supersededDay = value => !value ? "" : /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? String(value) : new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(value));
+  const localDay = value => { const parts = new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value)); const part = type => parts.find(p=>p.type===type)?.value||""; return part("year")+"-"+part("month")+"-"+part("day"); };
+  const appointmentDay = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(rawDate) ? rawDate.slice(0,10) : /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : rawDate && !Number.isNaN(Date.parse(rawDate)) ? localDay(rawDate) : "";
+  const supersededDay = value => !value ? "" : /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? String(value) : localDay(value);
   const matching = (subscriptions || []).filter(s =>
     s.client_id === appointment.client_id &&
     s.vehicle_id === appointment.vehicle_id &&
