@@ -96,7 +96,13 @@
           sb.from("monthly_billing_documents").select("id").eq("client_id",id).eq("competence_month",k.startDate).limit(1),
           appointmentIds.length?sb.from("package_subscriptions").select("client_id,vehicle_id,service_id,starts_on,superseded_at").eq("client_id",id):Promise.resolve({data:[],error:null})
         ]);
-        if(freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error||freshSubscriptions.error)throw freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error||freshSubscriptions.error;
+        // The document table is absent until the isolated migration is approved.
+        // Permit read-only previews while keeping issuance disabled.
+        const missingDocumentTable=existingDocument.error&&(
+          existingDocument.error.code==="42P01"||
+          existingDocument.error.code==="PGRST205"
+        );
+        if(freshCharges.error||freshPayments.error||freshAppointments.error||(existingDocument.error&&!missingDocumentTable)||freshSubscriptions.error)throw freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error||freshSubscriptions.error;
         if((existingDocument.data||[]).length)throw Error("Já existe cobrança mensal emitida para este cliente. Confira o documento antes de emitir outra.");
         for(const line of chosen){
           if(line.kind==="package_charge"){
