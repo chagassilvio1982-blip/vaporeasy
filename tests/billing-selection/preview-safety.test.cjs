@@ -63,3 +63,9 @@ test("selected monthly document shows vehicle names and real newlines",()=>{
  assert.match(preview,/\.join\("\\n"\)/);
  assert.match(preview,/selectedReceiptRendererReady=false/);
 });
+
+test("subscription coverage uses exact appointment day, not only the month",()=>{
+ assert.match(preview,/String\(p\.starts_on\|\|""\)\.slice\(0,10\)<=saoPauloDate\(latest\.starts_at\)/);
+ assert.match(preview,/saoPauloDate\(p\.superseded_at\)>=saoPauloDate\(latest\.starts_at\)/);
+ assert.doesNotMatch(preview,/String\(p\.superseded_at\)\.slice\(0,7\)>=k\.month/);
+});
