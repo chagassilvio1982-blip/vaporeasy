@@ -45,6 +45,14 @@ begin
  if exists(select 1 from public.appointment_payments) then raise exception 'Payment record created';end if;
 end $$;
 
+-- Repeated installation must not reintroduce anonymous EXECUTE privileges.
+do $
+begin
+ if has_function_privilege('anon','public.issue_selected_monthly_receipt(uuid,date,jsonb)','EXECUTE') then
+  raise exception 'Migration rerun reintroduced anonymous EXECUTE';
+ end if;
+end $;
+
 -- Negative cases use a separate client/month to avoid hitting the existing-receipt guard.
 insert into public.clients values ('ffffffff-ffff-4fff-8fff-ffffffffffff');
 insert into public.package_charges values ('22222222-2222-4222-8222-222222222222','ffffffff-ffff-4fff-8fff-ffffffffffff','2026-11-01','paid',390);
