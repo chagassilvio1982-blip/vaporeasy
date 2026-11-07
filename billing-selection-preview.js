@@ -32,7 +32,12 @@
       if(!clientId){alert("Selecione um cliente.");return;}
       try{
         const result=await sb.from("monthly_billing_documents").select("id,snapshot,issued_at").eq("client_id",clientId).eq("competence_month",k.startDate).maybeSingle();
-        if(result.error)throw result.error;
+        if(result.error){
+          if(result.error.code==="42P01"||result.error.code==="PGRST205"){
+            alert("Histórico de documentos ainda não ativado neste ambiente. Nenhuma cobrança foi emitida por esta funcionalidade.");return;
+          }
+          throw result.error;
+        }
         if(!result.data){alert("Nenhum documento mensal registrado para este cliente e mês.");return;}
         const snap=result.data.snapshot||{};
         if(snap.kind!=="selected_monthly_receipt"||Number(snap.schema_version)!==2){
