@@ -39,7 +39,7 @@ function validateBillingSelection(lines, context = {}) {
     if (line.kind === "appointment_extra" && line.coverage_verified !== true) throw Error("Cobertura do serviço não verificada");
     seen.add(line.kind + ":" + line.id);
     if (line.status === "paid" || line.status === "cancelled" || line.covered_by_plan) throw Error("Item indisponível para cobrança");
-    if (!Number.isFinite(line.amount) || line.amount < 0) throw Error("Valor inválido");
+    if (!Number.isFinite(line.amount) || line.amount <= 0) throw Error("Valor inválido");
     total += line.amount;
   }
   return Math.round(total * 100) / 100;
