@@ -44,6 +44,10 @@ begin
     raise exception 'Client not found';
   end if;
   perform pg_advisory_xact_lock(hashtextextended(p_client_id::text || ':' || p_competence::text,0));
+  if exists(select 1 from public.monthly_receipt_snapshots
+            where client_id=p_client_id and competence_month=p_competence) then
+    raise exception 'Monthly receipt already issued in legacy history';
+  end if;
   if exists(select 1 from public.monthly_billing_documents
             where client_id=p_client_id and competence_month=p_competence) then
     raise exception 'Monthly receipt already issued';
