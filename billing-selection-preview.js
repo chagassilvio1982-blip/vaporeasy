@@ -160,7 +160,8 @@
       (ar.data||[]).filter(x=>x.client_id===id).forEach(a=>{
         const coverage=billingCoverage(a,subs.data||[],pc.data||[],k.month);
         const payment=paymentMap.get(a.id);
-        const linkedToPlan=Boolean(a.recurring_plan_id)||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id);
+        const serviceDay=saoPauloDate(a.starts_at);
+        const linkedToPlan=Boolean(a.recurring_plan_id)||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id&&String(p.starts_on||"").slice(0,10)<=serviceDay&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=serviceDay));
         const isPaid=payment?.status==="paid";
         const isAvulso=!linkedToPlan&&coverage.kind==="review_required"&&!isPaid&&Number(a.final_value)>0;
         addLine("Atendimento "+saoPauloDate(a.starts_at)+" · "+vehicleLabel(a.vehicle_id),Number(a.final_value??0),isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:Number(a.final_value??0),status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,label:"Atendimento "+saoPauloDate(a.starts_at)+" · "+vehicleLabel(a.vehicle_id)});
