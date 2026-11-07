@@ -26,3 +26,12 @@ test("competence uses Sao Paulo local month at UTC rollover",()=>{
  assert.equal(billingCoverage(nearMidnight,[sub],[octoberCharge],"2026-10").kind,"included_in_plan");
  assert.equal(billingCoverage(nearMidnight,[sub],[charge],"2026-11").kind,"out_of_period");
 });
+
+test("subscription starting after appointment does not cover earlier service",()=>{
+ const late={...sub,starts_on:"2026-11-20"};
+ assert.equal(billingCoverage(ap,[late],[{...charge,subscription_id:late.id}],"2026-11").kind,"review_required");
+});
+test("subscription superseded before appointment does not cover later service",()=>{
+ const ended={...sub,superseded_at:"2026-11-03T12:00:00Z"};
+ assert.equal(billingCoverage(ap,[ended],[charge],"2026-11").kind,"review_required");
+});
