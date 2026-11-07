@@ -1,5 +1,5 @@
 "use strict";
-/* V2 finance: read-only selection panel; never creates a charge or changes payment state. */
+/* V2 finance: selection preview; issuance remains disabled until verified end-to-end. */
 (function(){
   function el(tag,attrs={},text){
     const node=document.createElement(tag);
@@ -106,8 +106,7 @@
           appointmentIds.length?sb.from("package_subscriptions").select("client_id,vehicle_id,service_id,starts_on,superseded_at").eq("client_id",id):Promise.resolve({data:[],error:null}),
           appointmentIds.length?sb.from("appointment_financial_corrections").select("appointment_id,corrected_final_value,classification").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null})
         ]);
-        // The document table is absent until the isolated migration is approved.
-        // Permit read-only previews while keeping issuance disabled.
+        // Keep previews available while issuance awaits end-to-end verification.
         const missingDocumentTable=existingDocument.error&&(
           existingDocument.error.code==="42P01"||
           existingDocument.error.code==="PGRST205"
@@ -122,7 +121,7 @@
             const latest=(freshAppointments.data||[]).find(x=>x.id===line.id);
             const correction=(freshCorrections.data||[]).find(x=>x.appointment_id===line.id);
             const correctedAvulso=correction?.classification==="avulso";
-            if(!latest||latest.client_id!==id||latest.status!=="completed"||latest.deleted_at||saoPauloDate(latest.starts_at).slice(0,7)!==k.month||Number(correction?.corrected_final_value??latest.final_value)!==line.amount||(latest.recurring_plan_id&&!correctedAvulso))throw Error("Atendimento alterado ou vinculado a plano. Atualize a conferência.");
+            if(!latest||latest.client_id!==id||latest.status!=="completed"||latest.deleted_at||saoPauloDate(latest.starts_at).slice(0,7)!==k.month||Number(correction?.corrected_final_value??latest.final_value)!==line.amount )throw Error("Atendimento alterado ou vinculado a plano. Atualize a conferência.");
             if(!correctedAvulso&&(freshSubscriptions.data||[]).some(p=>p.client_id===id&&p.vehicle_id===latest.vehicle_id&&p.service_id===latest.service_id&&String(p.starts_on||"").slice(0,10)<=saoPauloDate(latest.starts_at)&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=saoPauloDate(latest.starts_at))))throw Error("Possível vínculo com plano identificado. Atualize a conferência.");
             if((freshPayments.data||[]).some(x=>x.appointment_id===line.id&&x.status==="paid"))throw Error("Um atendimento já foi pago. Atualize a conferência.");
           }
@@ -169,10 +168,11 @@
         const serviceDay=saoPauloDate(a.starts_at);
         const correction=correctionMap.get(a.id);
         const correctedAvulso=correction?.classification==="avulso";
-        const linkedToPlan=!correctedAvulso&&(Boolean(a.recurring_plan_id)||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id&&String(p.starts_on||"").slice(0,10)<=serviceDay&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=serviceDay)));
+        const linkedToPlan=!correctedAvulso&&coverage.kind==="included_in_plan";
+        const hasUnverifiedPlanHistory=!correctedAvulso&&(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id&&String(p.starts_on||"").slice(0,10)<=serviceDay&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=serviceDay));
         const isPaid=payment?.status==="paid";
         const effectiveValue=Number(correction?.corrected_final_value??a.final_value);
-        const isAvulso=!linkedToPlan&&(correctedAvulso||coverage.kind==="review_required")&&!isPaid&&effectiveValue>0;
+        const isAvulso=!linkedToPlan&&!hasUnverifiedPlanHistory&&(correctedAvulso||coverage.kind==="review_required")&&!isPaid&&effectiveValue>0;
         addLine("Atendimento "+saoPauloDate(a.starts_at)+" · "+vehicleLabel(a.vehicle_id),effectiveValue,isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:effectiveValue,status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,label:"Atendimento "+saoPauloDate(a.starts_at)+" · "+vehicleLabel(a.vehicle_id)});
       });
       total.textContent="Total selecionado: "+format(0);
