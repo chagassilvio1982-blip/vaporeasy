@@ -69,3 +69,10 @@ test("subscription coverage uses exact appointment day, not only the month",()=>
  assert.match(preview,/saoPauloDate\(p\.superseded_at\)>=saoPauloDate\(latest\.starts_at\)/);
  assert.doesNotMatch(preview,/String\(p\.superseded_at\)\.slice\(0,7\)>=k\.month/);
 });
+
+test("expired or future subscriptions do not block avulso in initial selection",()=>{
+ assert.match(preview,/const serviceDay=saoPauloDate\(a\.starts_at\)/);
+ assert.match(preview,/String\(p\.starts_on\|\|""\)\.slice\(0,10\)<=serviceDay/);
+ assert.match(preview,/saoPauloDate\(p\.superseded_at\)>=serviceDay/);
+ assert.doesNotMatch(preview,/p\.service_id===a\.service_id\);/);
+});
