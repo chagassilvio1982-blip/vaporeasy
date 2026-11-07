@@ -40,6 +40,25 @@ end $$;
 -- Repeated installation must not reintroduce anonymous EXECUTE privileges.
 select 1 / (case when not has_function_privilege('anon','public.issue_selected_monthly_receipt(uuid,date,jsonb)','EXECUTE') then 1 else 0 end) as rerun_permissions_valid;
 
+-- Legacy receipt for a different client must block the new document.
+insert into public.clients values ('10101010-1010-4010-8010-101010101010');
+insert into public.package_charges values ('20202020-2020-4020-8020-202020202020','10101010-1010-4010-8010-101010101010','2026-11-01','pending',390);
+insert into public.monthly_receipt_snapshots(client_id,competence_month,snapshot,issued_by)
+values ('10101010-1010-4010-8010-101010101010','2026-11-01','{}'::jsonb,'11111111-1111-4111-8111-111111111111');
+do $
+declare v_rejected boolean := false;
+begin
+ begin
+  perform public.issue_selected_monthly_receipt('10101010-1010-4010-8010-101010101010','2026-11-01',
+   '[{"kind":"package_charge","id":"20202020-2020-4020-8020-202020202020","amount":390}]'::jsonb);
+ exception when others then v_rejected:=true;
+ end;
+ if not v_rejected then raise exception 'Legacy receipt did not block duplicate billing'; end if;
+ if exists(select 1 from public.monthly_billing_documents where client_id='10101010-1010-4010-8010-101010101010') then
+  raise exception 'Duplicate document created despite legacy receipt';
+ end if;
+end $;
+
 -- Negative cases use a separate client/month to avoid hitting the existing-receipt guard.
 insert into public.clients values ('ffffffff-ffff-4fff-8fff-ffffffffffff');
 insert into public.package_charges values ('22222222-2222-4222-8222-222222222222','ffffffff-ffff-4fff-8fff-ffffffffffff','2026-11-01','paid',390);
