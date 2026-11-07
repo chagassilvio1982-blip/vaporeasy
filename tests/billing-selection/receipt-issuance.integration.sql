@@ -45,7 +45,7 @@ insert into public.clients values ('10101010-1010-4010-8010-101010101010');
 insert into public.package_charges values ('20202020-2020-4020-8020-202020202020','10101010-1010-4010-8010-101010101010','2026-11-01','pending',390);
 insert into public.monthly_receipt_snapshots(client_id,competence_month,snapshot,issued_by)
 values ('10101010-1010-4010-8010-101010101010','2026-11-01','{}'::jsonb,'11111111-1111-4111-8111-111111111111');
-do $
+do $legacy$
 declare v_rejected boolean := false;
 begin
  begin
@@ -57,7 +57,7 @@ begin
  if exists(select 1 from public.monthly_billing_documents where client_id='10101010-1010-4010-8010-101010101010') then
   raise exception 'Duplicate document created despite legacy receipt';
  end if;
-end $;
+end $legacy$;
 
 -- Negative cases use a separate client/month to avoid hitting the existing-receipt guard.
 insert into public.clients values ('ffffffff-ffff-4fff-8fff-ffffffffffff');
