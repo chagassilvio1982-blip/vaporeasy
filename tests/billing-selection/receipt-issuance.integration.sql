@@ -14,6 +14,16 @@ create table public.package_subscriptions(client_id uuid,vehicle_id uuid,service
 
 create table public.monthly_receipt_snapshots(id uuid primary key default gen_random_uuid(),client_id uuid,competence_month date,snapshot jsonb,issued_by uuid,issued_at timestamptz default now(),unique(client_id,competence_month));
 \i migrations/20261106_selected_monthly_receipt_DRAFT.sql
+-- Anonymous users must never receive EXECUTE permission, including after reruns.
+do $
+begin
+ if has_function_privilege('anon','public.issue_selected_monthly_receipt(uuid,date,jsonb)','EXECUTE') then
+  raise exception 'Anonymous role can execute monthly billing issuance';
+ end if;
+ if not has_function_privilege('authenticated','public.issue_selected_monthly_receipt(uuid,date,jsonb)','EXECUTE') then
+  raise exception 'Authenticated role cannot invoke monthly billing issuance';
+ end if;
+end $;
 -- Applying the migration again must not fail or discard existing billing documents.
 \i migrations/20261106_selected_monthly_receipt_DRAFT.sql
 insert into public.clients values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
