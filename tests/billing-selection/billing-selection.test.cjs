@@ -35,3 +35,10 @@ test("subscription superseded before appointment does not cover later service",(
  const ended={...sub,superseded_at:"2026-11-03T12:00:00Z"};
  assert.equal(billingCoverage(ap,[ended],[charge],"2026-11").kind,"review_required");
 });
+
+test("coverage dates use locale-independent year-month-day parts",()=>{
+ const source=require("node:fs").readFileSync("billing-selection-guard.cjs","utf8");
+ assert.match(source,/formatToParts\(new Date\(value\)\)/);
+ assert.match(source,/part\("year"\)\+"-"\+part\("month"\)\+"-"\+part\("day"\)/);
+ assert.doesNotMatch(source,/DateTimeFormat\("en-CA"/);
+});
