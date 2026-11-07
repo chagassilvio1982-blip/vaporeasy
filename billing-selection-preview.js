@@ -108,7 +108,7 @@
           existingDocument.error.code==="42P01"||
           existingDocument.error.code==="PGRST205"
         );
-        if(freshCharges.error||freshPayments.error||freshAppointments.error||(existingDocument.error&&!missingDocumentTable)||legacyReceipt.error||freshSubscriptions.error)throw freshCharges.error||freshPayments.error||freshAppointments.error||existingDocument.error||legacyReceipt.error||freshSubscriptions.error;
+        if(freshCharges.error||freshPayments.error||freshAppointments.error||(existingDocument.error&&!missingDocumentTable)||legacyReceipt.error||freshSubscriptions.error)throw freshCharges.error||freshPayments.error||freshAppointments.error||(missingDocumentTable?null:existingDocument.error)||legacyReceipt.error||freshSubscriptions.error;
         if((existingDocument.data||[]).length||(legacyReceipt.data||[]).length)throw Error("Já existe documento mensal para este cliente, inclusive no histórico tradicional. Confira antes de emitir outra cobrança.");
         for(const line of chosen){
           if(line.kind==="package_charge"){
