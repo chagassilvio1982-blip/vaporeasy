@@ -8,9 +8,11 @@ test("receipt selection never directly writes payment or charges",()=>{
   assert.doesNotMatch(preview,/\.insert\s*\(|\.update\s*\(|\.upsert\s*\(|\.delete\s*\(/);
 });
 test("preview rechecks existing monthly document before export",()=>{
-  assert.match(preview,/freshCharges,freshPayments,freshAppointments,existingDocument,freshSubscriptions/);
+  assert.match(preview,/freshCharges,freshPayments,freshAppointments,existingDocument,legacyReceipt,freshSubscriptions/);
   assert.match(preview,/monthly_billing_documents/);
   assert.match(preview,/existingDocument\.data/);
+  assert.match(preview,/monthly_receipt_snapshots/);
+  assert.match(preview,/legacyReceipt\.data/);
 });
 test("preview rechecks paid status and plan associations",()=>{
   assert.match(preview,/freshPayments\.data/);
