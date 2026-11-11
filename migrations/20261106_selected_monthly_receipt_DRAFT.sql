@@ -29,6 +29,7 @@ declare
   v_verified_lines jsonb := '[]'::jsonb;
   v_charge public.package_charges%rowtype;
   v_appointment public.appointments%rowtype;
+  v_correction public.appointment_financial_corrections%rowtype;
 begin
   if auth.uid() is null or not private.is_active_user()
      or private.current_app_role() not in ('owner','admin') then
@@ -79,18 +80,25 @@ begin
          or v_appointment.status is distinct from 'completed' or v_appointment.deleted_at is not null
          or (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date < p_competence
          or (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date >= (p_competence + interval '1 month')::date
-         or v_appointment.recurring_plan_id is not null
          or exists(select 1 from public.appointment_payments
                    where appointment_id=v_id and status='paid')
          or exists(select 1 from public.package_subscriptions s
-                   where s.client_id=p_client_id and s.vehicle_id=v_appointment.vehicle_id
+                   where not exists(select 1 from public.appointment_financial_corrections fc
+                                    where fc.appointment_id=v_id and fc.classification='avulso')
+                     and s.client_id=p_client_id and s.vehicle_id=v_appointment.vehicle_id
                      and s.service_id=v_appointment.service_id
                      and s.starts_on <= (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date
                      and (s.superseded_at is null or (s.superseded_at at time zone 'America/Sao_Paulo')::date >= (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date))
       then
         raise exception 'Appointment not eligible';
       end if;
-      v_amount := v_appointment.final_value;
+      select * into v_correction from public.appointment_financial_corrections
+        where appointment_id=v_id;
+      if v_appointment.recurring_plan_id is not null
+         and (not found or v_correction.classification is distinct from 'avulso') then
+        raise exception 'Recurring appointment requires explicit avulso correction';
+      end if;
+      v_amount := coalesce(v_correction.corrected_final_value,v_appointment.final_value);
     else
       raise exception 'Unsupported item type';
     end if;
