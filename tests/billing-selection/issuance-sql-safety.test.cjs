@@ -10,7 +10,7 @@ test("server validates actor and serializes client/month issuance",()=>{
 });
 test("server recalculates amounts and records only verified line fields",()=>{
  assert.match(sql,/v_amount := v_charge\.amount/);
- assert.match(sql,/v_amount := v_appointment\.final_value/);
+ assert.match(sql,/coalesce\(v_correction\.corrected_final_value,v_appointment\.final_value\)/);
  assert.match(sql,/v_verified_lines := v_verified_lines/);
  assert.match(sql,/'lines',v_verified_lines/);
  assert.doesNotMatch(sql,/'lines',p_lines/);
