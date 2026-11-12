@@ -10,6 +10,7 @@ create table public.clients(id uuid primary key);
 create table public.package_charges(id uuid primary key, client_id uuid, competence_month date, status text, amount numeric);
 create table public.appointments(id uuid primary key,client_id uuid,vehicle_id uuid,service_id uuid,starts_at timestamptz,status text,deleted_at timestamptz,recurring_plan_id uuid,final_value numeric);
 create table public.appointment_payments(appointment_id uuid,status text);
+create table public.appointment_financial_corrections(id uuid primary key default gen_random_uuid(),appointment_id uuid not null unique,client_id uuid not null,original_base_value numeric not null,corrected_base_value numeric not null,corrected_final_value numeric not null,classification text not null,reason text not null,created_at timestamptz not null default now(),created_by uuid);
 create table public.package_subscriptions(client_id uuid,vehicle_id uuid,service_id uuid,starts_on date,superseded_at timestamptz);
 
 create table public.monthly_receipt_snapshots(id uuid primary key default gen_random_uuid(),client_id uuid,competence_month date,snapshot jsonb,issued_by uuid,issued_at timestamptz default now(),unique(client_id,competence_month));
@@ -100,4 +101,14 @@ begin
  exception when others then v_failed:=true;end;
  if not v_failed then raise exception 'Duplicate item was accepted';end if;
  if (select count(*) from public.monthly_billing_documents)<>1 then raise exception 'Invalid receipt was inserted';end if;
+end $$;
+
+-- Explicit avulso correction must override recurring-plan and subscription coverage.
+insert into public.clients values ('abababab-abab-4bab-8bab-abababababab');
+insert into public.appointments values ('cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd','abababab-abab-4bab-8bab-abababababab','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-11-10 10:00-03','completed',null,'12121212-1212-4212-8212-121212121212',390);
+insert into public.package_subscriptions values ('abababab-abab-4bab-8bab-abababababab','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-10-01',null);
+insert into public.appointment_financial_corrections(appointment_id,client_id,original_base_value,corrected_base_value,corrected_final_value,classification,reason) values ('cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd','abababab-abab-4bab-8bab-abababababab',390,150,150,'avulso','Integration test');
+do $$ declare v_doc uuid; begin
+ v_doc:=public.issue_selected_monthly_receipt('abababab-abab-4bab-8bab-abababababab','2026-11-01','[{"kind":"appointment_extra","id":"cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd","amount":150}]'::jsonb);
+ if (select (snapshot->>'total')::numeric from public.monthly_billing_documents where id=v_doc) <> 150 then raise exception 'Corrected avulso amount ignored'; end if;
 end $$;
