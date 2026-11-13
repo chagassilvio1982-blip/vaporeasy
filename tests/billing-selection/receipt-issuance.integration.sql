@@ -108,7 +108,20 @@ insert into public.clients values ('abababab-abab-4bab-8bab-abababababab');
 insert into public.appointments values ('cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd','abababab-abab-4bab-8bab-abababababab','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-11-10 10:00-03','completed',null,'12121212-1212-4212-8212-121212121212',390);
 insert into public.package_subscriptions values ('abababab-abab-4bab-8bab-abababababab','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-10-01',null);
 insert into public.appointment_financial_corrections(appointment_id,client_id,original_base_value,corrected_base_value,corrected_final_value,classification,reason) values ('cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd','abababab-abab-4bab-8bab-abababababab',390,150,150,'avulso','Integration test');
-do $$ declare v_doc uuid; begin
+do $ declare v_doc uuid; begin
  v_doc:=public.issue_selected_monthly_receipt('abababab-abab-4bab-8bab-abababababab','2026-11-01','[{"kind":"appointment_extra","id":"cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd","amount":150}]'::jsonb);
  if (select (snapshot->>'total')::numeric from public.monthly_billing_documents where id=v_doc) <> 150 then raise exception 'Corrected avulso amount ignored'; end if;
-end $$;
+end $;
+
+-- A correction explicitly classified as plan is never billable as an appointment extra.
+insert into public.clients values ('acacacac-acac-4cac-8cac-acacacacacac');
+insert into public.appointments values ('adadadad-adad-4dad-8dad-adadadadadad','acacacac-acac-4cac-8cac-acacacacacac','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-11-11 10:00-03','completed',null,null,390);
+insert into public.appointment_financial_corrections(appointment_id,client_id,original_base_value,corrected_base_value,corrected_final_value,classification,reason) values ('adadadad-adad-4dad-8dad-adadadadadad','acacacac-acac-4cac-8cac-acacacacacac',390,390,390,'plan','Integration test plan classification');
+do $ declare v_failed boolean := false; begin
+ begin
+  perform public.issue_selected_monthly_receipt('acacacac-acac-4cac-8cac-acacacacacac','2026-11-01','[{"kind":"appointment_extra","id":"adadadad-adad-4dad-8dad-adadadadadad","amount":390}]'::jsonb);
+ exception when others then v_failed := true;
+ end;
+ if not v_failed then raise exception 'Plan-classified correction was accepted as avulso'; end if;
+ if exists(select 1 from public.monthly_billing_documents where client_id='acacacac-acac-4cac-8cac-acacacacacac') then raise exception 'Plan-classified appointment created a billing document'; end if;
+end $;
