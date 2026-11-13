@@ -4703,6 +4703,7 @@ function syncAdminScheduleOverride(){
   return active;
 }
 $("apoverride").addEventListener("change",()=>loadAvailableSlots());
+const LAST_APPOINTMENT_START="16:00";
 async function loadAvailableSlots(preferred=""){
   const req=++slotRequestSeq,t=$("atm"),help=$("slothelp"),service=$("as").value,date=$("adt").value,assignment=selectedAssignment(),collab=assignment.collaborator_id,team=assignment.team_id,id=$("aid").value||null,b=$("apsave"),vehicleIds=selectedBatchVehicleIds();
   const override=syncAdminScheduleOverride();
@@ -4727,7 +4728,14 @@ async function loadAvailableSlots(preferred=""){
   if(req!==slotRequestSeq)return;
   b.textContent=appointmentSubmitLabel();
   if(r.error){t.innerHTML='<option value="">Não foi possível consultar</option>';help.textContent=fail(r.error);b.disabled=true;return}
-  const rows=r.data||[];
+  const rows=(r.data||[]).filter(x=>{
+    if(!/^\d{2}:\d{2}$/.test(x.local_time)||x.local_time>LAST_APPOINTMENT_START)return false;
+    if(id||vehicleIds.length<2)return true;
+    const duration=Number(services.find(s=>s.id===service)?.duration_minutes);
+    if(!Number.isFinite(duration)||duration<=0)return false;
+    const [h,m]=x.local_time.split(":").map(Number);
+    return h*60+m+duration*(vehicleIds.length-1)<=16*60;
+  });
   if(!rows.length){
     if(id&&preferred){
       t.innerHTML='<option value="'+esc(preferred)+'">'+esc(preferred)+' • horário atual</option>';
@@ -4859,6 +4867,7 @@ async function saveAppt(e){
   if(!serviceId)return show("apmsg","Selecione o serviço.","error");
   if(!date)return show("apmsg","Selecione a data.","error");
   if(!time)return show("apmsg","Selecione um horário disponível.","error");
+  if(time>LAST_APPOINTMENT_START&&!adminScheduleOverrideSelected()&&(!id||time!==(currentApps.find(x=>x.id===id)?.starts_at?spDateTime(currentApps.find(x=>x.id===id).starts_at).time:null)))return show("apmsg","O último horário permitido para iniciar um atendimento é 16h00.","error");
   if(!id&&date<today())return show("apmsg","Para datas passadas, use Ações da agenda → Registrar serviço realizado. Isso registra o histórico sem criar ou alterar recorrências futuras.","error");
   const s=services.find(x=>x.id===serviceId);
   if(!s)return show("apmsg","Serviço inválido. Feche e abra o agendamento novamente.","error");
@@ -6265,6 +6274,9 @@ async function loadApps(){
 
 boot();
 </script>
+<script src="/billing-selection-guard.js?v=20261106-1"></script>
+<script src="/billing-selection-preview.js?v=20261106-1"></script>
+<script>if(typeof installBillingSelection==="function")installBillingSelection();</script>
 <script src="/main-menu.js?v=20261015-report1"></script>
 <script src="/agenda-quick-search.js?v=20261014-1"></script>
 </body></html>

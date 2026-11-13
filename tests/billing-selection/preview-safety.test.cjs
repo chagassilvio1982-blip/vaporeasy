@@ -1,0 +1,92 @@
+"use strict";
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const preview=fs.readFileSync("billing-selection-preview.js","utf8");
+const html=fs.readFileSync("index.html","utf8");
+test("receipt selection never directly writes payment or charges",()=>{
+  assert.doesNotMatch(preview,/\.insert\s*\(|\.update\s*\(|\.upsert\s*\(|\.delete\s*\(/);
+});
+test("preview rechecks existing monthly document before export",()=>{
+  assert.match(preview,/freshCharges,freshPayments,freshAppointments,existingDocument,legacyReceipt,freshSubscriptions/);
+  assert.match(preview,/monthly_billing_documents/);
+  assert.match(preview,/existingDocument\.data/);
+  assert.match(preview,/monthly_receipt_snapshots/);
+  assert.match(preview,/legacyReceipt\.data/);
+});
+test("preview rechecks paid status and plan associations",()=>{
+  assert.match(preview,/freshPayments\.data/);
+  assert.match(preview,/freshSubscriptions\.data/);
+  assert.match(preview,/scheduled_effective_on,replaces_subscription_id/);
+  assert.match(preview,/r\.replaces_subscription_id===p\.id/);
+  assert.match(preview,/subscriptionMatches/);
+  assert.match(preview,/correctionClientValid/);
+  assert.match(preview,/latest\.vehicle_id!==line\.vehicle_id/);
+  assert.match(preview,/subscription\.client_id!==id/);
+  assert.match(preview,/correction\?\.classification==="plan"/);
+  assert.match(preview,/latest\.recurring_plan_id&&!correctedAvulso/);
+  assert.match(preview,/Possível vínculo com plano/);
+});
+test("browser scripts are installed after main app initialization",()=>{
+  const main=html.indexOf('boot();');
+  const guard=html.indexOf('src="/billing-selection-guard.js');
+  const previewIndex=html.indexOf('src="/billing-selection-preview.js');
+  assert.ok(main>=0&&guard>main&&previewIndex>guard);
+  assert.match(html,/installBillingSelection\(\)/);
+});
+
+test("preview uses São Paulo dates instead of UTC slicing",()=>{
+  assert.match(preview,/timeZone:"America\/Sao_Paulo"/);
+  assert.match(preview,/saoPauloDate\(latest\.starts_at\)/);
+  assert.match(preview,/saoPauloDate\(a\.starts_at\)/);
+});
+
+test("each charge and appointment displays its vehicle",()=>{
+ assert.match(preview,/sb\.from\("vehicles"\)\.select\("id,client_id,brand,model,plate"\)/);
+ assert.match(preview,/Plano · "\+vehicleLabel\(c\.vehicle_id\)/);
+ assert.match(preview,/Atendimento "\+saoPauloDate\(a\.starts_at\)\+" · "\+vehicleLabel\(a\.vehicle_id\)/);
+ assert.match(preview,/label:"Mensalidade do plano · "\+vehicleLabel\(c\.vehicle_id\)/);
+});
+
+test("São Paulo date uses locale-independent ISO ordering",()=>{
+ assert.match(preview,/\.formatToParts\(new Date\(iso\)\)/);
+ assert.match(preview,/part\("year"\)\+"-"\+part\("month"\)\+"-"\+part\("day"\)/);
+});
+
+test("browser exposes the billing selection validator required by preview",()=>{
+ const guard=fs.readFileSync("billing-selection-guard.js","utf8");
+ assert.match(guard,/window\.validateBillingSelection = validateBillingSelection/);
+ assert.match(preview,/validateBillingSelection\(chosen/);
+});
+
+test("receipt issuance requires user confirmation and server validation",()=>{
+ assert.match(preview,/window\.confirm\(/);
+ assert.match(preview,/sb\.rpc\("issue_selected_monthly_receipt"/);
+ assert.match(preview,/const \{chosen,amount\}=await verifySelection\(\)/);
+ assert.match(preview,/p_lines:payload/);
+});
+
+test("selected monthly document shows immutable snapshot labels and real newlines",()=>{
+ assert.match(preview,/\[2,3\]\.includes\(Number\(snap\.schema_version\)\)/);
+ assert.match(preview,/snap\.client_name/);
+ assert.match(preview,/line\.vehicle_label/);
+ assert.match(preview,/line\.service_label/);
+ assert.match(preview,/labels\.get\(line\.kind\+":"\+line\.id\)/);
+ assert.match(preview,/\.join\("\\n"\)/);
+ assert.match(preview,/selectedReceiptRendererReady=false/);
+});
+
+test("subscription coverage uses exact appointment day, not only the month",()=>{
+ assert.match(preview,/String\(p\.starts_on\|\|""\)\.slice\(0,10\)<=saoPauloDate\(latest\.starts_at\)/);
+ assert.match(preview,/saoPauloDate\(p\.superseded_at\)>=saoPauloDate\(latest\.starts_at\)/);
+ assert.doesNotMatch(preview,/String\(p\.superseded_at\)\.slice\(0,7\)>=k\.month/);
+});
+
+test("expired or future subscriptions do not block avulso in initial selection",()=>{
+ assert.match(preview,/const serviceDay=saoPauloDate\(a\.starts_at\)/);
+ assert.match(preview,/const classifiedAsPlan=correction\?\.classification==="plan"/);
+ assert.match(preview,/!!a\.recurring_plan_id/);
+ assert.match(preview,/String\(p\.starts_on\|\|""\)\.slice\(0,10\)<=serviceDay/);
+ assert.match(preview,/saoPauloDate\(p\.superseded_at\)>=serviceDay/);
+ assert.doesNotMatch(preview,/p\.service_id===a\.service_id\);/);
+});

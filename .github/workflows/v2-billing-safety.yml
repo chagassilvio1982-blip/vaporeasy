@@ -1,0 +1,78 @@
+name: V2 Billing Safety Tests
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'billing-selection-guard.cjs'
+      - 'billing-selection-guard.js'
+      - 'billing-selection-preview.js'
+      - 'migrations/20261106_selected_monthly_receipt_DRAFT.sql'
+      - 'migrations/20261106_last_start_1600_DRAFT.sql'
+      - 'tests/billing-selection/**'
+      - '.github/workflows/v2-billing-safety.yml'
+  workflow_dispatch:
+jobs:
+  billing-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/billing-selection/*.test.cjs
+      - run: node --check billing-selection-preview.js
+      - run: node --check billing-selection-guard.js
+
+  schedule-db-integration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: schedule_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify schedule database guards
+        env:
+          PGPASSWORD: ci_only
+        run: psql -h localhost -U postgres -d schedule_ci -v ON_ERROR_STOP=1 -f tests/billing-selection/schedule-last-start.integration.sql
+
+  receipt-db-integration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: receipt_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify atomic receipt issuance
+        env:
+          PGPASSWORD: ci_only
+        run: psql -h localhost -U postgres -d receipt_ci -v ON_ERROR_STOP=1 -f tests/billing-selection/receipt-issuance.integration.sql
+      - name: Verify concurrent receipt issuance
+        env:
+          PGPASSWORD: ci_only
+        run: bash tests/billing-selection/receipt-concurrency.sh
