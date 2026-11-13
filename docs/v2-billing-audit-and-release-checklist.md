@@ -83,6 +83,10 @@ A função `issue_selected_monthly_receipt` existe no Supabase V2, mas sua defin
 
 A tabela `monthly_billing_documents` possui unicidade por cliente/competência e estava sem documentos no momento da auditoria. Nenhuma migração foi aplicada durante esta revisão.
 
+Na leitura de 12/11/2026, foram encontrados 8 registros de assinatura inativa sem `superseded_at` nem vínculo explícito de substituição. Quatro atendimentos concluídos de novembro coincidem com esse histórico. Dois atendimentos de 12/11 estão ligados a novas assinaturas ativas com mensalidades de novembro pagas; a seleção os reconhece como incluídos no plano. Dois atendimentos de 05/11 antecedem o início das novas assinaturas em 06/11; as mensalidades antigas foram canceladas e as novas foram pagas no mesmo mês. Como não existe data efetiva de substituição registrada para o intervalo, esses dois atendimentos permanecem em revisão e não são oferecidos como avulsos automaticamente.
+
+**Ação de negócio pendente:** confirmar se a mensalidade de novembro paga após a troca cobre também os atendimentos de 05/11. Se sim, devem permanecer cobertos pelo plano; se não, o proprietário deve autorizar uma correção financeira explícita para avulso. Nenhum desses registros foi alterado.
+
 **Não aplicar a migração nem liberar a emissão em produção com base apenas no CI.** Primeiro deve ser revisada a diferença entre a função instalada e a versão da branch, com implantação controlada em ambiente isolado.
 
 ## 6. Critérios pendentes antes da liberação
