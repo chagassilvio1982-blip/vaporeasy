@@ -122,6 +122,8 @@
             const correction=(freshCorrections.data||[]).find(x=>x.appointment_id===line.id);
             const correctedAvulso=correction?.classification==="avulso";
             if(!latest||latest.client_id!==id||latest.status!=="completed"||latest.deleted_at||saoPauloDate(latest.starts_at).slice(0,7)!==k.month||Number(correction?.corrected_final_value??latest.final_value)!==line.amount )throw Error("Atendimento alterado ou vinculado a plano. Atualize a conferência.");
+            if(correction?.classification==="plan")throw Error("Atendimento classificado como plano. Não pode ser cobrado como avulso.");
+            if(latest.recurring_plan_id&&!correctedAvulso)throw Error("Atendimento vinculado a recorrência sem correção avulso.");
             if(!correctedAvulso&&(freshSubscriptions.data||[]).some(p=>p.client_id===id&&p.vehicle_id===latest.vehicle_id&&p.service_id===latest.service_id&&String(p.starts_on||"").slice(0,10)<=saoPauloDate(latest.starts_at)&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=saoPauloDate(latest.starts_at))))throw Error("Possível vínculo com plano identificado. Atualize a conferência.");
             if((freshPayments.data||[]).some(x=>x.appointment_id===line.id&&x.status==="paid"))throw Error("Um atendimento já foi pago. Atualize a conferência.");
           }
