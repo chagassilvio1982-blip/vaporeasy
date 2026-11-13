@@ -7,6 +7,7 @@ const sub={id:"p1",client_id:"c1",vehicle_id:"v1",service_id:"s1",recurring_plan
 const charge={id:"ch1",subscription_id:"p1",competence_month:"2026-11-01",status:"pending"};
 test("plan-covered service is informational, not billable",()=>assert.deepEqual(billingCoverage(ap,[sub],[charge],"2026-11"),{kind:"included_in_plan",billable:false}));
 test("paid plan also covers appointment",()=>assert.equal(billingCoverage(ap,[sub],[{...charge,status:"paid"}],"2026-11").kind,"included_in_plan"));
+test("credit-covered plan also covers appointment",()=>assert.equal(billingCoverage(ap,[sub],[{...charge,status:"covered"}],"2026-11").kind,"included_in_plan"));
 test("recurrence without monthly charge requires review",()=>assert.equal(billingCoverage(ap,[sub],[],"2026-11").kind,"review_required"));
 test("another vehicle does not cover service",()=>assert.equal(billingCoverage(ap,[{...sub,vehicle_id:"v2"}],[charge],"2026-11").kind,"review_required"));
 test("another month does not cover service",()=>assert.equal(billingCoverage(ap,[sub],[{...charge,competence_month:"2026-10-01"}],"2026-11").kind,"review_required"));
