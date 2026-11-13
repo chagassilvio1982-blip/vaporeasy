@@ -11,7 +11,11 @@ create table public.package_charges(id uuid primary key, client_id uuid, compete
 create table public.appointments(id uuid primary key,client_id uuid,vehicle_id uuid,service_id uuid,starts_at timestamptz,status text,deleted_at timestamptz,recurring_plan_id uuid,final_value numeric);
 create table public.appointment_payments(appointment_id uuid,status text);
 create table public.appointment_financial_corrections(id uuid primary key default gen_random_uuid(),appointment_id uuid not null unique,client_id uuid not null,original_base_value numeric not null,corrected_base_value numeric not null,corrected_final_value numeric not null,classification text not null,reason text not null,created_at timestamptz not null default now(),created_by uuid);
-create table public.package_subscriptions(client_id uuid,vehicle_id uuid,service_id uuid,starts_on date,superseded_at timestamptz);
+create table public.package_subscriptions(
+ id uuid primary key default gen_random_uuid(),
+ client_id uuid,vehicle_id uuid,service_id uuid,starts_on date,superseded_at timestamptz,
+ recurring_plan_id uuid,active boolean default true,scheduled_effective_on date,replaces_subscription_id uuid
+);
 
 create table public.monthly_receipt_snapshots(id uuid primary key default gen_random_uuid(),client_id uuid,competence_month date,snapshot jsonb,issued_by uuid,issued_at timestamptz default now(),unique(client_id,competence_month));
 \i migrations/20261106_selected_monthly_receipt_DRAFT.sql
@@ -106,7 +110,8 @@ end $$;
 -- Explicit avulso correction must override recurring-plan and subscription coverage.
 insert into public.clients values ('abababab-abab-4bab-8bab-abababababab');
 insert into public.appointments values ('cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd','abababab-abab-4bab-8bab-abababababab','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-11-10 10:00-03','completed',null,'12121212-1212-4212-8212-121212121212',390);
-insert into public.package_subscriptions values ('abababab-abab-4bab-8bab-abababababab','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-10-01',null);
+insert into public.package_subscriptions(client_id,vehicle_id,service_id,starts_on,superseded_at)
+values ('abababab-abab-4bab-8bab-abababababab','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-10-01',null);
 insert into public.appointment_financial_corrections(appointment_id,client_id,original_base_value,corrected_base_value,corrected_final_value,classification,reason) values ('cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd','abababab-abab-4bab-8bab-abababababab',390,150,150,'avulso','Integration test');
 do $ declare v_doc uuid; begin
  v_doc:=public.issue_selected_monthly_receipt('abababab-abab-4bab-8bab-abababababab','2026-11-01','[{"kind":"appointment_extra","id":"cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd","amount":150}]'::jsonb);
@@ -125,3 +130,15 @@ do $ declare v_failed boolean := false; begin
  if not v_failed then raise exception 'Plan-classified correction was accepted as avulso'; end if;
  if exists(select 1 from public.monthly_billing_documents where client_id='acacacac-acac-4cac-8cac-acacacacacac') then raise exception 'Plan-classified appointment created a billing document'; end if;
 end $;
+
+-- An old subscription stops covering the old service after its scheduled replacement date.
+insert into public.clients values ('bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc');
+insert into public.appointments values ('bdbdbdbd-bdbd-4dbd-8dbd-bdbdbdbdbdbd','bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-11-10 10:00-03','completed',null,null,150);
+insert into public.package_subscriptions(id,client_id,vehicle_id,service_id,starts_on,recurring_plan_id,active)
+values ('bebebebe-bebe-4ebe-8ebe-bebebebebebe','bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc','dededede-dede-4ede-8ede-dededededede','efefefef-efef-4fef-8fef-efefefefefef','2026-10-01','c0c0c0c0-c0c0-40c0-80c0-c0c0c0c0c0c0',false);
+insert into public.package_subscriptions(id,client_id,vehicle_id,service_id,starts_on,recurring_plan_id,active,scheduled_effective_on,replaces_subscription_id)
+values ('bfbfbfbf-bfbf-4fbf-8fbf-bfbfbfbfbfbf','bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc','dededede-dede-4ede-8ede-dededededede','c1c1c1c1-c1c1-41c1-81c1-c1c1c1c1c1c1','2026-11-05','c2c2c2c2-c2c2-42c2-82c2-c2c2c2c2c2c2',true,'2026-11-05','bebebebe-bebe-4ebe-8ebe-bebebebebebe');
+do $$ declare v_doc uuid; begin
+ v_doc:=public.issue_selected_monthly_receipt('bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc','2026-11-01','[{"kind":"appointment_extra","id":"bdbdbdbd-bdbd-4dbd-8dbd-bdbdbdbdbdbd","amount":150}]'::jsonb);
+ if (select (snapshot->>'total')::numeric from public.monthly_billing_documents where id=v_doc) <> 150 then raise exception 'Old subscription incorrectly blocked post-replacement avulso'; end if;
+end $$;
