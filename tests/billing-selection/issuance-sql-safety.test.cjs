@@ -19,6 +19,8 @@ test("server rejects paid items and plan-linked appointments",()=>{
  assert.match(sql,/v_charge\.status is distinct from 'pending'/);
  assert.match(sql,/status='paid'/);
  assert.match(sql,/public\.package_subscriptions/);
+ assert.match(sql,/replacement\.replaces_subscription_id=s\.id/);
+ assert.match(sql,/replacement\.scheduled_effective_on <=/);
  assert.match(sql,/v_correction\.classification is distinct from 'avulso'/);
 });
 test("server uses São Paulo month boundaries and no payment writes",()=>{
