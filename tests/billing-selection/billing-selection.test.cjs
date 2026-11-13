@@ -36,6 +36,13 @@ test("subscription superseded before appointment does not cover later service",(
  const ended={...sub,superseded_at:"2026-11-03T12:00:00Z"};
  assert.equal(billingCoverage(ap,[ended],[charge],"2026-11").kind,"review_required");
 });
+test("scheduled replacement ends old subscription coverage on its effective date",()=>{
+ const old={...sub,id:"old",starts_on:"2026-10-01"};
+ const replacement={...sub,id:"new",replaces_subscription_id:"old",scheduled_effective_on:"2026-11-05"};
+ const oldCharge={...charge,subscription_id:"old"};
+ assert.equal(billingCoverage({...ap,starts_at:"2026-11-04T10:00:00"},[old,replacement],[oldCharge],"2026-11").kind,"included_in_plan");
+ assert.equal(billingCoverage({...ap,starts_at:"2026-11-06T10:00:00"},[old,replacement],[oldCharge],"2026-11").kind,"review_required");
+});
 
 test("coverage dates use locale-independent year-month-day parts",()=>{
  const source=require("node:fs").readFileSync("billing-selection-guard.cjs","utf8");
