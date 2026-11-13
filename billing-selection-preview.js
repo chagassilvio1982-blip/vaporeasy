@@ -72,13 +72,13 @@
     const [cr,ar,pc,subs,vr]=await Promise.all([
       sb.from("clients").select("id,name").order("name"),
       sb.from("appointments").select("id,client_id,vehicle_id,service_id,recurring_plan_id,starts_at,final_value").eq("status","completed").is("deleted_at",null).gte("starts_at",k.startIso).lt("starts_at",k.nextIso),
-      sb.from("package_charges").select("id,client_id,vehicle_id,subscription_id,competence_month,amount,status").eq("competence_month",k.startDate).neq("status","cancelled"),
+      sb.from("package_charges").select("id,client_id,vehicle_id,service_id,subscription_id,competence_month,amount,status").eq("competence_month",k.startDate).neq("status","cancelled"),
       sb.from("package_subscriptions").select("id,client_id,vehicle_id,service_id,recurring_plan_id,starts_on,superseded_at,scheduled_effective_on,replaces_subscription_id"),
       sb.from("vehicles").select("id,client_id,brand,model,plate")
     ]);
     for(const response of [cr,ar,pc,subs,vr])if(response.error)throw response.error;
     const appointmentIds=(ar.data||[]).map(x=>x.id);
-    const corrections=appointmentIds.length?await sb.from("appointment_financial_corrections").select("appointment_id,corrected_base_value,corrected_final_value,classification").in("appointment_id",appointmentIds):{data:[],error:null};
+    const corrections=appointmentIds.length?await sb.from("appointment_financial_corrections").select("appointment_id,client_id,corrected_base_value,corrected_final_value,classification").in("appointment_id",appointmentIds):{data:[],error:null};
     if(corrections.error)throw corrections.error;
     const correctionMap=new Map((corrections.data||[]).map(x=>[x.appointment_id,x]));
     const payments=appointmentIds.length?await sb.from("appointment_payments").select("appointment_id,status,amount").in("appointment_id",appointmentIds):{data:[],error:null};
@@ -103,13 +103,13 @@
         const packageIds=chosen.filter(x=>x.kind==="package_charge").map(x=>x.id);
         const appointmentIds=chosen.filter(x=>x.kind==="appointment_extra").map(x=>x.id);
         const [freshCharges,freshPayments,freshAppointments,existingDocument,legacyReceipt,freshSubscriptions,freshCorrections]=await Promise.all([
-          packageIds.length?sb.from("package_charges").select("id,client_id,competence_month,amount,status").in("id",packageIds):Promise.resolve({data:[],error:null}),
+          packageIds.length?sb.from("package_charges").select("id,client_id,vehicle_id,service_id,subscription_id,competence_month,amount,status").in("id",packageIds):Promise.resolve({data:[],error:null}),
           appointmentIds.length?sb.from("appointment_payments").select("appointment_id,status").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null}),
           appointmentIds.length?sb.from("appointments").select("id,client_id,vehicle_id,service_id,starts_at,final_value,status,deleted_at,recurring_plan_id").in("id",appointmentIds):Promise.resolve({data:[],error:null}),
           sb.from("monthly_billing_documents").select("id").eq("client_id",id).eq("competence_month",k.startDate).limit(1),
           sb.from("monthly_receipt_snapshots").select("id").eq("client_id",id).eq("competence_month",k.startDate).limit(1),
-          appointmentIds.length?sb.from("package_subscriptions").select("id,client_id,vehicle_id,service_id,starts_on,superseded_at,scheduled_effective_on,replaces_subscription_id").eq("client_id",id):Promise.resolve({data:[],error:null}),
-          appointmentIds.length?sb.from("appointment_financial_corrections").select("appointment_id,corrected_final_value,classification").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null})
+          sb.from("package_subscriptions").select("id,client_id,vehicle_id,service_id,starts_on,superseded_at,scheduled_effective_on,replaces_subscription_id").eq("client_id",id),
+          appointmentIds.length?sb.from("appointment_financial_corrections").select("appointment_id,client_id,corrected_final_value,classification").in("appointment_id",appointmentIds):Promise.resolve({data:[],error:null})
         ]);
         // Keep previews available while issuance awaits end-to-end verification.
         const missingDocumentTable=existingDocument.error&&(
@@ -121,12 +121,14 @@
         for(const line of chosen){
           if(line.kind==="package_charge"){
             const latest=(freshCharges.data||[]).find(x=>x.id===line.id);
-            if(!latest||latest.status!=="pending"||latest.client_id!==id||String(latest.competence_month).slice(0,7)!==k.month||Number(latest.amount)!==line.amount)throw Error("Mensalidade alterada. Atualize a conferência.");
+            const subscription=(freshSubscriptions.data||[]).find(s=>s.id===latest?.subscription_id);
+            if(!latest||latest.status!=="pending"||latest.client_id!==id||String(latest.competence_month).slice(0,7)!==k.month||Number(latest.amount)!==line.amount||latest.vehicle_id!==line.vehicle_id||latest.service_id!==line.service_id||latest.subscription_id!==line.subscription_id||!subscription||subscription.client_id!==id||subscription.vehicle_id!==latest.vehicle_id||subscription.service_id!==latest.service_id)throw Error("Mensalidade ou vínculo de veículo/assinatura alterado. Atualize a conferência.");
           }else {
             const latest=(freshAppointments.data||[]).find(x=>x.id===line.id);
             const correction=(freshCorrections.data||[]).find(x=>x.appointment_id===line.id);
             const correctedAvulso=correction?.classification==="avulso";
-            if(!latest||latest.client_id!==id||latest.status!=="completed"||latest.deleted_at||saoPauloDate(latest.starts_at).slice(0,7)!==k.month||Number(correction?.corrected_final_value??latest.final_value)!==line.amount )throw Error("Atendimento alterado ou vinculado a plano. Atualize a conferência.");
+            if(correction&&correction.client_id!==id)throw Error("Correção financeira pertence a outro cliente.");
+            if(!latest||latest.client_id!==id||latest.vehicle_id!==line.vehicle_id||latest.service_id!==line.service_id||latest.status!=="completed"||latest.deleted_at||saoPauloDate(latest.starts_at).slice(0,7)!==k.month||Number(correction?.corrected_final_value??latest.final_value)!==line.amount )throw Error("Atendimento, veículo ou valor alterado. Atualize a conferência.");
             if(correction?.classification==="plan")throw Error("Atendimento classificado como plano. Não pode ser cobrado como avulso.");
             if(latest.recurring_plan_id&&!correctedAvulso)throw Error("Atendimento vinculado a recorrência sem correção avulso.");
             if(!correctedAvulso&&(freshSubscriptions.data||[]).some(p=>p.client_id===id&&p.vehicle_id===latest.vehicle_id&&p.service_id===latest.service_id&&String(p.starts_on||"").slice(0,10)<=saoPauloDate(latest.starts_at)&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=saoPauloDate(latest.starts_at))&&!(freshSubscriptions.data||[]).some(r=>r.replaces_subscription_id===p.id&&r.scheduled_effective_on&&String(r.scheduled_effective_on).slice(0,10)<=saoPauloDate(latest.starts_at))))throw Error("Possível vínculo com plano identificado. Atualize a conferência.");
@@ -168,7 +170,11 @@
         input.onchange=()=>{sum=checks.filter(x=>x.input.checked).reduce((n,x)=>n+x.amount,0);total.textContent="Total selecionado: "+format(sum);exportButton.disabled=!checks.some(x=>x.input.checked);issueButton.disabled=!selectedReceiptRendererReady||exportButton.disabled};
         label.append(input,document.createTextNode(" "+name+" · "+format(amount)+" — "+description));rows.append(label);checks.push({input,amount,line});
       }
-      (pc.data||[]).filter(x=>x.client_id===id).forEach(c=>addLine("Plano · "+vehicleLabel(c.vehicle_id),Number(c.amount||0),c.status==="pending",c.status==="paid"?"Já paga":"Pendente",{kind:"package_charge",id:c.id,amount:Number(c.amount||0),status:c.status,client_id:id,competence_month:c.competence_month,label:"Mensalidade do plano · "+vehicleLabel(c.vehicle_id)}));
+      (pc.data||[]).filter(x=>x.client_id===id).forEach(c=>{
+        const subscription=(subs.data||[]).find(s=>s.id===c.subscription_id);
+        const subscriptionMatches=!!subscription&&subscription.client_id===id&&subscription.vehicle_id===c.vehicle_id&&subscription.service_id===c.service_id;
+        addLine("Plano · "+vehicleLabel(c.vehicle_id),Number(c.amount||0),c.status==="pending"&&subscriptionMatches,c.status==="paid"?"Já paga":c.status==="covered"?"Quitada por crédito":!subscriptionMatches?"Assinatura divergente; exige revisão":"Pendente",{kind:"package_charge",id:c.id,amount:Number(c.amount||0),status:c.status,client_id:id,competence_month:c.competence_month,vehicle_id:c.vehicle_id,service_id:c.service_id,subscription_id:c.subscription_id,label:"Mensalidade do plano · "+vehicleLabel(c.vehicle_id)});
+      });
       (ar.data||[]).filter(x=>x.client_id===id).forEach(a=>{
         const coverage=billingCoverage(a,subs.data||[],pc.data||[],k.month);
         const payment=paymentMap.get(a.id);
@@ -176,12 +182,13 @@
         const correction=correctionMap.get(a.id);
         const correctedAvulso=correction?.classification==="avulso";
         const classifiedAsPlan=correction?.classification==="plan";
+        const correctionClientValid=!correction||correction.client_id===a.client_id;
         const linkedToPlan=!correctedAvulso&&(classifiedAsPlan||coverage.kind==="included_in_plan");
         const hasUnverifiedPlanHistory=!correctedAvulso&&(classifiedAsPlan||!!a.recurring_plan_id||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id&&String(p.starts_on||"").slice(0,10)<=serviceDay&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=serviceDay)&&!(subs.data||[]).some(r=>r.replaces_subscription_id===p.id&&r.scheduled_effective_on&&String(r.scheduled_effective_on).slice(0,10)<=serviceDay)));
         const isPaid=payment?.status==="paid";
         const effectiveValue=Number(correction?.corrected_final_value??a.final_value);
-        const isAvulso=!linkedToPlan&&!hasUnverifiedPlanHistory&&(correctedAvulso||coverage.kind==="review_required")&&!isPaid&&effectiveValue>0;
-        addLine("Atendimento "+saoPauloDate(a.starts_at)+" · "+vehicleLabel(a.vehicle_id),effectiveValue,isAvulso,isPaid?"Já pago":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:effectiveValue,status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,label:"Atendimento "+saoPauloDate(a.starts_at)+" · "+vehicleLabel(a.vehicle_id)});
+        const isAvulso=correctionClientValid&&!linkedToPlan&&!hasUnverifiedPlanHistory&&(correctedAvulso||coverage.kind==="review_required")&&!isPaid&&effectiveValue>0;
+        addLine("Atendimento "+saoPauloDate(a.starts_at)+" · "+vehicleLabel(a.vehicle_id),effectiveValue,isAvulso,isPaid?"Já pago":!correctionClientValid?"Correção financeira divergente":coverage.kind==="included_in_plan"?"Incluído no plano":isAvulso?"Avulso disponível":"Exige revisão da cobertura",{kind:"appointment_extra",id:a.id,amount:effectiveValue,status:payment?.status||"pending",coverage_verified:isAvulso,covered_by_plan:coverage.kind==="included_in_plan",client_id:id,competence_month:k.startDate,vehicle_id:a.vehicle_id,service_id:a.service_id,label:"Atendimento "+saoPauloDate(a.starts_at)+" · "+vehicleLabel(a.vehicle_id)});
       });
       total.textContent="Total selecionado: "+format(0);
     };
