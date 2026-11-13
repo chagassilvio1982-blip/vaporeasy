@@ -174,3 +174,18 @@ do $$ declare v_doc uuid; begin
  v_doc:=public.issue_selected_monthly_receipt('bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc','2026-11-01','[{"kind":"appointment_extra","id":"bdbdbdbd-bdbd-4dbd-8dbd-bdbdbdbdbdbd","amount":150}]'::jsonb);
  if (select (snapshot->>'total')::numeric from public.monthly_billing_documents where id=v_doc) <> 150 then raise exception 'Old subscription incorrectly blocked post-replacement avulso'; end if;
 end $$;
+
+-- A financial correction owned by another client cannot authorize this appointment.
+insert into public.clients(id,name) values ('d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1','Cliente correção divergente');
+insert into public.vehicles values ('d2d2d2d2-d2d2-42d2-82d2-d2d2d2d2d2d2','d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1','Audi','A3','ABC2D34');
+insert into public.services values ('d3d3d3d3-d3d3-43d3-83d3-d3d3d3d3d3d3','Estética avulsa');
+insert into public.appointments values ('d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4','d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1','d2d2d2d2-d2d2-42d2-82d2-d2d2d2d2d2d2','d3d3d3d3-d3d3-43d3-83d3-d3d3d3d3d3d3','2026-11-12 10:00-03','completed',null,null,150);
+insert into public.appointment_financial_corrections(appointment_id,client_id,original_base_value,corrected_base_value,corrected_final_value,classification,reason)
+values ('d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4','acacacac-acac-4cac-8cac-acacacacacac',150,150,150,'avulso','Correction client mismatch test');
+do $$ declare v_failed boolean := false; begin
+ begin
+  perform public.issue_selected_monthly_receipt('d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1','2026-11-01','[{"kind":"appointment_extra","id":"d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4","amount":150}]'::jsonb);
+ exception when others then v_failed := true;
+ end;
+ if not v_failed then raise exception 'Correction owned by another client was accepted'; end if;
+end $$;
