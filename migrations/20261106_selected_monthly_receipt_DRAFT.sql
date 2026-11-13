@@ -30,6 +30,8 @@ declare
   v_charge public.package_charges%rowtype;
   v_appointment public.appointments%rowtype;
   v_correction public.appointment_financial_corrections%rowtype;
+  v_client_name text; v_vehicle_id uuid; v_service_id uuid; v_service_date date;
+  v_vehicle_label text; v_service_label text;
 begin
   if auth.uid() is null or not private.is_active_user()
      or private.current_app_role() not in ('owner','admin') then
@@ -41,9 +43,8 @@ begin
      or jsonb_array_length(p_lines) not between 1 and 100 then
     raise exception 'Invalid receipt request';
   end if;
-  if not exists(select 1 from public.clients where id=p_client_id) then
-    raise exception 'Client not found';
-  end if;
+  select name into v_client_name from public.clients where id=p_client_id;
+  if not found then raise exception 'Client not found'; end if;
   perform pg_advisory_xact_lock(hashtextextended(p_client_id::text || ':' || p_competence::text,0));
   if exists(select 1 from public.monthly_receipt_snapshots
             where client_id=p_client_id and competence_month=p_competence) then
@@ -73,6 +74,18 @@ begin
          or v_charge.competence_month is distinct from p_competence or v_charge.status is distinct from 'pending' then
         raise exception 'Package charge not eligible';
       end if;
+      if not exists(
+        select 1 from public.package_subscriptions s
+        where s.id=v_charge.subscription_id
+          and s.client_id=p_client_id
+          and s.vehicle_id=v_charge.vehicle_id
+          and s.service_id=v_charge.service_id
+      ) then
+        raise exception 'Package charge subscription does not match client, vehicle and service';
+      end if;
+      v_vehicle_id := v_charge.vehicle_id;
+      v_service_id := v_charge.service_id;
+      v_service_date := null;
       v_amount := v_charge.amount;
     elsif v_kind = 'appointment_extra' then
       select * into v_appointment from public.appointments where id=v_id for update;
@@ -108,10 +121,24 @@ begin
          and (not found or v_correction.classification is distinct from 'avulso') then
         raise exception 'Recurring appointment requires explicit avulso correction';
       end if;
+      if v_correction.appointment_id is not null
+         and v_correction.client_id is distinct from v_appointment.client_id then
+        raise exception 'Appointment correction client mismatch';
+      end if;
+      v_vehicle_id := v_appointment.vehicle_id;
+      v_service_id := v_appointment.service_id;
+      v_service_date := (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date;
       v_amount := coalesce(v_correction.corrected_final_value,v_appointment.final_value);
     else
       raise exception 'Unsupported item type';
     end if;
+    select concat_ws(' ',nullif(btrim(brand),''),nullif(btrim(model),''))
+           || case when nullif(btrim(plate),'') is null then '' else ' • '||btrim(plate) end
+      into v_vehicle_label
+      from public.vehicles where id=v_vehicle_id and client_id=p_client_id;
+    if not found then raise exception 'Vehicle does not belong to selected client'; end if;
+    select name into v_service_label from public.services where id=v_service_id;
+    if not found then raise exception 'Service not found'; end if;
     if v_amount is null or v_amount <= 0
        or round(v_amount,2) <> v_amount
        or v_amount <> (v_item->>'amount')::numeric then
@@ -119,12 +146,15 @@ begin
     end if;
     v_total := v_total + v_amount;
     v_verified_lines := v_verified_lines || jsonb_build_array(jsonb_build_object(
-      'kind',v_kind,'id',v_id,'amount',v_amount
+      'kind',v_kind,'item_label',case when v_kind='package_charge' then 'Mensalidade do plano' else 'Atendimento avulso' end,
+      'id',v_id,'amount',v_amount,'vehicle_id',v_vehicle_id,'vehicle_label',v_vehicle_label,
+      'service_id',v_service_id,'service_label',v_service_label,'service_date',v_service_date
     ));
   end loop;
   insert into public.monthly_billing_documents(client_id,competence_month,snapshot,issued_by)
   values(p_client_id,p_competence,jsonb_build_object(
-    'schema_version',2,'kind','selected_monthly_receipt',
+    'schema_version',3,'kind','selected_monthly_receipt',
+    'client_name',v_client_name,'competence_month',p_competence,
     'lines',v_verified_lines,'total',v_total,'item_count',v_count
   ),auth.uid()) returning id into v_doc;
   return v_doc;
