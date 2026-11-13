@@ -23,6 +23,13 @@ test("server rejects paid items and plan-linked appointments",()=>{
  assert.match(sql,/replacement\.scheduled_effective_on <=/);
  assert.match(sql,/v_correction\.classification is distinct from 'avulso'/);
 });
+test("server stores immutable client, vehicle and service labels",()=>{
+ assert.match(sql,/\'schema_version\',3/);
+ assert.match(sql,/\'client_name\',v_client_name/);
+ assert.match(sql,/\'vehicle_label\',v_vehicle_label/);
+ assert.match(sql,/\'service_label\',v_service_label/);
+ assert.match(sql,/Package charge subscription does not match client, vehicle and service/);
+});
 test("server uses São Paulo month boundaries and no payment writes",()=>{
  assert.match(sql,/America\/Sao_Paulo/);
  assert.doesNotMatch(sql,/update\s+public\.appointment_payments/i);
