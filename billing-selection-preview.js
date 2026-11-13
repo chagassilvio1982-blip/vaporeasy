@@ -168,8 +168,9 @@
         const serviceDay=saoPauloDate(a.starts_at);
         const correction=correctionMap.get(a.id);
         const correctedAvulso=correction?.classification==="avulso";
-        const linkedToPlan=!correctedAvulso&&coverage.kind==="included_in_plan";
-        const hasUnverifiedPlanHistory=!correctedAvulso&&(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id&&String(p.starts_on||"").slice(0,10)<=serviceDay&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=serviceDay));
+        const classifiedAsPlan=correction?.classification==="plan";
+        const linkedToPlan=!correctedAvulso&&(classifiedAsPlan||coverage.kind==="included_in_plan");
+        const hasUnverifiedPlanHistory=!correctedAvulso&&(classifiedAsPlan||!!a.recurring_plan_id||(subs.data||[]).some(p=>p.client_id===a.client_id&&p.vehicle_id===a.vehicle_id&&p.service_id===a.service_id&&String(p.starts_on||"").slice(0,10)<=serviceDay&&(!p.superseded_at||saoPauloDate(p.superseded_at)>=serviceDay)));
         const isPaid=payment?.status==="paid";
         const effectiveValue=Number(correction?.corrected_final_value??a.final_value);
         const isAvulso=!linkedToPlan&&!hasUnverifiedPlanHistory&&(correctedAvulso||coverage.kind==="review_required")&&!isPaid&&effectiveValue>0;
