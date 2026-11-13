@@ -19,6 +19,10 @@ test("preview rechecks paid status and plan associations",()=>{
   assert.match(preview,/freshSubscriptions\.data/);
   assert.match(preview,/scheduled_effective_on,replaces_subscription_id/);
   assert.match(preview,/r\.replaces_subscription_id===p\.id/);
+  assert.match(preview,/subscriptionMatches/);
+  assert.match(preview,/correctionClientValid/);
+  assert.match(preview,/latest\.vehicle_id!==line\.vehicle_id/);
+  assert.match(preview,/subscription\.client_id!==id/);
   assert.match(preview,/correction\?\.classification==="plan"/);
   assert.match(preview,/latest\.recurring_plan_id&&!correctedAvulso/);
   assert.match(preview,/Possível vínculo com plano/);
