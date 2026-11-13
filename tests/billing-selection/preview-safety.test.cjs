@@ -62,7 +62,11 @@ test("receipt issuance requires user confirmation and server validation",()=>{
  assert.match(preview,/p_lines:payload/);
 });
 
-test("selected monthly document shows vehicle names and real newlines",()=>{
+test("selected monthly document shows immutable snapshot labels and real newlines",()=>{
+ assert.match(preview,/\[2,3\]\.includes\(Number\(snap\.schema_version\)\)/);
+ assert.match(preview,/snap\.client_name/);
+ assert.match(preview,/line\.vehicle_label/);
+ assert.match(preview,/line\.service_label/);
  assert.match(preview,/labels\.get\(line\.kind\+":"\+line\.id\)/);
  assert.match(preview,/\.join\("\\n"\)/);
  assert.match(preview,/selectedReceiptRendererReady=false/);
