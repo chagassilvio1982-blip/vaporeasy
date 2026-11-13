@@ -89,10 +89,14 @@ values ('29292929-2929-4929-8929-292929292929','ffffffff-ffff-4fff-8fff-ffffffff
 insert into public.package_charges values ('22222222-2222-4222-8222-222222222222','29292929-2929-4929-8929-292929292929','ffffffff-ffff-4fff-8fff-ffffffffffff','44444444-4444-4444-8444-444444444444','55555555-5555-4555-8555-555555555555','2026-11-01','paid',390);
 insert into public.vehicles values
  ('44444444-4444-4444-8444-444444444444','ffffffff-ffff-4fff-8fff-ffffffffffff','Mercedes','C-Class','JKL1M23'),
- ('77777777-7777-4777-8777-777777777777','ffffffff-ffff-4fff-8fff-ffffffffffff','Porsche','911','NOP4Q56');
+ ('77777777-7777-4777-8777-777777777777','ffffffff-ffff-4fff-8fff-ffffffffffff','Porsche','911','NOP4Q56'),
+ ('1f1f1f1f-1f1f-41f1-81f1-1f1f1f1f1f1f','ffffffff-ffff-4fff-8fff-ffffffffffff','Audi','A3','ABC3D45');
 insert into public.services values
  ('55555555-5555-4555-8555-555555555555','Plano Premium'),
- ('88888888-8888-4888-8888-888888888888','Estética avulsa');
+ ('88888888-8888-4888-8888-888888888888','Estética avulsa'),
+ ('2f2f2f2f-2f2f-42f2-82f2-2f2f2f2f2f2f','Hidratação de couro');
+insert into public.appointments values
+ ('0f0f0f0f-0f0f-40f0-80f0-0f0f0f0f0f0f','ffffffff-ffff-4fff-8fff-ffffffffffff','1f1f1f1f-1f1f-41f1-81f1-1f1f1f1f1f1f','2f2f2f2f-2f2f-42f2-82f2-2f2f2f2f2f2f','2026-11-09 10:00-03','completed',null,null,150);
 insert into public.appointments values
  ('33333333-3333-4333-8333-333333333333','ffffffff-ffff-4fff-8fff-ffffffffffff','44444444-4444-4444-8444-444444444444','55555555-5555-4555-8555-555555555555','2026-11-07 10:00-03','completed',null,null,150),
  ('66666666-6666-4666-8666-666666666666','ffffffff-ffff-4fff-8fff-ffffffffffff','77777777-7777-4777-8777-777777777777','88888888-8888-4888-8888-888888888888','2026-11-08 10:00-03','completed',null,'99999999-9999-4999-8999-999999999999',150);
@@ -120,7 +124,7 @@ begin
  begin perform public.issue_selected_monthly_receipt('ffffffff-ffff-4fff-8fff-ffffffffffff','2026-11-01',v_lines);
  exception when others then v_failed:=true;end;
  if not v_failed then raise exception 'Another client appointment was accepted';end if;
- v_lines:='[{"kind":"appointment_extra","id":"33333333-3333-4333-8333-333333333333","amount":149}]';
+ v_lines:='[{"kind":"appointment_extra","id":"0f0f0f0f-0f0f-40f0-80f0-0f0f0f0f0f0f","amount":149}]';
  v_failed:=false;
  begin perform public.issue_selected_monthly_receipt('ffffffff-ffff-4fff-8fff-ffffffffffff','2026-11-01',v_lines);
  exception when others then v_failed:=true;end;
