@@ -26,7 +26,7 @@ trap 'rm -f "$FIRST_LOG" "$SECOND_LOG" "$LOCKED_FILE"' EXIT
   psql -v ON_ERROR_STOP=1 >"$FIRST_LOG" 2>&1 <<SQL
 BEGIN;
 SELECT pg_advisory_xact_lock(hashtextextended('${CLIENT_ID}:${COMPETENCE}',0));
-\\! touch "$LOCKED_FILE"
+\! touch "$LOCKED_FILE"
 SELECT pg_sleep(2);
 SELECT public.issue_selected_monthly_receipt('${CLIENT_ID}','${COMPETENCE}','${PAYLOAD}'::jsonb);
 COMMIT;
