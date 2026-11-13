@@ -114,8 +114,9 @@ begin
       select * into v_correction from public.appointment_financial_corrections
         where appointment_id=v_id;
       if v_correction.appointment_id is not null
-         and v_correction.classification is distinct from 'avulso' then
-        raise exception 'Appointment correction is classified as plan';
+         and (v_correction.classification is distinct from 'avulso'
+              or v_correction.client_id is distinct from v_appointment.client_id) then
+        raise exception 'Appointment correction is not valid for this client or classified as plan';
       end if;
       if v_appointment.recurring_plan_id is not null
          and (not found or v_correction.classification is distinct from 'avulso') then
