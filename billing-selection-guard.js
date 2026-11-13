@@ -21,7 +21,12 @@ function billingCoverage(appointment, subscriptions, charges, competence) {
     s.service_id === appointment.service_id &&
     s.recurring_plan_id === appointment.recurring_plan_id &&
     String(s.starts_on || "").slice(0, 10) <= appointmentDay &&
-    (!s.superseded_at || supersededDay(s.superseded_at) >= appointmentDay)
+    (!s.superseded_at || supersededDay(s.superseded_at) >= appointmentDay) &&
+    !(subscriptions || []).some(replacement =>
+      replacement.replaces_subscription_id === s.id &&
+      replacement.scheduled_effective_on &&
+      String(replacement.scheduled_effective_on).slice(0, 10) <= appointmentDay
+    )
   );
   const covered = matching.some(s => (charges || []).some(c =>
     c.subscription_id === s.id &&
