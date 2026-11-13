@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install isolated test dependencies
+        run: npm install --no-audit --no-fund
       - name: Run complete unit suite and save evidence
         shell: bash
         run: |
