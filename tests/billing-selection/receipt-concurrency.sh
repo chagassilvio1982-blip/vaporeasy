@@ -13,8 +13,11 @@ COMPETENCE="2026-12-01"
 PAYLOAD='[{"kind":"package_charge","id":"edededed-eded-4ded-8ded-edededededed","amount":100}]'
 
 psql -v ON_ERROR_STOP=1 -c "insert into public.clients(id) values ('${CLIENT_ID}');
-insert into public.package_charges(id,client_id,competence_month,status,amount)
-values ('${CHARGE_ID}','${CLIENT_ID}','${COMPETENCE}','pending',100);"
+insert into public.vehicles(id,client_id,brand,model,plate) values ('e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1','${CLIENT_ID}','Audi','A4','XYZ1A23');
+insert into public.services(id,name) values ('f1f1f1f1-f1f1-41f1-81f1-f1f1f1f1f1f1','Plano mensal');
+insert into public.package_subscriptions(id,client_id,vehicle_id,service_id,starts_on) values ('e0e0e0e0-e0e0-40e0-80e0-e0e0e0e0e0e0','${CLIENT_ID}','e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1','f1f1f1f1-f1f1-41f1-81f1-f1f1f1f1f1f1','2026-11-01');
+insert into public.package_charges(id,subscription_id,client_id,vehicle_id,service_id,competence_month,status,amount)
+values ('${CHARGE_ID}','e0e0e0e0-e0e0-40e0-80e0-e0e0e0e0e0e0','${CLIENT_ID}','e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1','f1f1f1f1-f1f1-41f1-81f1-f1f1f1f1f1f1','${COMPETENCE}','pending',100);"
 
 FIRST_LOG="$(mktemp)"
 SECOND_LOG="$(mktemp)"
