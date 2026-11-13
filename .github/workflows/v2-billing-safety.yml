@@ -72,3 +72,7 @@ jobs:
         env:
           PGPASSWORD: ci_only
         run: psql -h localhost -U postgres -d receipt_ci -v ON_ERROR_STOP=1 -f tests/billing-selection/receipt-issuance.integration.sql
+      - name: Verify concurrent receipt issuance
+        env:
+          PGPASSWORD: ci_only
+        run: bash tests/billing-selection/receipt-concurrency.sh
