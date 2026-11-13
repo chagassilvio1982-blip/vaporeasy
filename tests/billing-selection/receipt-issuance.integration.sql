@@ -193,3 +193,18 @@ do $$ declare v_failed boolean := false; begin
  end;
  if not v_failed then raise exception 'Correction owned by another client was accepted'; end if;
 end $$;
+
+-- A package charge cannot use a subscription belonging to another client.
+insert into public.clients(id,name) values ('e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1','Cliente cobrança divergente');
+insert into public.vehicles values ('e2e2e2e2-e2e2-42e2-82e2-e2e2e2e2e2e2','e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1','Volvo','XC60','DEF5G67');
+insert into public.services values ('e3e3e3e3-e3e3-43e3-83e3-e3e3e3e3e3e3','Plano Essencial');
+insert into public.package_subscriptions(id,client_id,vehicle_id,service_id,starts_on)
+values ('e4e4e4e4-e4e4-44e4-84e4-e4e4e4e4e4e4','acacacac-acac-4cac-8cac-acacacacacac','e2e2e2e2-e2e2-42e2-82e2-e2e2e2e2e2e2','e3e3e3e3-e3e3-43e3-83e3-e3e3e3e3e3e3','2026-10-01');
+insert into public.package_charges values ('e5e5e5e5-e5e5-45e5-85e5-e5e5e5e5e5e5','e4e4e4e4-e4e4-44e4-84e4-e4e4e4e4e4e4','e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1','e2e2e2e2-e2e2-42e2-82e2-e2e2e2e2e2e2','e3e3e3e3-e3e3-43e3-83e3-e3e3e3e3e3e3','2026-11-01','pending',100);
+do $$ declare v_failed boolean := false; begin
+ begin
+  perform public.issue_selected_monthly_receipt('e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1','2026-11-01','[{"kind":"package_charge","id":"e5e5e5e5-e5e5-45e5-85e5-e5e5e5e5e5e5","amount":100}]'::jsonb);
+ exception when others then v_failed := true;
+ end;
+ if not v_failed then raise exception 'Package charge with another client subscription was accepted'; end if;
+end $$;
