@@ -9,10 +9,12 @@
 
 A tela de seleção trabalha com uma competência mensal calculada no fuso `America/Sao_Paulo`, seleciona um cliente e apresenta linhas individualizadas por veículo:
 
-- mensalidades de plano registradas em `package_charges`;
+- mensalidades de plano registradas em `package_charges`, com validação de correspondência entre cobrança, assinatura, cliente, veículo e serviço;
 - atendimentos concluídos e não excluídos dentro da competência;
-- valor financeiro corrigido quando há registro em `appointment_financial_corrections`;
+- valor financeiro corrigido quando há registro em `appointment_financial_corrections`, com validação de titularidade;
 - identificação do veículo em cada linha;
+- snapshot imutável versão 3 com nome do cliente, competência, veículo, placa, serviço, data do atendimento, valor e tipo de item;
+- compatibilidade de leitura com snapshots versão 2 já existentes;
 - prévia exportável, explicitamente identificada como não emitida.
 
 A seleção não altera pagamentos. A emissão continua desabilitada por `selectedReceiptRendererReady=false`.
