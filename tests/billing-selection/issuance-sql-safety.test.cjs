@@ -29,6 +29,8 @@ test("server stores immutable client, vehicle and service labels",()=>{
  assert.match(sql,/\'vehicle_label\',v_vehicle_label/);
  assert.match(sql,/\'service_label\',v_service_label/);
  assert.match(sql,/Package charge subscription does not match client, vehicle and service/);
+ assert.match(sql,/v_correction\.client_id is distinct from v_appointment\.client_id/);
+ assert.match(sql,/public\.vehicles where id=v_vehicle_id and client_id=p_client_id/);
 });
 test("server uses São Paulo month boundaries and no payment writes",()=>{
  assert.match(sql,/America\/Sao_Paulo/);
