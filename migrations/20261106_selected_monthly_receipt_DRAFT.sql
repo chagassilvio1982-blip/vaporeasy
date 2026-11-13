@@ -88,7 +88,13 @@ begin
                      and s.client_id=p_client_id and s.vehicle_id=v_appointment.vehicle_id
                      and s.service_id=v_appointment.service_id
                      and s.starts_on <= (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date
-                     and (s.superseded_at is null or (s.superseded_at at time zone 'America/Sao_Paulo')::date >= (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date))
+                     and (s.superseded_at is null or (s.superseded_at at time zone 'America/Sao_Paulo')::date >= (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date)
+                     and not exists(
+                       select 1 from public.package_subscriptions replacement
+                       where replacement.replaces_subscription_id=s.id
+                         and replacement.scheduled_effective_on is not null
+                         and replacement.scheduled_effective_on <= (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date
+                     ))
       then
         raise exception 'Appointment not eligible';
       end if;
