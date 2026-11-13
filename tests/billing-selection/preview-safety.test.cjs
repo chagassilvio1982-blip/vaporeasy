@@ -17,6 +17,8 @@ test("preview rechecks existing monthly document before export",()=>{
 test("preview rechecks paid status and plan associations",()=>{
   assert.match(preview,/freshPayments\.data/);
   assert.match(preview,/freshSubscriptions\.data/);
+  assert.match(preview,/scheduled_effective_on,replaces_subscription_id/);
+  assert.match(preview,/replacement\.replaces_subscription_id===p\.id/);
   assert.match(preview,/correction\?\.classification==="plan"/);
   assert.match(preview,/latest\.recurring_plan_id&&!correctedAvulso/);
   assert.match(preview,/Possível vínculo com plano/);
