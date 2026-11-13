@@ -18,18 +18,33 @@ values ('${CHARGE_ID}','${CLIENT_ID}','${COMPETENCE}','pending',100);"
 
 FIRST_LOG="$(mktemp)"
 SECOND_LOG="$(mktemp)"
-trap 'rm -f "$FIRST_LOG" "$SECOND_LOG"' EXIT
+LOCKED_FILE="$(mktemp)"
+rm -f "$LOCKED_FILE"
+trap 'rm -f "$FIRST_LOG" "$SECOND_LOG" "$LOCKED_FILE"' EXIT
 
 (
-  psql -v ON_ERROR_STOP=1 -c "BEGIN;
-    SELECT pg_advisory_xact_lock(hashtextextended('${CLIENT_ID}:${COMPETENCE}',0));
-    SELECT pg_sleep(2);
-    SELECT public.issue_selected_monthly_receipt('${CLIENT_ID}','${COMPETENCE}','${PAYLOAD}'::jsonb);
-    COMMIT;"
-) >"$FIRST_LOG" 2>&1 &
+  psql -v ON_ERROR_STOP=1 >"$FIRST_LOG" 2>&1 <<SQL
+BEGIN;
+SELECT pg_advisory_xact_lock(hashtextextended('${CLIENT_ID}:${COMPETENCE}',0));
+\\! touch "$LOCKED_FILE"
+SELECT pg_sleep(2);
+SELECT public.issue_selected_monthly_receipt('${CLIENT_ID}','${COMPETENCE}','${PAYLOAD}'::jsonb);
+COMMIT;
+SQL
+) &
 FIRST_PID=$!
 
-sleep 0.2
+for _ in {1..50}; do
+  [[ -f "$LOCKED_FILE" ]] && break
+  sleep 0.1
+done
+if [[ ! -f "$LOCKED_FILE" ]]; then
+  echo "First session did not acquire the advisory lock."
+  cat "$FIRST_LOG"
+  wait "$FIRST_PID" || true
+  exit 1
+fi
+
 set +e
 psql -v ON_ERROR_STOP=1 -c "SELECT public.issue_selected_monthly_receipt('${CLIENT_ID}','${COMPETENCE}','${PAYLOAD}'::jsonb);" >"$SECOND_LOG" 2>&1
 SECOND_STATUS=$?
