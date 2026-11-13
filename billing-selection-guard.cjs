@@ -26,7 +26,7 @@ function billingCoverage(appointment, subscriptions, charges, competence) {
   const covered = matching.some(s => (charges || []).some(c =>
     c.subscription_id === s.id &&
     String(c.competence_month).slice(0, 7) === competence &&
-    (c.status === "pending" || c.status === "paid")
+    (c.status === "pending" || c.status === "paid" || c.status === "covered")
   ));
   if (covered) return { kind: "included_in_plan", billable: false };
   return { kind: "review_required", billable: false };
