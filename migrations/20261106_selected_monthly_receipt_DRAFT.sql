@@ -122,10 +122,6 @@ begin
          and (not found or v_correction.classification is distinct from 'avulso') then
         raise exception 'Recurring appointment requires explicit avulso correction';
       end if;
-      if v_correction.appointment_id is not null
-         and v_correction.client_id is distinct from v_appointment.client_id then
-        raise exception 'Appointment correction client mismatch';
-      end if;
       v_vehicle_id := v_appointment.vehicle_id;
       v_service_id := v_appointment.service_id;
       v_service_date := (v_appointment.starts_at at time zone 'America/Sao_Paulo')::date;
